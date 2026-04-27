@@ -13,7 +13,18 @@
       "Bash(npm run *)",
       "Bash(grep -v __pycache__ echo \"---\")",
       "Bash(xargs -I{} ls {})",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(docker compose *)",
+      "PowerShell(docker compose ps *)",
+      "PowerShell(python --version 2>&1)",
+      "PowerShell(psql *)",
+      "PowerShell(netstat *)",
+      "Bash(docker info *)",
+      "Bash(docker-compose up *)",
+      "Bash(curl *)",
+      "Bash(docker restart mnm_backend *)",
+      "Bash(docker exec mnm_backend *)",
+      "Bash(docker exec mnm_frontend *)"
     ]
   }
 }

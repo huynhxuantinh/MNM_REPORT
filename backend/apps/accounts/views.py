@@ -4,6 +4,8 @@ quên/reset/đổi mật khẩu, profile cá nhân.
 """
 from datetime import timedelta
 
+from django.conf import settings
+from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import generics, status
@@ -11,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .permissions import IsAdmin
@@ -22,13 +25,26 @@ from .serializers import (
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
     LoginSerializer,
-    LogoutSerializer,
     RegisterSerializer,
     ResetPasswordSerializer,
     UserSerializer,
     VerifyEmailSerializer,
 )
 from .utils import generate_token, send_password_reset_email, send_verification_email
+
+
+def _set_refresh_cookie(response, refresh_token: str) -> None:
+    """Đặt refresh token vào HTTP-only cookie."""
+    lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME", timedelta(days=7))
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        max_age=int(lifetime.total_seconds()),
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="Lax",
+        path="/",
+    )
 
 
 class RegisterView(APIView):
@@ -43,15 +59,20 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
 
-        token = generate_token()
-        EmailVerificationToken.objects.create(
-            user=user,
-            token=token,
-            expires_at=timezone.now() + timedelta(hours=24),
-        )
-        send_verification_email(user, token)
+        with transaction.atomic():
+            user = serializer.save()
+            token = generate_token()
+            EmailVerificationToken.objects.create(
+                user=user,
+                token=token,
+                expires_at=timezone.now() + timedelta(hours=24),
+            )
+
+        try:
+            send_verification_email(user, token)
+        except Exception:
+            pass  # Gửi email thất bại không ảnh hưởng đến đăng ký
 
         return Response(
             {"detail": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."},
@@ -101,7 +122,7 @@ class VerifyEmailView(APIView):
 class LoginView(APIView):
     """
     POST /api/v1/auth/login/
-    Trả về { access, refresh, user }.
+    Trả về { access, user } — refresh token được đặt vào HTTP-only cookie.
     """
 
     permission_classes = [AllowAny]
@@ -113,37 +134,69 @@ class LoginView(APIView):
         user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)
-        return Response(
+        response = Response(
             {
                 "access": str(refresh.access_token),
-                "refresh": str(refresh),
                 "user": UserSerializer(user).data,
             }
         )
+        _set_refresh_cookie(response, str(refresh))
+        return response
 
 
 class LogoutView(APIView):
     """
     POST /api/v1/auth/logout/
-    Blacklist refresh token để vô hiệu hoá phiên đăng nhập.
+    Blacklist refresh token từ cookie và xóa cookie.
     """
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = LogoutSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        refresh_value = request.COOKIES.get("refresh_token")
+        if refresh_value:
+            try:
+                RefreshToken(refresh_value).blacklist()
+            except TokenError:
+                pass  # Token hết hạn hoặc đã bị blacklist — vẫn xóa cookie
 
-        try:
-            token = RefreshToken(serializer.validated_data["refresh"])
-            token.blacklist()
-        except TokenError:
+        response = Response({"detail": "Đăng xuất thành công."})
+        response.delete_cookie("refresh_token", path="/")
+        return response
+
+
+class CookieTokenRefreshView(APIView):
+    """
+    POST /api/v1/auth/token/refresh/
+    Lấy access token mới từ refresh token trong HTTP-only cookie.
+    Tự động xoay refresh token nếu ROTATE_REFRESH_TOKENS = True.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_value = request.COOKIES.get("refresh_token")
+        if not refresh_value:
             return Response(
-                {"detail": "Token không hợp lệ hoặc đã hết hạn."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "Không tìm thấy refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        return Response({"detail": "Đăng xuất thành công."})
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_value})
+        if not serializer.is_valid():
+            return Response(
+                {"detail": "Token không hợp lệ hoặc đã hết hạn."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        response = Response({"access": serializer.validated_data["access"]})
+
+        # Nếu rotation xảy ra, server trả về refresh mới — cập nhật cookie
+        new_refresh = serializer.validated_data.get("refresh")
+        if new_refresh:
+            _set_refresh_cookie(response, new_refresh)
+
+        return response
 
 
 class ForgotPasswordView(APIView):

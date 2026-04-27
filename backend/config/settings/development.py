@@ -9,5 +9,4 @@ MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-# Ghi email ra console thay vì gửi thật
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email đọc từ .env — mặc định dùng Mailtrap sandbox (xem EMAIL_* trong .env)

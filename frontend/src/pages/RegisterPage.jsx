@@ -90,14 +90,29 @@ const PasswordStrength = ({ password }) => {
 // ── Server error parser ───────────────────────────────────────────────────────
 
 const parseFieldErrors = (err) => {
-  if (!err?.response?.data) return {};
-  const data = err.response.data;
+  const data = err?.response?.data;
+
+  // Lỗi mạng hoặc response không phải JSON
+  if (!data || typeof data !== "object") {
+    return { _general: "Không thể kết nối đến server. Vui lòng thử lại." };
+  }
+
   const result = {};
   ["username", "email", "password"].forEach((f) => {
     if (data[f]) result[f] = Array.isArray(data[f]) ? data[f][0] : data[f];
   });
   if (data.detail) result._general = data.detail;
-  if (data.non_field_errors) result._general = data.non_field_errors[0];
+  if (data.non_field_errors) {
+    result._general = Array.isArray(data.non_field_errors)
+      ? data.non_field_errors[0]
+      : data.non_field_errors;
+  }
+
+  // Fallback nếu không parse được lỗi cụ thể
+  if (Object.keys(result).length === 0) {
+    result._general = "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
+  }
+
   return result;
 };
 
@@ -170,9 +185,10 @@ const RegisterPage = () => {
     setServerErrors({});
     try {
       await authApi.register({
-        username: form.username,
-        email:    form.email,
-        password: form.password,
+        username:         form.username,
+        email:            form.email,
+        password:         form.password,
+        password_confirm: form.confirmPassword,
       });
       setSuccess(true);
     } catch (err) {

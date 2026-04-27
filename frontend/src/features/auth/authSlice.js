@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 import axiosClient from "@/api/axiosClient";
+import { setToken, clearToken } from "@/api/tokenStore";
 
-// ── Helpers ───────────────────────────────────��───────────────���────────────
-
+// Đọc user từ localStorage để hiển thị ngay khi tải trang trước khi initAuth hoàn thành
 const loadUser = () => {
   try {
     const raw = localStorage.getItem("user");
@@ -12,26 +13,40 @@ const loadUser = () => {
   }
 };
 
-const saveAuth = (data) => {
-  localStorage.setItem("access_token", data.access);
-  localStorage.setItem("refresh_token", data.refresh);
-  if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-};
-
-const clearAuth = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-};
-
 // ── Thunks ──────────────────────────────────────────────────────────────────
+
+// Khôi phục phiên từ refresh token (HTTP-only cookie) khi reload trang
+export const initAuth = createAsyncThunk(
+  "auth/initAuth",
+  async (_, { rejectWithValue }) => {
+    try {
+      const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+      const { data: refreshData } = await axios.post(
+        `${baseURL}/auth/token/refresh/`,
+        {},
+        { withCredentials: true }
+      );
+      setToken(refreshData.access);
+
+      const { data: user } = await axiosClient.get("/auth/me/");
+      localStorage.setItem("user", JSON.stringify(user));
+      return user;
+    } catch (err) {
+      clearToken();
+      localStorage.removeItem("user");
+      return rejectWithValue(err.response?.data);
+    }
+  }
+);
 
 export const login = createAsyncThunk(
   "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
-      const { data } = await axiosClient.post("/auth/token/", credentials);
-      saveAuth(data);
+      // Trả về { access, user } — refresh token được server đặt vào HTTP-only cookie
+      const { data } = await axiosClient.post("/auth/login/", credentials);
+      setToken(data.access);
+      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data);
@@ -58,7 +73,8 @@ const authSlice = createSlice({
   name: "auth",
   initialState: {
     user:            loadUser(),
-    isAuthenticated: !!localStorage.getItem("access_token"),
+    isAuthenticated: false,  // Xác nhận qua initAuth, không đọc localStorage
+    initializing:    true,   // True trong khi initAuth đang chạy
     loading:         false,
     error:           null,
   },
@@ -66,8 +82,10 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.isAuthenticated = false;
+      state.initializing = false;
       state.error = null;
-      clearAuth();
+      clearToken();
+      localStorage.removeItem("user");
     },
     setUser(state, { payload }) {
       state.user = payload;
@@ -79,6 +97,21 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ── initAuth ──
+      .addCase(initAuth.pending, (state) => {
+        state.initializing = true;
+      })
+      .addCase(initAuth.fulfilled, (state, { payload }) => {
+        state.initializing = false;
+        state.isAuthenticated = true;
+        state.user = payload;
+      })
+      .addCase(initAuth.rejected, (state) => {
+        state.initializing = false;
+        state.isAuthenticated = false;
+        state.user = null;
+      })
+
       // ── login ──
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -99,10 +132,10 @@ const authSlice = createSlice({
         state.user = payload;
       })
       .addCase(fetchMe.rejected, (state) => {
-        // Token hết hạn → logout
         state.user = null;
         state.isAuthenticated = false;
-        clearAuth();
+        clearToken();
+        localStorage.removeItem("user");
       });
   },
 });

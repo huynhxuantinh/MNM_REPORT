@@ -8,6 +8,7 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 // Protected pages are lazy-loaded to split the initial bundle
 const HomePage          = lazy(() => import("@/pages/HomePage"));
@@ -19,7 +20,7 @@ const QuizPage          = lazy(() => import("@/pages/QuizPage"));
 const ProfilePage       = lazy(() => import("@/pages/ProfilePage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const AdminPage         = lazy(() => import("@/pages/AdminPage"));
-import { fetchMe } from "@/features/auth/authSlice";
+import { initAuth } from "@/features/auth/authSlice";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const PageFallback = () => (
@@ -30,25 +31,24 @@ const PageFallback = () => (
 
 // Redirect logged-in users away from auth pages
 const GuestRoute = ({ children }) => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, initializing } = useSelector((state) => state.auth);
+  if (initializing) return <PageFallback />;
   return isAuthenticated ? <Navigate to="/" replace /> : children;
 };
 
 // Redirect unauthenticated users to login
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, initializing } = useSelector((state) => state.auth);
+  if (initializing) return <PageFallback />;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 const App = () => {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
 
-  // Khôi phục user profile khi reload trang
+  // Khôi phục phiên từ refresh token cookie khi reload trang
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchMe());
-    }
+    dispatch(initAuth());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -59,6 +59,7 @@ const App = () => {
         <Route path="/register"       element={<GuestRoute><RegisterPage /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
         <Route path="/reset-password"  element={<ResetPasswordPage />} />
+        <Route path="/verify-email"    element={<VerifyEmailPage />} />
 
         {/* ── Protected routes ── */}
         <Route

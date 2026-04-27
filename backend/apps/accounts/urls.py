@@ -1,12 +1,12 @@
 """URL patterns cho module accounts."""
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     AdminStatsView,
     AdminUserListView,
     AdminUserUpdateView,
     ChangePasswordView,
+    CookieTokenRefreshView,
     ForgotPasswordView,
     LoginView,
     LogoutView,
@@ -24,7 +24,7 @@ urlpatterns = [
     # ── JWT ───────────────────────────────────────────────────────
     path("login/", LoginView.as_view(), name="auth-login"),
     path("logout/", LogoutView.as_view(), name="auth-logout"),
-    path("token/refresh/", TokenRefreshView.as_view(), name="auth-token-refresh"),
+    path("token/refresh/", CookieTokenRefreshView.as_view(), name="auth-token-refresh"),
 
     # ── Mật khẩu ─────────────────────────────────────────────────
     path("forgot-password/", ForgotPasswordView.as_view(), name="auth-forgot-password"),

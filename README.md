@@ -117,8 +117,8 @@ cd backend
 
 # Tạo và kích hoạt virtualenv
 python -m venv .venv
-source .venv/bin/activate          # Linux/macOS
-# .venv\Scripts\activate           # Windows
+ #source .venv/bin/activate          # Linux/macOS
+ .venv\Scripts\activate           # Windows
 
 # Cài đặt dependencies
 pip install -r requirements/development.txt
