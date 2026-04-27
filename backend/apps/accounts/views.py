@@ -1,0 +1,323 @@
+"""
+Views cho toàn bộ luồng xác thực: đăng ký, login, logout,
+quên/reset/đổi mật khẩu, profile cá nhân.
+"""
+from datetime import timedelta
+
+from django.db.models import Count
+from django.utils import timezone
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .permissions import IsAdmin
+from .throttles import LoginRateThrottle, PasswordResetRateThrottle, RegisterRateThrottle
+
+from .models import EmailVerificationToken, PasswordResetToken, User
+from .serializers import (
+    AdminUserSerializer,
+    ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    LoginSerializer,
+    LogoutSerializer,
+    RegisterSerializer,
+    ResetPasswordSerializer,
+    UserSerializer,
+    VerifyEmailSerializer,
+)
+from .utils import generate_token, send_password_reset_email, send_verification_email
+
+
+class RegisterView(APIView):
+    """
+    POST /api/v1/auth/register/
+    Tạo tài khoản mới với is_active=False, gửi email xác thực.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [RegisterRateThrottle]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        token = generate_token()
+        EmailVerificationToken.objects.create(
+            user=user,
+            token=token,
+            expires_at=timezone.now() + timedelta(hours=24),
+        )
+        send_verification_email(user, token)
+
+        return Response(
+            {"detail": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class VerifyEmailView(APIView):
+    """
+    POST /api/v1/auth/verify-email/
+    Kích hoạt tài khoản bằng token trong email.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token_value = serializer.validated_data["token"]
+
+        try:
+            token_obj = EmailVerificationToken.objects.select_related("user").get(
+                token=token_value
+            )
+        except EmailVerificationToken.DoesNotExist:
+            return Response(
+                {"detail": "Token không hợp lệ."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if timezone.now() > token_obj.expires_at:
+            token_obj.delete()
+            return Response(
+                {"detail": "Token đã hết hạn. Vui lòng đăng ký lại."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = token_obj.user
+        user.is_active = True
+        user.email_verified = True
+        user.save(update_fields=["is_active", "email_verified"])
+        token_obj.delete()
+
+        return Response({"detail": "Email đã được xác thực. Bạn có thể đăng nhập."})
+
+
+class LoginView(APIView):
+    """
+    POST /api/v1/auth/login/
+    Trả về { access, refresh, user }.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user).data,
+            }
+        )
+
+
+class LogoutView(APIView):
+    """
+    POST /api/v1/auth/logout/
+    Blacklist refresh token để vô hiệu hoá phiên đăng nhập.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            token = RefreshToken(serializer.validated_data["refresh"])
+            token.blacklist()
+        except TokenError:
+            return Response(
+                {"detail": "Token không hợp lệ hoặc đã hết hạn."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"detail": "Đăng xuất thành công."})
+
+
+class ForgotPasswordView(APIView):
+    """
+    POST /api/v1/auth/forgot-password/
+    Gửi email reset mật khẩu. Luôn trả 200 để không tiết lộ email tồn tại hay không.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
+
+    _GENERIC_MSG = "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn trong vài phút."
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"].lower()
+
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return Response({"detail": self._GENERIC_MSG})
+
+        # Xoá các token reset cũ chưa dùng của user này
+        PasswordResetToken.objects.filter(user=user, is_used=False).delete()
+
+        token = generate_token()
+        PasswordResetToken.objects.create(
+            user=user,
+            token=token,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        send_password_reset_email(user, token)
+
+        return Response({"detail": self._GENERIC_MSG})
+
+
+class ResetPasswordView(APIView):
+    """
+    POST /api/v1/auth/reset-password/
+    Đặt mật khẩu mới bằng token từ email.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token_value = serializer.validated_data["token"]
+        new_password = serializer.validated_data["password"]
+
+        try:
+            token_obj = PasswordResetToken.objects.select_related("user").get(
+                token=token_value, is_used=False
+            )
+        except PasswordResetToken.DoesNotExist:
+            return Response(
+                {"detail": "Token không hợp lệ hoặc đã được sử dụng."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if timezone.now() > token_obj.expires_at:
+            return Response(
+                {"detail": "Token đã hết hạn. Vui lòng yêu cầu đặt lại mật khẩu lần nữa."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = token_obj.user
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        token_obj.is_used = True
+        token_obj.save(update_fields=["is_used"])
+
+        return Response(
+            {"detail": "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại."}
+        )
+
+
+class ChangePasswordView(APIView):
+    """
+    PUT /api/v1/auth/change-password/
+    Đổi mật khẩu khi đã đăng nhập – yêu cầu mật khẩu cũ.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        request.user.set_password(serializer.validated_data["new_password"])
+        request.user.save(update_fields=["password"])
+
+        return Response({"detail": "Mật khẩu đã được thay đổi thành công."})
+
+
+class MeView(APIView):
+    """
+    GET  /api/v1/auth/me/ – Lấy thông tin cá nhân
+    PUT  /api/v1/auth/me/ – Cập nhật profile (full_name, avatar_url, notification_enabled)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def put(self, request):
+        serializer = UserSerializer(
+            request.user, data=request.data, partial=True, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ADMIN
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AdminUserListView(generics.ListAPIView):
+    """GET /api/v1/auth/admin/users/ – Danh sách tất cả người dùng."""
+
+    permission_classes = [IsAdmin]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):
+        qs = User.objects.all().order_by("-created_at")
+        role = self.request.query_params.get("role")
+        if role:
+            qs = qs.filter(role=role)
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(email__icontains=search) | User.objects.filter(
+                full_name__icontains=search
+            ).order_by("-created_at")
+        return qs
+
+
+class AdminUserUpdateView(generics.UpdateAPIView):
+    """PATCH /api/v1/auth/admin/users/{id}/ – Cập nhật role / is_active."""
+
+    permission_classes = [IsAdmin]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return super().update(request, *args, **kwargs)
+
+
+class AdminStatsView(APIView):
+    """GET /api/v1/auth/admin/stats/ – Thống kê hệ thống."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from apps.vocabulary.models import Word, WordSet
+        from apps.learning.models import Lesson, ReviewLog
+        return Response({
+            "total_users":    User.objects.count(),
+            "students":       User.objects.filter(role="user").count(),
+            "teachers":       User.objects.filter(role="teacher").count(),
+            "admins":         User.objects.filter(role="admin").count(),
+            "active_users":   User.objects.filter(is_active=True).count(),
+            "total_words":    Word.objects.count(),
+            "total_wordsets": WordSet.objects.count(),
+            "total_lessons":  Lesson.objects.count(),
+            "total_reviews":  ReviewLog.objects.count(),
+        })

@@ -1,0 +1,28 @@
+"""URL patterns cho learning module."""
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from .views import (
+    AssignmentViewSet,
+    LessonViewSet,
+    NotificationViewSet,
+    ReviewAnswerView,
+    ReviewHistoryView,
+    ReviewListView,
+    ReviewSummaryView,
+)
+
+router = DefaultRouter()
+router.register("lessons", LessonViewSet, basename="lesson")
+router.register("assignments", AssignmentViewSet, basename="assignment")
+router.register("notifications", NotificationViewSet, basename="notification")
+
+urlpatterns = [
+    path("", include(router.urls)),
+
+    # ── Review SRS ───────────────────────────────────────────────
+    path("review/", ReviewListView.as_view(), name="review-list"),
+    path("review/summary/", ReviewSummaryView.as_view(), name="review-summary"),
+    path("review/history/", ReviewHistoryView.as_view(), name="review-history"),
+    path("review/<int:word_id>/answer/", ReviewAnswerView.as_view(), name="review-answer"),
+]

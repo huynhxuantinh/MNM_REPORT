@@ -1,0 +1,212 @@
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  /* Four-tier green system */
+  --clr-green-starbucks: #006241;
+  --clr-green-accent:    #00754A;
+  --clr-green-house:     #1E3932;
+  --clr-green-uplift:    #2b5148;
+  --clr-green-light:     #d4e9e2;
+
+  /* Gold – Rewards only */
+  --clr-gold:         #cba258;
+  --clr-gold-light:   #dfc49d;
+  --clr-gold-lightest:#faf6ee;
+
+  /* Surface / Canvas */
+  --clr-neutral-warm: #f2f0eb;
+  --clr-ceramic:      #edebe9;
+  --clr-neutral-cool: #f9f9f9;
+  --clr-white:        #ffffff;
+
+  /* Text */
+  --clr-text-black:      rgba(0, 0, 0, 0.87);
+  --clr-text-black-soft: rgba(0, 0, 0, 0.58);
+  --clr-text-white:      rgba(255, 255, 255, 1);
+  --clr-text-white-soft: rgba(255, 255, 255, 0.70);
+  --clr-rewards-green:   #33433d;
+
+  /* Semantic */
+  --clr-red:   #c82014;
+  --clr-gold:  #cba258;
+
+  /* Spacing scale (1rem = 16px default) */
+  --space-1:  0.25rem;   /*  4px */
+  --space-2:  0.5rem;    /*  8px */
+  --space-3:  1rem;      /* 16px – default outer gutter / card pad baseline */
+  --space-4:  1.5rem;    /* 24px */
+  --space-5:  2rem;      /* 32px */
+  --space-6:  2.5rem;    /* 40px */
+  --space-7:  3rem;      /* 48px */
+  --space-8:  3.5rem;    /* 56px – Frap height */
+  --space-9:  4rem;      /* 64px */
+
+  /* Radius */
+  --radius-card:   12px;
+  --radius-button: 50px;
+  --radius-input:  8px;
+  --radius-circle: 50%;
+
+  /* Shadows */
+  --shadow-card: 0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24);
+  --shadow-nav:  0 1px 3px rgba(0,0,0,0.10), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07);
+  --shadow-frap: 0 0 6px rgba(0,0,0,0.24), 0 8px 12px rgba(0,0,0,0.14);
+
+  /* Layout */
+  --sidebar-width:   260px;
+  --header-height:   64px;
+  --outer-gutter:    var(--space-3);
+
+  /* Animation */
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.32, 2.32, 0.61, 0.27);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Nunito", "Inter", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--clr-neutral-warm);
+  color: var(--clr-text-black);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover { text-decoration: underline; }
+
+img {
+  max-width: 100%;
+  display: block;
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--clr-green-light) transparent;
+}
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--clr-green-light);
+  border-radius: 3px;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────── */
+.text-green       { color: var(--clr-green-starbucks); }
+.text-accent      { color: var(--clr-green-accent); }
+.text-gold        { color: var(--clr-gold); }
+.text-muted       { color: var(--clr-text-black-soft); }
+.text-white       { color: var(--clr-text-white); }
+.text-white-soft  { color: var(--clr-text-white-soft); }
+
+.bg-warm          { background-color: var(--clr-neutral-warm); }
+.bg-house         { background-color: var(--clr-green-house); }
+.bg-white         { background-color: var(--clr-white); }
+.bg-gold-lightest { background-color: var(--clr-gold-lightest); }
+
+.canvas-warm {
+  background-color: var(--clr-neutral-warm);
+  min-height: 100vh;
+}
+
+/* ── Feature band (dark-green section) ──────────────────────────────────── */
+.feature-band {
+  background-color: var(--clr-green-house);
+  color: var(--clr-text-white);
+  padding: var(--space-9) var(--space-3);
+}
+
+/* ── Card base ──────────────────────────────────────────────────────────── */
+.sb-card {
+  background: var(--clr-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+/* ── Pill badge ──────────────────────────────────────────────────────────── */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  border-radius: var(--radius-button);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+.pill-badge--green {
+  background-color: var(--clr-green-light);
+  color: var(--clr-green-house);
+}
+.pill-badge--gold {
+  border: 1px solid var(--clr-gold);
+  color: var(--clr-gold);
+  background: transparent;
+}
+.pill-badge--accent {
+  background-color: var(--clr-green-accent);
+  color: #fff;
+}
+
+/* ── Frap floating button ────────────────────────────────────────────────── */
+.frap-btn {
+  position: fixed;
+  bottom: calc(var(--space-4) + 0.5rem);
+  right: calc(var(--space-4) + 0.5rem);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--clr-green-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-frap);
+  transition: all 0.2s ease;
+  z-index: 1200;
+}
+.frap-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 6px rgba(0,0,0,0.24), 0 8px 12px rgba(0,0,0,0);
+}
+
+/* ── Page transition ─────────────────────────────────────────────────────── */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
