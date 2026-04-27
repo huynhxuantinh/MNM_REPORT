@@ -10,6 +10,7 @@ from .views import (
     ReviewHistoryView,
     ReviewListView,
     ReviewSummaryView,
+    TeacherStatsView,
 )
 
 router = DefaultRouter()
@@ -25,4 +26,7 @@ urlpatterns = [
     path("review/summary/", ReviewSummaryView.as_view(), name="review-summary"),
     path("review/history/", ReviewHistoryView.as_view(), name="review-history"),
     path("review/<int:word_id>/answer/", ReviewAnswerView.as_view(), name="review-answer"),
+
+    # ── Teacher ──────────────────────────────────────────────────
+    path("teacher/stats/", TeacherStatsView.as_view(), name="teacher-stats"),
 ]

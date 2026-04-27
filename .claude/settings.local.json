@@ -24,7 +24,8 @@
       "Bash(curl *)",
       "Bash(docker restart mnm_backend *)",
       "Bash(docker exec mnm_backend *)",
-      "Bash(docker exec mnm_frontend *)"
+      "Bash(docker exec mnm_frontend *)",
+      "Bash(docker restart *)"
     ]
   }
 }

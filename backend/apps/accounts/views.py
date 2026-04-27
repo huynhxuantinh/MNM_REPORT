@@ -16,7 +16,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .permissions import IsAdmin
+from .permissions import IsAdmin, IsTeacherOrAdmin
 from .throttles import LoginRateThrottle, PasswordResetRateThrottle, RegisterRateThrottle
 
 from .models import EmailVerificationToken, PasswordResetToken, User
@@ -374,3 +374,22 @@ class AdminStatsView(APIView):
             "total_lessons":  Lesson.objects.count(),
             "total_reviews":  ReviewLog.objects.count(),
         })
+
+
+class TeacherStudentListView(generics.ListAPIView):
+    """
+    GET /api/v1/auth/teacher/students/
+    Danh sách học sinh dành cho giáo viên chọn khi giao bài.
+    Hỗ trợ tìm kiếm theo tên và email qua ?search=.
+    """
+
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):
+        from django.db.models import Q
+        qs = User.objects.filter(role="user", is_active=True).order_by("full_name", "email")
+        search = self.request.query_params.get("search", "").strip()
+        if search:
+            qs = qs.filter(Q(email__icontains=search) | Q(full_name__icontains=search))
+        return qs

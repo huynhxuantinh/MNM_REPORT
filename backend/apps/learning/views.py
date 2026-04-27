@@ -455,6 +455,40 @@ class ReviewHistoryView(APIView):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  TEACHER
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TeacherStatsView(APIView):
+    """
+    GET /api/v1/learning/teacher/stats/
+    Thống kê tổng quan cho giáo viên: số bài học, số bài giao,
+    số học sinh, 5 bài học gần nhất, 5 assignment gần nhất.
+    """
+
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+
+    def get(self, request):
+        user = request.user
+        lessons_qs = Lesson.objects.filter(created_by=user).annotate(
+            word_count=Count("words", distinct=True)
+        )
+        assignments_qs = Assignment.objects.filter(teacher=user).select_related(
+            "lesson", "student"
+        )
+        return Response({
+            "lesson_count":      lessons_qs.count(),
+            "assignment_count":  assignments_qs.count(),
+            "student_count":     assignments_qs.values("student").distinct().count(),
+            "recent_lessons":    LessonSerializer(
+                lessons_qs.order_by("-created_at")[:5], many=True
+            ).data,
+            "recent_assignments": AssignmentSerializer(
+                assignments_qs.order_by("-created_at")[:5], many=True
+            ).data,
+        })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  NOTIFICATION
 # ══════════════════════════════════════════════════════════════════════════════
 

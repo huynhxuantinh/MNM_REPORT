@@ -71,7 +71,15 @@ const LoginPage = () => {
 
     const result = await dispatch(login({ email: form.email, password: form.password }));
     if (login.fulfilled.match(result)) {
-      navigate(from, { replace: true });
+      // Nếu user đang bị redirect từ trang cụ thể thì về đó, không thì redirect theo role
+      if (from !== "/") {
+        navigate(from, { replace: true });
+      } else {
+        const role = result.payload?.user?.role;
+        if (role === "admin")   navigate("/admin",   { replace: true });
+        else if (role === "teacher") navigate("/teacher", { replace: true });
+        else                    navigate("/",        { replace: true });
+      }
     }
   };
 

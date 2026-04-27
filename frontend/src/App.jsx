@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Box, CircularProgress } from "@mui/material";
 import MainLayout from "@/components/layout/MainLayout";
+import TeacherLayout from "@/components/layout/TeacherLayout";
 // Auth pages load immediately (shown before JS hydrates)
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -20,6 +21,11 @@ const QuizPage          = lazy(() => import("@/pages/QuizPage"));
 const ProfilePage       = lazy(() => import("@/pages/ProfilePage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const AdminPage         = lazy(() => import("@/pages/AdminPage"));
+// Teacher feature pages
+const TeacherDashboard  = lazy(() => import("@/features/teacher/TeacherDashboard"));
+const TeacherLessons    = lazy(() => import("@/features/teacher/TeacherLessons"));
+const TeacherAssignments = lazy(() => import("@/features/teacher/TeacherAssignments"));
+const TeacherStudents   = lazy(() => import("@/features/teacher/TeacherStudents"));
 import { initAuth } from "@/features/auth/authSlice";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -29,11 +35,14 @@ const PageFallback = () => (
   </Box>
 );
 
-// Redirect logged-in users away from auth pages
+// Redirect logged-in users away from auth pages — về đúng trang theo role
 const GuestRoute = ({ children }) => {
-  const { isAuthenticated, initializing } = useSelector((state) => state.auth);
+  const { isAuthenticated, initializing, user } = useSelector((state) => state.auth);
   if (initializing) return <PageFallback />;
-  return isAuthenticated ? <Navigate to="/" replace /> : children;
+  if (!isAuthenticated) return children;
+  if (user?.role === "admin")   return <Navigate to="/admin"   replace />;
+  if (user?.role === "teacher") return <Navigate to="/teacher" replace />;
+  return <Navigate to="/" replace />;
 };
 
 // Redirect unauthenticated users to login
@@ -41,6 +50,15 @@ const PrivateRoute = ({ children }) => {
   const { isAuthenticated, initializing } = useSelector((state) => state.auth);
   if (initializing) return <PageFallback />;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Teacher/admin only — redirect others back to their home
+const TeacherRoute = ({ children }) => {
+  const { isAuthenticated, initializing, user } = useSelector((state) => state.auth);
+  if (initializing) return <PageFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== "teacher" && user?.role !== "admin") return <Navigate to="/" replace />;
+  return children;
 };
 
 const App = () => {
@@ -79,6 +97,21 @@ const App = () => {
           <Route path="profile"              element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ProfilePage /></Suspense></ErrorBoundary>} />
           <Route path="notifications"        element={<ErrorBoundary><Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense></ErrorBoundary>} />
           <Route path="admin"                element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminPage /></Suspense></ErrorBoundary>} />
+        </Route>
+
+        {/* ── Teacher portal — completely separate from student layout ── */}
+        <Route
+          path="/teacher"
+          element={
+            <TeacherRoute>
+              <TeacherLayout />
+            </TeacherRoute>
+          }
+        >
+          <Route index element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherDashboard /></Suspense></ErrorBoundary>} />
+          <Route path="lessons"     element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherLessons /></Suspense></ErrorBoundary>} />
+          <Route path="assignments" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherAssignments /></Suspense></ErrorBoundary>} />
+          <Route path="students"    element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherStudents /></Suspense></ErrorBoundary>} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

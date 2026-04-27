@@ -11,6 +11,7 @@ import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import CastForEducationRoundedIcon from "@mui/icons-material/CastForEducationRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import { SbAvatar } from "@/components/ui";
@@ -28,7 +29,11 @@ const BASE_NAV = [
 ];
 
 const ADMIN_NAV = [
-  { label: "Quản trị",   to: "/admin",          icon: <AdminPanelSettingsRoundedIcon />, roles: ["admin"] },
+  { label: "Quản trị",   to: "/admin",          icon: <AdminPanelSettingsRoundedIcon /> },
+];
+
+const TEACHER_NAV = [
+  { label: "Giáo viên",  to: "/teacher",        icon: <CastForEducationRoundedIcon /> },
 ];
 
 const getLevelXp = (level) => 100 * level * (level + 1) / 2;
@@ -39,6 +44,7 @@ const SidebarContent = () => {
 
   const NAV_ITEMS = [
     ...BASE_NAV,
+    ...(["teacher", "admin"].includes(user?.role) ? TEACHER_NAV : []),
     ...(user?.role === "admin" ? ADMIN_NAV : []),
   ];
 

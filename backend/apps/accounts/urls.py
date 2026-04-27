@@ -13,6 +13,7 @@ from .views import (
     MeView,
     RegisterView,
     ResetPasswordView,
+    TeacherStudentListView,
     VerifyEmailView,
 )
 
@@ -38,4 +39,7 @@ urlpatterns = [
     path("admin/users/",          AdminUserListView.as_view(),          name="admin-users"),
     path("admin/users/<int:pk>/", AdminUserUpdateView.as_view(),        name="admin-user-update"),
     path("admin/stats/",          AdminStatsView.as_view(),             name="admin-stats"),
+
+    # ── Teacher ───────────────────────────────────────────────────────────────
+    path("teacher/students/",     TeacherStudentListView.as_view(),     name="teacher-students"),
 ]
