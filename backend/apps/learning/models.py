@@ -12,12 +12,13 @@ class Lesson(models.Model):
     """Bảng Lesson – đơn vị học tập cơ bản do giáo viên thiết kế."""
 
     class Level(models.TextChoices):
-        A1 = "A1", "A1"
-        A2 = "A2", "A2"
-        B1 = "B1", "B1"
-        B2 = "B2", "B2"
-        C1 = "C1", "C1"
-        C2 = "C2", "C2"
+        A1    = "A1",    "A1"
+        A2    = "A2",    "A2"
+        B1    = "B1",    "B1"
+        B2    = "B2",    "B2"
+        C1    = "C1",    "C1"
+        C2    = "C2",    "C2"
+        TOEIC = "TOEIC", "TOEIC"
 
     title = models.CharField("Tiêu đề", max_length=200)
     description = models.TextField("Mô tả", blank=True)

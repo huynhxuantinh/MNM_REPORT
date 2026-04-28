@@ -160,7 +160,7 @@ class LogoutSerializer(serializers.Serializer):
 # ── Admin ───────────────────────────────────────────────────────────────────
 
 class AdminUserSerializer(serializers.ModelSerializer):
-    """Dùng cho admin – hiển thị & cập nhật role."""
+    """Dùng cho admin – hiển thị & cập nhật role / is_active."""
 
     class Meta:
         model = User
@@ -171,5 +171,5 @@ class AdminUserSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id", "email", "username", "xp", "level",
-            "is_active", "email_verified", "created_at",
+            "email_verified", "created_at",
         )

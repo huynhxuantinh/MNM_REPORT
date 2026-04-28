@@ -361,18 +361,31 @@ class AdminStatsView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
         from apps.vocabulary.models import Word, WordSet
-        from apps.learning.models import Lesson, ReviewLog
+        from apps.learning.models import Lesson, ReviewLog, Assignment
+        from apps.quiz.models import QuizResult
+
+        today = timezone.now().date()
+        week_ago = timezone.now() - timedelta(days=7)
+
         return Response({
-            "total_users":    User.objects.count(),
-            "students":       User.objects.filter(role="user").count(),
-            "teachers":       User.objects.filter(role="teacher").count(),
-            "admins":         User.objects.filter(role="admin").count(),
-            "active_users":   User.objects.filter(is_active=True).count(),
-            "total_words":    Word.objects.count(),
-            "total_wordsets": WordSet.objects.count(),
-            "total_lessons":  Lesson.objects.count(),
-            "total_reviews":  ReviewLog.objects.count(),
+            "total_users":         User.objects.count(),
+            "students":            User.objects.filter(role="user").count(),
+            "teachers":            User.objects.filter(role="teacher").count(),
+            "admins":              User.objects.filter(role="admin").count(),
+            "active_users":        User.objects.filter(is_active=True).count(),
+            "inactive_users":      User.objects.filter(is_active=False).count(),
+            "new_users_this_week": User.objects.filter(date_joined__gte=week_ago).count(),
+            "total_words":         Word.objects.count(),
+            "total_wordsets":      WordSet.objects.count(),
+            "total_lessons":       Lesson.objects.count(),
+            "published_lessons":   Lesson.objects.filter(is_published=True).count(),
+            "total_reviews":       ReviewLog.objects.count(),
+            "reviews_today":       ReviewLog.objects.filter(last_reviewed=today).count(),
+            "total_assignments":   Assignment.objects.count(),
+            "total_quiz_results":  QuizResult.objects.count(),
         })
 
 

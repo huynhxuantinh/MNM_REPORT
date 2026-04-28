@@ -10,6 +10,10 @@ psycopg2-binary==2.9.9
 django-redis==5.4.0
 redis==5.0.4
 
+# ── Celery ────────────────────────────────────────────────────────
+celery==5.4.0
+django-celery-beat==2.6.0
+
 # ── Authentication ────────────────────────────────────────────────
 djangorestframework-simplejwt==5.3.1
 

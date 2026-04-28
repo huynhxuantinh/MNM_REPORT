@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { Box, CircularProgress } from "@mui/material";
 import MainLayout from "@/components/layout/MainLayout";
 import TeacherLayout from "@/components/layout/TeacherLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 // Auth pages load immediately (shown before JS hydrates)
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -20,12 +21,15 @@ const ReviewPage        = lazy(() => import("@/pages/ReviewPage"));
 const QuizPage          = lazy(() => import("@/pages/QuizPage"));
 const ProfilePage       = lazy(() => import("@/pages/ProfilePage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
-const AdminPage         = lazy(() => import("@/pages/AdminPage"));
 // Teacher feature pages
-const TeacherDashboard  = lazy(() => import("@/features/teacher/TeacherDashboard"));
-const TeacherLessons    = lazy(() => import("@/features/teacher/TeacherLessons"));
+const TeacherDashboard   = lazy(() => import("@/features/teacher/TeacherDashboard"));
+const TeacherLessons     = lazy(() => import("@/features/teacher/TeacherLessons"));
 const TeacherAssignments = lazy(() => import("@/features/teacher/TeacherAssignments"));
-const TeacherStudents   = lazy(() => import("@/features/teacher/TeacherStudents"));
+const TeacherStudents    = lazy(() => import("@/features/teacher/TeacherStudents"));
+// Admin feature pages
+const AdminDashboard = lazy(() => import("@/features/admin/AdminDashboard"));
+const AdminUsers     = lazy(() => import("@/features/admin/AdminUsers"));
+const AdminContent   = lazy(() => import("@/features/admin/AdminContent"));
 import { initAuth } from "@/features/auth/authSlice";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -58,6 +62,15 @@ const TeacherRoute = ({ children }) => {
   if (initializing) return <PageFallback />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "teacher" && user?.role !== "admin") return <Navigate to="/" replace />;
+  return children;
+};
+
+// Admin only — redirect non-admins
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, initializing, user } = useSelector((state) => state.auth);
+  if (initializing) return <PageFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
   return children;
 };
 
@@ -96,7 +109,20 @@ const App = () => {
           <Route path="quiz"                 element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />
           <Route path="profile"              element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ProfilePage /></Suspense></ErrorBoundary>} />
           <Route path="notifications"        element={<ErrorBoundary><Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense></ErrorBoundary>} />
-          <Route path="admin"                element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminPage /></Suspense></ErrorBoundary>} />
+        </Route>
+
+        {/* ── Admin portal — completely separate layout ── */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index        element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminDashboard /></Suspense></ErrorBoundary>} />
+          <Route path="users"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminUsers /></Suspense></ErrorBoundary>} />
+          <Route path="content" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminContent /></Suspense></ErrorBoundary>} />
         </Route>
 
         {/* ── Teacher portal — completely separate from student layout ── */}

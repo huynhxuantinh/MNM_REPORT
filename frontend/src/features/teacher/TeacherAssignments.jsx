@@ -5,8 +5,7 @@ import {
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent,
   DialogActions, FormControl, InputLabel, Select, MenuItem,
   Chip, Skeleton, Alert, Snackbar, IconButton, Tooltip,
-  TextField, InputAdornment, Checkbox, ListItemText,
-  OutlinedInput, CircularProgress,
+  TextField, InputAdornment, Checkbox, CircularProgress,
 } from "@mui/material";
 import AddRoundedIcon          from "@mui/icons-material/AddRounded";
 import DeleteRoundedIcon       from "@mui/icons-material/DeleteRounded";
@@ -50,11 +49,11 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
   const [dueDate, setDueDate]       = useState("");
   const [studentSearch, setStudentSearch] = useState("");
 
-  // Danh sách bài học
+  // Danh sách bài học (chỉ lấy những bài đã công bố để giao)
   const { data: lessonData, isLoading: loadingLessons } = useQuery({
     queryKey: ["teacher-lessons-for-assign"],
     queryFn: () =>
-      teacherApi.getLessons({ is_published: true, page_size: 100 }).then((r) => r.data),
+      teacherApi.getLessons({ ordering: "-created_at", page_size: 100 }).then((r) => r.data),
     enabled: open,
     staleTime: 60_000,
   });
@@ -68,7 +67,8 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
     staleTime: 30_000,
   });
 
-  const lessons  = lessonData?.results ?? [];
+  // Chỉ hiển thị bài đã công bố trong dropdown (backend enforce is_published khi tạo assignment)
+  const lessons  = (lessonData?.results ?? []).filter((l) => l.is_published);
   const students = studentData?.results ?? [];
 
   const reset = () => {

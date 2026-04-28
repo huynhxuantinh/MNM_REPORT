@@ -28,6 +28,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "django_celery_beat",
 ]
 
 LOCAL_APPS = [
@@ -180,6 +181,30 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="MNM Learn English <no
 
 # ── Frontend ──────────────────────────────────────────────────────
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+
+# ── Celery ────────────────────────────────────────────────────────
+CELERY_BROKER_URL        = config("REDIS_URL", default="redis://redis:6379/0")
+CELERY_RESULT_BACKEND    = config("REDIS_URL", default="redis://redis:6379/0")
+CELERY_TASK_SERIALIZER   = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT    = ["json"]
+CELERY_TIMEZONE          = TIME_ZONE
+CELERY_ENABLE_UTC        = True
+
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    # 20:00 ICT mỗi ngày — nhắc ôn từ đến hạn
+    "review-reminders-daily": {
+        "task": "learning.send_review_reminders",
+        "schedule": crontab(hour=20, minute=0),
+    },
+    # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn
+    "assignment-digest-daily": {
+        "task": "learning.send_assignment_digest",
+        "schedule": crontab(hour=8, minute=0),
+    },
+}
 
 # ── API Docs (drf-spectacular) ────────────────────────────────────
 SPECTACULAR_SETTINGS = {

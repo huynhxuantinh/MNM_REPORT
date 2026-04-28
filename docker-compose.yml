@@ -69,6 +69,48 @@ services:
     networks:
       - mnm_network
 
+  # ───────────────────────────── Celery Worker ─────────────────────────
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mnm_celery_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A celery worker -l info -c 2
+    networks:
+      - mnm_network
+
+  # ───────────────────────────── Celery Beat ────────────────────────────
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mnm_celery_beat
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    networks:
+      - mnm_network
+
   # ───────────────────────────── Frontend (React + Vite) ────────────────
   frontend:
     build:
