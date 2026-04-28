@@ -20,6 +20,7 @@ const learningApi = {
   getReviewSummary: ()           => axiosClient.get("/learning/review/summary/"),
   getReviewHistory: (days = 30)  => axiosClient.get("/learning/review/history/", { params: { days } }),
   submitAnswer:     (wordId, q)  => axiosClient.post(`/learning/review/${wordId}/answer/`, { quality: q }),
+  getProfileStats:  ()           => axiosClient.get("/learning/profile/stats/"),
 
   // ── Notifications ─────────────────────────────────────────────────────────
   getNotifications: ()   => axiosClient.get("/learning/notifications/"),

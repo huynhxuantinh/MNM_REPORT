@@ -33,8 +33,9 @@ class WordListSerializer(serializers.ModelSerializer):
 class WordSerializer(serializers.ModelSerializer):
     """Đầy đủ – dùng cho create / retrieve / update."""
 
-    is_bookmarked = serializers.SerializerMethodField()
+    is_bookmarked   = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
+    review_log      = serializers.SerializerMethodField()
 
     class Meta:
         model = Word
@@ -44,6 +45,7 @@ class WordSerializer(serializers.ModelSerializer):
             "example_en", "example_vi",
             "level", "image_url",
             "is_bookmarked", "created_by", "created_by_name",
+            "review_log",
             "created_at", "updated_at",
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
@@ -58,6 +60,26 @@ class WordSerializer(serializers.ModelSerializer):
         if obj.created_by:
             return obj.created_by.full_name or obj.created_by.username
         return None
+
+    def get_review_log(self, obj):
+        """Trả về chỉ số SRS của user hiện tại cho từ này (null nếu chưa học)."""
+        request = self.context.get("request")
+        if not (request and request.user.is_authenticated):
+            return None
+        from apps.learning.models import ReviewLog
+        try:
+            log = ReviewLog.objects.get(user=request.user, word=obj)
+            return {
+                "total_reviews":   log.total_reviews,
+                "correct_count":   log.correct_count,
+                "interval_days":   log.interval_days,
+                "easiness_factor": round(log.easiness_factor, 2),
+                "last_reviewed":   log.last_reviewed,
+                "next_review_date": log.next_review_date,
+                "repetitions":     log.repetitions,
+            }
+        except ReviewLog.DoesNotExist:
+            return None
 
 
 # ── WordSet ────────────────────────────────────────────────────────────────

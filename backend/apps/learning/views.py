@@ -411,14 +411,21 @@ class ReviewSummaryView(APIView):
         reviewed_today = len(today_logs)
         correct_today = sum(1 for log in today_logs if log.repetitions > 0)
 
+        # Từ đến hạn hôm nay chưa ôn (next_review_date <= today, chưa ôn hôm nay)
+        due_today = ReviewLog.objects.filter(
+            user=request.user,
+            next_review_date__lte=today,
+        ).exclude(last_reviewed=today).count()
+
         streak = _get_or_create_streak(request.user)
         return Response({
             "reviewed_today": reviewed_today,
-            "correct_today": correct_today,
-            "streak": streak.current_streak,
-            "total_xp": request.user.xp,
-            "level": request.user.level,
-            "due_tomorrow": ReviewLog.objects.filter(
+            "correct_today":  correct_today,
+            "due_today":      due_today,
+            "streak":         streak.current_streak,
+            "total_xp":       request.user.xp,
+            "level":          request.user.level,
+            "due_tomorrow":   ReviewLog.objects.filter(
                 user=request.user,
                 next_review_date=today + timedelta(days=1),
             ).count(),
@@ -452,6 +459,48 @@ class ReviewHistoryView(APIView):
             result.append({"date": str(d), "count": history_map.get(str(d), 0)})
 
         return Response(result)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PROFILE STATS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ProfileStatsView(APIView):
+    """GET /learning/profile/stats/ – Thống kê học tập chi tiết của user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Sum
+        from apps.vocabulary.models import Bookmark
+
+        user = request.user
+        logs = ReviewLog.objects.filter(user=user)
+
+        total_words_studied   = logs.count()
+        total_review_sessions = logs.aggregate(s=Sum("total_reviews"))["s"] or 0
+        correct_answers       = logs.aggregate(s=Sum("correct_count"))["s"] or 0
+        accuracy_pct = (
+            round(correct_answers / total_review_sessions * 100)
+            if total_review_sessions > 0 else 0
+        )
+
+        streak_obj = _get_or_create_streak(user)
+        bookmarks  = Bookmark.objects.filter(user=user).count()
+        lessons_completed = LessonProgress.objects.filter(
+            user=user, completed_at__isnull=False
+        ).count()
+
+        return Response({
+            "total_words_studied":   total_words_studied,
+            "total_review_sessions": total_review_sessions,
+            "correct_answers":       correct_answers,
+            "accuracy_pct":          accuracy_pct,
+            "best_streak":           streak_obj.longest_streak,
+            "current_streak":        streak_obj.current_streak,
+            "bookmarks":             bookmarks,
+            "lessons_completed":     lessons_completed,
+        })
 
 
 # ══════════════════════════════════════════════════════════════════════════════

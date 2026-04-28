@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Grid, Skeleton, LinearProgress,
-  Chip, Divider, useMediaQuery, useTheme,
+  Chip, useMediaQuery, useTheme,
 } from "@mui/material";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -16,6 +16,8 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
+import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
+import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { SbCard, SbButton, SbBadge } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
@@ -37,6 +39,149 @@ const greet = () => {
 };
 
 const LEVEL_COLORS = ["#d4e9e2", colors.greenAccent, colors.greenStarbucks, colors.gold];
+
+// ── Review banner ─────────────────────────────────────────────────────────────
+
+const ReviewBanner = ({ summary, loading, onStart }) => {
+  const dueToday     = summary?.due_today ?? 0;
+  const reviewedToday = summary?.reviewed_today ?? 0;
+  const total        = dueToday + reviewedToday;
+  const pct          = total > 0 ? Math.round((reviewedToday / total) * 100) : (reviewedToday > 0 ? 100 : 0);
+  const allDone      = !loading && dueToday === 0;
+
+  if (loading) {
+    return (
+      <Box sx={{ borderRadius: "20px", overflow: "hidden" }}>
+        <Skeleton variant="rectangular" height={120} />
+      </Box>
+    );
+  }
+
+  // Hoàn thành hết hôm nay
+  if (allDone && reviewedToday > 0) {
+    return (
+      <Box sx={{
+        borderRadius: "20px",
+        background: `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`,
+        p: { xs: 2.5, md: 3 },
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 2, flexWrap: "wrap",
+        boxShadow: `0 8px 32px ${colors.greenStarbucks}40`,
+      }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{
+            width: 52, height: 52, borderRadius: "14px",
+            bgcolor: "rgba(255,255,255,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <EmojiEventsRoundedIcon sx={{ color: colors.gold, fontSize: 28 }} />
+          </Box>
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", lineHeight: 1.2 }}>
+              Tuyệt vời! Bạn đã ôn xong hôm nay 🎉
+            </Typography>
+            <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.8)", mt: 0.25 }}>
+              {reviewedToday} từ đã ôn • Quay lại ngày mai nhé!
+            </Typography>
+          </Box>
+        </Box>
+        <SbButton
+          variant="outlined"
+          size="small"
+          onClick={onStart}
+          sx={{ color: "#fff", borderColor: "rgba(255,255,255,0.5)", "&:hover": { borderColor: "#fff", bgcolor: "rgba(255,255,255,0.1)" }, whiteSpace: "nowrap" }}
+        >
+          Ôn thêm
+        </SbButton>
+      </Box>
+    );
+  }
+
+  // Còn từ cần ôn
+  const urgencyColor = dueToday > 20 ? "#ef5350" : dueToday > 5 ? colors.gold : colors.greenAccent;
+  const urgencyBg    = dueToday > 20
+    ? "linear-gradient(135deg, #b71c1c 0%, #e53935 100%)"
+    : dueToday > 5
+    ? `linear-gradient(135deg, #e65100 0%, ${colors.gold} 100%)`
+    : `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`;
+
+  return (
+    <Box sx={{
+      borderRadius: "20px",
+      background: urgencyBg,
+      p: { xs: 2.5, md: 3 },
+      boxShadow: `0 8px 32px rgba(0,0,0,0.20)`,
+    }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+        {/* Left */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{
+            width: 52, height: 52, borderRadius: "14px",
+            bgcolor: "rgba(255,255,255,0.18)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <RepeatRoundedIcon sx={{ color: "#fff", fontSize: 28 }} />
+          </Box>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+              <Typography sx={{ fontWeight: 900, fontSize: "2rem", color: "#fff", lineHeight: 1 }}>
+                {dueToday}
+              </Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "rgba(255,255,255,0.85)" }}>
+                từ cần ôn hôm nay
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.75)", mt: 0.25 }}>
+              {reviewedToday > 0 ? `Đã ôn ${reviewedToday} • Còn ${dueToday} từ nữa` : "Bắt đầu buổi ôn tập nhé!"}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* CTA */}
+        <SbButton
+          variant="primary"
+          size="medium"
+          startIcon={<PlayArrowRoundedIcon />}
+          onClick={onStart}
+          sx={{
+            bgcolor: "#fff",
+            color: colors.greenStarbucks,
+            fontWeight: 800,
+            px: 3,
+            "&:hover": { bgcolor: "rgba(255,255,255,0.9)", transform: "scale(1.03)" },
+            transition: "all 0.2s ease",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Ôn ngay
+        </SbButton>
+      </Box>
+
+      {/* Progress bar */}
+      {total > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.75)" }}>
+              Tiến độ hôm nay
+            </Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.9)", fontWeight: 700 }}>
+              {reviewedToday}/{total} từ ({pct}%)
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={pct}
+            sx={{
+              height: 8, borderRadius: 4,
+              bgcolor: "rgba(255,255,255,0.2)",
+              "& .MuiLinearProgress-bar": { bgcolor: "#fff", borderRadius: 4 },
+            }}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -253,9 +398,7 @@ const HomePage = () => {
     staleTime: 120_000,
   });
 
-  const dueCount  = summary?.reviewed_today !== undefined
-    ? (summary?.due_tomorrow ?? 0)   // actually we need due count from review list
-    : 0;
+  const dueToday  = summary?.due_today ?? 0;
   const reviewDue = summary?.reviewed_today ?? 0;
   const streak    = summary?.streak ?? user?.streak?.current_streak ?? 0;
 
@@ -275,31 +418,25 @@ const HomePage = () => {
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
 
       {/* ── Greeting ─────────────────────────────────────────────────────── */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
-        <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.3rem", md: "1.6rem" }, color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
-            {greet()}, {user?.full_name || user?.username || "bạn"}! 🌱
-          </Typography>
-          <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.9rem", mt: 0.25 }}>
-            {sumLoading
-              ? "Đang tải..."
-              : reviewDue > 0
-              ? `Hôm nay bạn đã ôn ${reviewDue} từ. Hãy tiếp tục!`
-              : "Chưa ôn tập hôm nay. Bắt đầu ngay nhé!"}
-          </Typography>
-        </Box>
-
-        {/* Today's review CTA */}
-        <SbButton
-          variant="primary"
-          size={isMobile ? "small" : "medium"}
-          startIcon={<PlayArrowRoundedIcon />}
-          onClick={() => navigate("/review")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Ôn tập hôm nay
-        </SbButton>
+      <Box>
+        <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.3rem", md: "1.6rem" }, color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
+          {greet()}, {user?.full_name || user?.username || "bạn"}! 🌱
+        </Typography>
+        <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.9rem", mt: 0.25 }}>
+          {sumLoading
+            ? "Đang tải..."
+            : reviewDue > 0
+            ? `Hôm nay bạn đã ôn ${reviewDue} từ. ${dueToday > 0 ? "Hãy tiếp tục!" : "Xuất sắc!"}`
+            : "Chưa ôn tập hôm nay. Bắt đầu ngay nhé!"}
+        </Typography>
       </Box>
+
+      {/* ── Review banner ────────────────────────────────────────────────── */}
+      <ReviewBanner
+        summary={summary}
+        loading={sumLoading}
+        onStart={() => navigate("/review")}
+      />
 
       {/* ── Stat cards row ─────────────────────────────────────────────────── */}
       <Grid container spacing={2}>
@@ -318,10 +455,11 @@ const HomePage = () => {
         </Grid>
         <Grid item xs={6} md={3}>
           <StatCard
-            icon={<MenuBookRoundedIcon sx={{ fontSize: 24 }} />}
+            icon={<RepeatRoundedIcon sx={{ fontSize: 24 }} />}
             color={colors.greenStarbucks}
             value={reviewDue}
             label="Từ đã ôn hôm nay"
+            sub={dueToday > 0 ? `Còn ${dueToday}` : undefined}
             loading={sumLoading}
           />
         </Grid>

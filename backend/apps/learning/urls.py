@@ -6,6 +6,7 @@ from .views import (
     AssignmentViewSet,
     LessonViewSet,
     NotificationViewSet,
+    ProfileStatsView,
     ReviewAnswerView,
     ReviewHistoryView,
     ReviewListView,
@@ -29,4 +30,7 @@ urlpatterns = [
 
     # ── Teacher ──────────────────────────────────────────────────
     path("teacher/stats/", TeacherStatsView.as_view(), name="teacher-stats"),
+
+    # ── Profile ──────────────────────────────────────────────────
+    path("profile/stats/", ProfileStatsView.as_view(), name="profile-stats"),
 ]

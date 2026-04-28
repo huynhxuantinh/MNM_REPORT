@@ -1,24 +1,29 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Divider, Switch, FormControlLabel,
-  Alert, Chip, LinearProgress, CircularProgress, IconButton,
-  InputAdornment, Collapse,
+  Alert, Chip, LinearProgress, IconButton,
+  Collapse, Grid, Tooltip, Skeleton,
 } from "@mui/material";
-import PersonRoundedIcon    from "@mui/icons-material/PersonRounded";
-import LockRoundedIcon      from "@mui/icons-material/LockRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import BoltRoundedIcon      from "@mui/icons-material/BoltRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import PersonRoundedIcon              from "@mui/icons-material/PersonRounded";
+import LockRoundedIcon                from "@mui/icons-material/LockRounded";
+import VisibilityRoundedIcon          from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon       from "@mui/icons-material/VisibilityOffRounded";
+import BoltRoundedIcon                from "@mui/icons-material/BoltRounded";
+import EmojiEventsRoundedIcon         from "@mui/icons-material/EmojiEventsRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import CalendarTodayRoundedIcon       from "@mui/icons-material/CalendarTodayRounded";
+import ExpandMoreRoundedIcon          from "@mui/icons-material/ExpandMoreRounded";
+import BookmarkRoundedIcon            from "@mui/icons-material/BookmarkRounded";
+import CheckCircleRoundedIcon         from "@mui/icons-material/CheckCircleRounded";
+import RepeatRoundedIcon              from "@mui/icons-material/RepeatRounded";
+import TrackChangesRoundedIcon        from "@mui/icons-material/TrackChangesRounded";
 import { SbCard, SbButton, SbInput } from "@/components/ui";
 import { setUser } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
 import authApi from "@/api/authApi";
+import learningApi from "@/api/learningApi";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -44,6 +49,224 @@ const StatBox = ({ icon, value, label, color }) => (
     <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>{label}</Typography>
   </Box>
 );
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+
+const HEAT_COLORS = ["#ebedf0", "#c6e48b", "#7bc96f", "#239a3b", "#196127"];
+
+const getHeatColor = (count) => {
+  if (count === 0) return HEAT_COLORS[0];
+  if (count <= 2)  return HEAT_COLORS[1];
+  if (count <= 5)  return HEAT_COLORS[2];
+  if (count <= 10) return HEAT_COLORS[3];
+  return HEAT_COLORS[4];
+};
+
+const DAYS_VI = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const MONTHS_VI = ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"];
+
+const ActivityHeatmap = () => {
+  const WEEKS = 16;
+  const TOTAL_DAYS = WEEKS * 7;
+
+  const { data: history, isLoading: loading } = useQuery({
+    queryKey: ["review-history", TOTAL_DAYS],
+    queryFn: () => learningApi.getReviewHistory(TOTAL_DAYS).then((r) => r.data),
+    staleTime: 300_000,
+  });
+
+  // Build map date→count
+  const countMap = useMemo(() => {
+    const m = {};
+    (history ?? []).forEach(({ date, count }) => { m[date] = count; });
+    return m;
+  }, [history]);
+
+  // Build grid: weeks × days, newest week rightmost
+  const today = new Date();
+  // Align to Saturday (end of week column)
+  const dayOfWeek = today.getDay(); // 0=Sun…6=Sat
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + (6 - dayOfWeek)); // next/current Saturday
+
+  const cells = useMemo(() => {
+    const grid = []; // grid[week][day]
+    for (let w = WEEKS - 1; w >= 0; w--) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(endDate);
+        date.setDate(endDate.getDate() - (w * 7 + (6 - d)));
+        const dateStr = date.toISOString().slice(0, 10);
+        week.push({ dateStr, count: countMap[dateStr] ?? 0, month: date.getMonth(), day: date.getDate() });
+      }
+      grid.push(week);
+    }
+    return grid;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countMap]);
+
+  // Month labels: show month name when month changes across columns
+  const monthLabels = useMemo(() => {
+    const labels = [];
+    let lastMonth = -1;
+    cells.forEach((week, wi) => {
+      const m = week[0].month;
+      if (m !== lastMonth) { labels.push({ wi, label: MONTHS_VI[m] }); lastMonth = m; }
+      else labels.push(null);
+    });
+    return labels;
+  }, [cells]);
+
+  const totalReviewed = useMemo(() => Object.values(countMap).reduce((a, b) => a + b, 0), [countMap]);
+
+  if (loading) return <Skeleton variant="rectangular" height={130} sx={{ borderRadius: 2 }} />;
+
+  return (
+    <SbCard>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+        <Box>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
+            Hoạt động ôn tập
+          </Typography>
+          <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            {WEEKS} tuần qua · {totalReviewed} lượt ôn
+          </Typography>
+        </Box>
+        {/* Legend */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Typography sx={{ fontSize: "0.7rem", color: colors.textBlackSoft, mr: 0.5 }}>Ít</Typography>
+          {HEAT_COLORS.map((c) => (
+            <Box key={c} sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: c }} />
+          ))}
+          <Typography sx={{ fontSize: "0.7rem", color: colors.textBlackSoft, ml: 0.5 }}>Nhiều</Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ overflowX: "auto" }}>
+        <Box sx={{ display: "inline-flex", flexDirection: "column", minWidth: WEEKS * 16 }}>
+          {/* Month labels */}
+          <Box sx={{ display: "flex", mb: 0.5, pl: "24px" }}>
+            {monthLabels.map((label, wi) => (
+              <Box key={wi} sx={{ width: 14, mr: "2px", flexShrink: 0 }}>
+                {label && (
+                  <Typography sx={{ fontSize: "0.62rem", color: colors.textBlackSoft, whiteSpace: "nowrap" }}>
+                    {label.label}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+          {/* Grid rows = days of week */}
+          {[0,1,2,3,4,5,6].map((dayIdx) => (
+            <Box key={dayIdx} sx={{ display: "flex", alignItems: "center", mb: "2px" }}>
+              {/* Day label */}
+              <Box sx={{ width: 22, flexShrink: 0 }}>
+                {dayIdx % 2 === 1 && (
+                  <Typography sx={{ fontSize: "0.62rem", color: colors.textBlackSoft }}>{DAYS_VI[dayIdx]}</Typography>
+                )}
+              </Box>
+              {/* Cells */}
+              {cells.map((week, wi) => {
+                const cell = week[dayIdx];
+                return (
+                  <Tooltip
+                    key={wi}
+                    title={cell.count > 0 ? `${cell.dateStr}: ${cell.count} từ` : cell.dateStr}
+                    arrow
+                    placement="top"
+                  >
+                    <Box sx={{
+                      width: 14, height: 14, borderRadius: "3px",
+                      bgcolor: getHeatColor(cell.count),
+                      mr: "2px", flexShrink: 0, cursor: "default",
+                      transition: "transform 0.1s",
+                      "&:hover": { transform: "scale(1.3)" },
+                    }} />
+                  </Tooltip>
+                );
+              })}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    </SbCard>
+  );
+};
+
+// ── Learning stats card ───────────────────────────────────────────────────────
+
+const StatItem = ({ icon, color, value, label, loading }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}>
+    <Box sx={{
+      width: 38, height: 38, borderRadius: "10px",
+      bgcolor: `${color}18`,
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+    }}>
+      <Box sx={{ color, display: "flex" }}>{icon}</Box>
+    </Box>
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>{label}</Typography>
+      {loading
+        ? <Skeleton width={60} height={24} />
+        : <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: colors.textBlack, lineHeight: 1 }}>{value}</Typography>
+      }
+    </Box>
+  </Box>
+);
+
+const LearningStatsCard = () => {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["profile-stats"],
+    queryFn: () => learningApi.getProfileStats().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
+  const s = stats ?? {};
+
+  return (
+    <SbCard>
+      <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks, mb: 1.5 }}>
+        Thống kê học tập
+      </Typography>
+      <Grid container spacing={0}>
+        <Grid item xs={12} sm={6}>
+          <StatItem icon={<RepeatRoundedIcon />}       color={colors.greenAccent}  value={s.total_words_studied?.toLocaleString()}   label="Từ đã học (SRS)" loading={isLoading} />
+          <StatItem icon={<TrackChangesRoundedIcon />} color="#1e88e5"             value={s.total_review_sessions?.toLocaleString()}  label="Tổng lượt ôn"    loading={isLoading} />
+          <StatItem icon={<CheckCircleRoundedIcon />}  color="#43a047"             value={`${s.accuracy_pct ?? 0}%`}                   label="Độ chính xác"    loading={isLoading} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <StatItem icon={<LocalFireDepartmentRoundedIcon />} color={colors.gold}        value={s.best_streak}           label="Streak dài nhất"       loading={isLoading} />
+          <StatItem icon={<BookmarkRoundedIcon />}            color="#fb8c00"             value={s.bookmarks}             label="Từ đã bookmark"        loading={isLoading} />
+          <StatItem icon={<EmojiEventsRoundedIcon />}         color={colors.greenStarbucks} value={s.lessons_completed}   label="Bài học hoàn thành"    loading={isLoading} />
+        </Grid>
+      </Grid>
+
+      {/* Accuracy bar */}
+      {!isLoading && s.total_review_sessions > 0 && (
+        <Box sx={{ mt: 1.5 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Độ chính xác tổng thể</Typography>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: s.accuracy_pct >= 70 ? "#43a047" : s.accuracy_pct >= 40 ? colors.gold : "#ef5350" }}>
+              {s.correct_answers?.toLocaleString()} / {s.total_review_sessions?.toLocaleString()} đúng
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(s.accuracy_pct ?? 0, 100)}
+            sx={{
+              height: 6, borderRadius: 3, bgcolor: "rgba(0,0,0,0.06)",
+              "& .MuiLinearProgress-bar": {
+                bgcolor: s.accuracy_pct >= 70 ? "#43a047" : s.accuracy_pct >= 40 ? colors.gold : "#ef5350",
+                borderRadius: 3,
+              },
+            }}
+          />
+        </Box>
+      )}
+    </SbCard>
+  );
+};
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -127,7 +350,7 @@ const ProfilePage = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 680, mx: "auto" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 860, mx: "auto" }}>
 
       {/* ── Profile header card ──────────────────────────────────────── */}
       <SbCard>
@@ -198,6 +421,12 @@ const ProfilePage = () => {
             value={streak} label="Streak ngày" color={colors.gold} />
         </Box>
       </SbCard>
+
+      {/* ── Activity heatmap ─────────────────────────────────────────── */}
+      <ActivityHeatmap />
+
+      {/* ── Learning stats ───────────────────────────────────────────── */}
+      <LearningStatsCard />
 
       {/* ── Edit profile ─────────────────────────────────────────────── */}
       <SbCard>

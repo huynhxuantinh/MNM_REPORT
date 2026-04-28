@@ -21,6 +21,7 @@ const ReviewPage        = lazy(() => import("@/pages/ReviewPage"));
 const QuizPage          = lazy(() => import("@/pages/QuizPage"));
 const ProfilePage       = lazy(() => import("@/pages/ProfilePage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const WordDetailPage    = lazy(() => import("@/pages/WordDetailPage"));
 // Teacher feature pages
 const TeacherDashboard   = lazy(() => import("@/features/teacher/TeacherDashboard"));
 const TeacherLessons     = lazy(() => import("@/features/teacher/TeacherLessons"));
@@ -103,6 +104,7 @@ const App = () => {
         >
           <Route index element={<ErrorBoundary><Suspense fallback={<PageFallback />}><HomePage /></Suspense></ErrorBoundary>} />
           <Route path="vocabulary"           element={<ErrorBoundary><Suspense fallback={<PageFallback />}><VocabularyPage /></Suspense></ErrorBoundary>} />
+          <Route path="vocabulary/:id"       element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordDetailPage /></Suspense></ErrorBoundary>} />
           <Route path="learning"             element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/:id/study"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><StudyPage /></Suspense></ErrorBoundary>} />
           <Route path="review"               element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />

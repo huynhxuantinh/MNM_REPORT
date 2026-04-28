@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -281,7 +282,12 @@ const WordsTab = ({ isTeacher }) => {
                 const lv = LEVEL_CHIP[w.level] ?? {};
                 return (
                   <TableRow key={w.id} sx={{ "&:hover": { bgcolor: "#f9f9f8" } }}>
-                    <TableCell sx={{ fontWeight: 700, color: colors.greenStarbucks }}>{w.text}</TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 700, color: colors.greenStarbucks, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                      onClick={() => navigate(`/vocabulary/${w.id}`)}
+                    >
+                      {w.text}
+                    </TableCell>
                     <TableCell sx={{ color: colors.textBlackSoft, fontStyle: "italic" }}>
                       {w.phonetic ? `/${w.phonetic}/` : "—"}
                     </TableCell>
@@ -436,6 +442,7 @@ const SetsTab = ({ isTeacher }) => {
 
 const VocabularyPage = () => {
   const [tab, setTab] = useState(0);
+  const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
 
