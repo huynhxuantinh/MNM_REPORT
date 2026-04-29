@@ -15,6 +15,7 @@ import CastForEducationRoundedIcon from "@mui/icons-material/CastForEducationRou
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
+import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { SbAvatar } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
@@ -26,6 +27,7 @@ const BASE_NAV = [
   { label: "Bộ từ",      to: "/wordsets",       icon: <CollectionsBookmarkRoundedIcon /> },
   { label: "Học tập",    to: "/learning",       icon: <SchoolRoundedIcon /> },
   { label: "Quiz",       to: "/quiz",           icon: <QuizRoundedIcon /> },
+  { label: "Xếp hạng",   to: "/leaderboard",    icon: <EmojiEventsRoundedIcon /> },
   { label: "Thông báo",  to: "/notifications",  icon: <NotificationsRoundedIcon /> },
   { label: "Hồ sơ",      to: "/profile",        icon: <PersonRoundedIcon /> },
 ];
@@ -45,7 +47,9 @@ const SidebarContent = () => {
   const { user } = useSelector((state) => state.auth);
 
   const NAV_ITEMS = [
-    ...BASE_NAV,
+    ...(user?.role === "user" ? BASE_NAV : [
+      { label: "Hồ sơ", to: "/profile", icon: <PersonRoundedIcon /> }
+    ]),
     ...(["teacher", "admin"].includes(user?.role) ? TEACHER_NAV : []),
     ...(user?.role === "admin" ? ADMIN_NAV : []),
   ];

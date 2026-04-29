@@ -1,0 +1,1000 @@
+1. Able (adj.) có năng lực, có tài
+2. Abandon (v.) cất, từ cất
+3. About (adv. Prep.) khoảng, về
+4. Above (prep., adv.) tại trên, lên trên
+5. Act /ækt/, (n., v.) hành động, hành vi, cử chỉ, đối xử
+6. Add /æd/, (v.) cộng, thêm vào
+7. Afraid /əˈfreɪd/, (adj.) sợ, sợ hãi, hoảng sợ
+8. After /ˈɑːf.tər/, (prep., conj., adv.) sau, đằng sau, sau khi
+9. Again /əˈɡen/, (adv.) lại, nữa, lần nữa
+10. Against, /əˈɡenst/, (prep.) chống lại, phản đối
+11. Age, /eɪdʒ/, (n.) tuổi
+12. Ago, /əˈɡəʊ/, (adv.) trước đây
+13. Agree, /əˈɡriː/, (v.) chấp nhận, tán thành
+14. Air /eər/, (n.) không khí, bầu không khí, không gian
+15. All (det., pron., adv.) tất cả
+16. Allow (v.) cho phép, để cho
+17. Also, (adv.) cũng, cũng vậy, cũng thế
+18. Always, (adv.) cứ luôn
+19. Among, (prep.) giữa, tại giữa
+20. An, (từ cổ,nghĩa cổ); (thông tục); (tiếng địa phương) nếu
+21. And, (conj.) và
+22. Anger, (n.) sự tức giận, sự giận dữ
+23. Animal, (n.) động vật, thú vật
+24. Answer, (n., v.) sự trả lời; trả lời
+25. Any, (det., pron., adv.) một người, vật nào đó; bất cứ; một chút nào, tí nào
+26. Appear, (v.) xuất hiện, hiện ra, trình diện
+27. Apple, (n.) quả táo
+28. Are, A (đơn vị diện tích ruộng đất, bằng 100m2)
+29. Area, (n.) diện tích, bề mặt
+30. Arm, (n., v.) cánh tay; vũ trang, trang bị (vũ khí)
+31. Arrange, (v.) bố trí, sắp đặt, sửa soạn
+32. Arrive, (v. (+at in)) đến, tới nơi
+33. Art, (n.) nghệ thuật, mỹ thuật
+34. As, (prep., adv., conj.) như (as you know...)
+35. Ask, (v.) hỏi
+36. At, tại ở (chỉ vị trí)
+37. Atom, (n.) nguyên tử
+38. baby, đứa bé mới sinh; trẻ thơ
+39. back, (n., adj., adv., v.) lưng, về phía sau, trở lại
+40. bad, (adj.) xấu, tồi
+41. ball, (n.) quả bóng
+42. band, (n.) băng, đai, nẹp
+43. Bank : ngân hàng, (n.) bờ (sông...), đê
+44. bar, (n.) quán bán rượu
+45. base, (n., v.) cơ sở, cơ bản, nền móng; đặt tên, đặt cơ sở trên cái gì
+46. basic, (adj.) cơ bản, cơ sở
+47. bat, (thể dục,thể thao) gậy (đánh bóng chày, crikê); (từ cổ,nghĩa cổ) vợt (quần vợt)
+48. be : thì, là
+49. bear, (v.) mang, cầm, vác, đeo, ôm
+50. beat, (n., v.) tiếng đập, sự đập; đánh đập, đấm
+51. beauty, (n.) vẻ đẹp, cái đẹp; người đẹp
+52. bed, (n.) cái giường
+53. been, thì, là
+54. before, (prep., conj., adv.) trước, đằng trước
+55. began, bắt đầu, mở đầu, khởi đầu
+56. begin, (v.) bắt đầu, khởi đầu
+57. behind, (prep., adv.) sau, tại đằng sau
+58. believe, (v.) tin, tin tưởng
+59. bell, (n.) cái chuông, tiếng chuông
+60. best, /best/, tốt nhất
+61. better, tốt hơn
+62. between, (prep., adv.) giữa, tại giữa
+63. big, (adj.) to, lớn
+64. bird, (n.) chim
+65. bit, (n.) miếng, mảnh
+66. black, (adj., n.) đen; màu đen
+67. block, (n., v.) khối, tảng (đá); làm ngăn cản, ngăn chặn
+68. blood, (n.) máu, huyết; sự tàn sát, chem giết
+69. blow, (v., n.) nở hoa; sự nở hoa
+70. blue, /bluː/, (adj., n.) xanh, màu xanh
+71. board, (n., v.) tấm ván; lát ván, lót ván
+72. boat, (n.) tàu, thuyền
+73. body, (n.) thân thể, thân xác
+74. bone, (n.) xương
+75. book, (n., v.) sách; ghi chép
+76. born, (v.) sinh, đẻ
+77. both, (det., pron.) cả hai
+78. bottom, (n., adj.) phần trong cùng, thấp nhất; cuối, cuối cùng
+79. bought, mua
+80. box, (n.) hộp, thùng
+81. boy, (n.) con trai, thiếu niên
+82. branch, (n.) ngành; nhành cây, nhánh song, ngả đường
+83. bread, (n.) bánh mỳ
+84. break, (v., n.) bẻ gãy, đập vỡ; sự gãy, sự vỡ
+85. bright, (adj.) sáng, sáng chói
+86. bring, (v.) mang, cầm, xách lại
+87. broad, (adj.) rộng
+88. brother, (n.) anh, em trai
+89. brought, cầm lại, đem đến, đem lại, xách lại, đưa lại
+90. brown, (adj., n.) nâu, màu nâu
+91. build, (v.) xây dựng
+92. burn, (v.) đốt, đốt cháy, thắp, nung, thiêu
+93. busy, (adj.) bận, bận rộn
+94. but, (conj.) nhưng
+95. buy, (v.) mua
+96. by, (prep., adv.) bởi, bằng
+97. call, (v., n.) gọi; tiếng kêu, tiếng gọi
+98. camp, (n., v.) trại, chỗ cắm trại; cắm trại, hạ trại
+99. can, (modal v., n.) có thể; nhà tù, nhà giam, bình, ca đựng
+100. capital, (n., adj.) thủ đô, tiền vốn; chủ yếu, chính yếu, cơ bản
+101. captain, (n.) người cầm đầu, người chỉ huy, thủ lĩnh
+102. car, (n.) xe hơi
+103. card, (n.) thẻ, thiếp
+104. care, (n., v.) sự chăm sóc, chăm nom; chăm sóc
+105. carry, (v.) mang, vác, khuân chở
+106. case, (n.) vỏ, ngăn, túi
+107. cat, (n.) con mèo
+108. catch, (v.) bắt lấy, nắm lấy, tóm lấy, chộp lấy
+109. caught, sự bắt, sự nắm lấy; cái bắt, cái vồ, cái chộp
+110. cause, (n., v.) lý do, nguyên do; gây ra, gây nên
+111. cell, (n.) ô, ngăn
+112. cent, (n. (abbr. c ct)) đồng xu (=1/100 đô la)
+113. center, /ˈsen.tər/, (từ Mỹ,nghĩa Mỹ) (như) centre
+114. century, (n.) thế kỷ
+115. certain, (adj., pron.) chắc chắn
+116. chair, (n.) ghế
+117. chance, (n.) tʃɑ:ns/, sự may mắn
+118. change, (v., n.) thay đổi, sự thay đổi, sự biến đổi
+119. character, (n.) tính cách, đặc tính, nhân vật;
+120. charge, (n., v.) nhiệm vụ, trách nhiệm, trách nhiệm; giao nhiệm vụ, giao việc
+121. chart, (n., v.) đồ thị, biểu đồ; thiết kế đồ thị, lập biểu đồ
+122. check, (v., n.) kiểm tra; sự kiểm tra
+123. chick, gà con; chim con;
+124. chief, (adj., n.) trọng yếu, chính yếu; thủ lĩnh, lãnh tụ, người đầu bảng, xếp
+125. child, (n.) đứa bé, đứa trẻ
+126. children, đứa bé, đứa trẻ
+127. choose, (v.) chọn, lựa chọn
+128. chord, (thơ ca) dây (đàn hạc)
+129. circle, (n.) đường tròn, hình tròn
+130. city, (n.) thành phố
+131. claim, (v., n.) đòi hỏi, yêu sách; sự đòi hỏi, sự yêu sách, sự thỉnh cầu
+132. class, (n.) lớp học
+133. clean, (adj., v.) sạch, sạch sẽ
+134. clear, (adj., v.) rõ ràng, sạch
+135. climb, (v.) leo, trèo
+136. clock, (n.) đồng hồ
+137. close, (adj., v.) đóng kín, chật chội, che giấu, đóng, khép, chấm dứt, chấm dứt
+138. clothe, mặc quần áo cho
+139. cloud, /klaʊd/, (n.) mây, đám mây
+140. coast, (n.) sự lao dốc; bờ biển
+141. coat, (n.) áo choàng
+142. cold, (adj., n.) lạnh, sự lạnh lẽo, lạnh nhạt
+143. collect, (v.) sưu tập, quy tụ lại
+144. colony, thuộc địa
+145. color, /ˈkʌl.ər/, (từ Mỹ,nghĩa Mỹ) (như) colour
+146. column, (n.) cột, mục (báo)
+147. come, (v.) đến, tới, đi đến, đi tới
+148. common, (adj.) công, công cộng, thông thường, phổ biến
+149. company, (n.) công ty
+150. compare, (v.) so sánh, đối chiếu
+151. complete, (adj., v.) hoàn tất, xong
+152. condition, (n.) điều kiện, tình cảnh, tình thế
+153. connect, (v.) kết nối, nối
+154. consider, (v.) cân nhắc, tham quan xét; quan tâm, để ý, lưu ý đến
+155. consonant, (âm nhạc) thuận tai, êm ái, du dương
+156. contain, (v.) bao hàm, bỏ cất, bao gồm
+157. continent, (n.) lục địa, đại lục (lục địa Bắc Mỹ)
+158. continue, (v.) tiếp tục, làm tiếp
+159. control, (n., v.) sự điều khiển, quyền hành, quyền lực, quyền chỉ huy
+160. cook, (v., n.) nấu ăn, người nấu ăn
+161. cool, (adj., v.) mát mẻ, điềm tĩnh; làm mát
+162. copy, (n., v.) bản sao, bản chép lại; sự sao chép; sao chép, bắt chước
+163. corn, chai (chân)
+164. corner, (n.) góc (tường, nhà, phố...)
+165. correct, (adj., v.) đúng, chính xác; sửa, sửa chữa
+166. cost, (n., v.) giá, chi phí; trả giá, phải trả
+167. cotton, (n.) bông, chỉ, sợi
+168. could, có thể, có khả năng
+169. count, (v.) đếm, tính
+170. country, (n.) nước, đất nước, đất nước
+171. course, (n.) tiến trình, quá biểu diễn tiến; sân chạy đua
+172. cover, (v., n.) bao bọc, che phủ; vỏ, vỏ bọc
+173. cow, (n.) con bò cái
+174. crease, nếp nhăn, nếp gấp
+175. create, (v.) sáng tạo, tạo nên
+176. crop, (n.) vụ mùa
+177. cross, (n., v.) cây Thánh Giá, nỗi thống khổ; sự băng qua; băng qua, vượt qua
+178. crowd, (n.) đám đông
+179. cry, (v., n.) khóc, kêu la; sự khóc, tiếng khóc, sự kêu la
+180. current, (adj., n.) hiện hành, phổ biến, hiện nay; loại (nước), luống (gió)
+181. cut, (v., n.) cắt, chặt; sự cắt
+182. dad, (n.) bố, cha
+183. dance, (n., v.) sự nhảy múa, sự khiêu vũ; nhảy múa, khiêu vũ
+184. danger, (n.) sự nguy hiểm, mối hiểm nghèo; nguy cơ, mối đe dọa
+185. dark, (adj., n.) tối, tối tăm; bóng tối, ám muội
+186. day, (n.) ngày, ban ngày
+187. dead, (adj.) chết, tắt
+188. deal, (v., n.) phân phát, phân phối; sự giao dịch, thỏa thuận sắm bán
+189. dear, (adj.) thân, thân yêu, thân mến; kính thưa, thưa
+190. death, (n.) sự chết, cái chết
+191. decide, (v.) quyết định, khắc phục, phân xử
+192. decimal, (toán học) thập phân
+193. deep, (adj., adv.) sâu, khó lường, bí ẩn
+194. degree, (n.) mức độ, trình độ; bằng cấp; độ
+195. depend, (+ on, upon) phụ thuộc, tuỳ thuộc, tuỳ thuộc
+196. describe, (v.) diễn tả, mô tả, mô tả;
+197. desert, (n., v.) sa mạc; công lao, giá trị; rời đựng, đựng trốn
+198. design, (n., v.) sự mẫu mã, kế hoạch, đề cương. phác thảo; phác họa, thiết kế
+199. determine, (v.) xác định, định rõ; quyết định
+200. develop, (v.) phát triển, mở rộng; trình bày, bày tỏ
+201. dictionary, (n.) từ điển
+202. die, (v.) chết, từ trần, hy sinh
+203. differ, ((thường) + from) khác, không giống
+204. difficult, (adj.) khó, hạn chế, gay go
+205. direct, (adj., v.) trực tiếp, thẳng, thẳng thắn; gửi, viết cho người nào, điều khiển
+206. discuss, (v.) bàn bạc, tranh luận
+207. distant, xa, cách, xa cách
+208. divide, (v.) chia, chia ra, phân loại
+209. division, (n.) sự chia, sự phân chia, sự phân loại
+210. do, (v., auxiliary v.) làm, làm
+211. doctor, (n. (abbr. Dr)) bác sĩ y khoa, tiến sĩ
+212. does, hươu cái, hoãng cái; nai cái
+213. dog, (n.) chó
+214. dollar, (n.) USD Mỹ
+215. done, xong, hoàn tất, đã thực hiện
+216. door, (n.) cửa, cửa ra vào
+217. double, (adj., det., adv., v.) đôi, hai, kép; cái gấp đôi, lượng gấp đôi; làm gấp đôi
+218. down, /daʊn/, (adv., prep.) xuống
+219. draw, (v.) thiết kế, kéo
+220. dream, (n., v.) giấc mơ, mơ
+221. dress, (n., v.) quần áo, mặc (quần áo), ăn mặc
+222. drink, (n., v.) đồ uống; uống
+223. drive, (v., n.) lái, đua xe; cuộc đua xe (điều khiển)
+224. drop, (v., n.) chảy ít giọt, rơi, rớt; giọt (nước, máu...)
+225. dry, (adj., v.) khô, cạn; làm khô, sấy khô
+226. duck, con vịt, vịt cái
+227. during, (prep.) dưới lúc, dưới thời gian
+228. each, (det., pron.) mỗi
+229. ear, (n.) tai
+230. early, (adj., adv.) sớm
+231. earth, (n.) trái đất
+232. ease, (n., v.,) sự thư thái, thoải mái
+233. east, (n., adj., adv.) hướng đông
+234. eat, (v.) ăn
+235. edge, (n.) lưỡi, cạnh sắc
+236. effect, (n.) hiệu ứng, kết quả
+237. egg, (n.) trứng
+238. eight, tám
+239. either, (det., pron., adv.) mỗi, một
+240. electric, (adj.) thuộc điện
+241. element, (n.) yếu tố
+242. else, (adv.) khác, nữa
+243. end, (n., v.) giới hạn, kết thúc
+244. enemy, (n.) kẻ thù
+245. energy, (n.) năng lượng
+246. engine, (n.) động cơ
+247. enough, (det., pron., adv.) đủ
+248. enter, (v.) đi vào
+249. equal, (adj., n., v.) ngang, bằng
+250. equate, làm cân bằng
+251. especially, (adv.) đặc biệt là
+252. even, (adv., adj.) ngay cả
+253. evening, (n.) buổi chiều, tối
+254. event, (n.) sự việc, sự kiện
+255. ever, (adv.) từng
+256. every, (det.) mỗi, mọi
+257. exact, (adj.) chính xác
+258. example, (n.) ví dụ
+259. except, (prep., conj.) trừ ra
+260. excite, (v.) kích thích
+261. exercise, (n., v.) bài tập, thực hiện
+262. expect, (v.) chờ đợi
+263. experience, (n., v.) kinh nghiệm
+264. experiment, (n., v.) thí nghiệm
+265. eye, (n.) mắt
+266. face, (n., v.) mặt, đối phó
+267. fact, (n.) sự kiện
+268. fair, (adj.) công bằng
+269. fall, (v., n.) rơi, ngã
+270. family, (n., adj.) gia đình
+271. famous, (adj.) nổi tiếng
+272. far, (adv., adj.) xa
+273. farm, (n.) trang trại
+274. fast, (adj., adv.) nhanh
+275. fat, (adj., n.) béo
+276. father, (n.) cha
+277. favor, sự quý mến
+278. fear, (n., v.) sự sợ hãi
+279. feed, (v.) cho ăn
+280. feel, (v.) cảm thấy
+281. feet, bàn chân
+282. fell, da lông
+283. felt, nỉ, phớt
+284. few, (det., adj., pron.) vài, một ít
+285. field, (n.) cánh đồng
+286. fig, quả sung
+287. fight, (v., n.) đấu tranh
+288. figure, (n., v.) hình dáng, nhân vật
+289. fill, (v.) làm đầy
+290. final, (adj., n.) chung cuộc
+291. find, (v.) tìm thấy
+292. fine, (adj.) tốt
+293. finger, (n.) ngón tay
+294. finish, (v., n.) hoàn thành
+295. fire, (n., v.) lửa
+296. first, (det.) đầu tiên
+297. fish, (n., v.) cá
+298. fit, (v., adj.) vừa vặn
+299. five, năm
+300. flat, (adj., n.) bằng phẳng
+301. floor, (n.) sàn nhà
+302. flow, (n., v.) dòng chảy
+303. flower, (n.) hoa
+304. fly, (v., n.) bay
+305. follow, (v.) đi theo
+306. food, (n.) thức ăn
+307. foot, (n.) bàn chân
+308. for, (prep.) cho
+309. force, (n., v.) sức mạnh
+310. forest, (n.) khu rừng
+311. form, (n., v.) hình thức
+312. forward, (adv., adj.) tiến tới
+313. found, (v.) tìm thấy
+314. four, bốn
+315. fraction, phân số
+316. free, (adj., v., adv.) tự do
+317. fresh, (adj.) tươi mới
+318. friend, (n.) bạn bè
+319. from, (prep.) từ
+320. front, (n., adj.) phía trước
+321. fruit, (n.) trái cây
+322. full, (adj.) đầy đủ
+323. fun, (n., adj.) vui vẻ
+324. game, (n.) trò chơi
+325. garden, (n.) khu vườn
+326. gas, (n.) khí ga
+327. gather, (v.) tập hợp
+328. gave, đã cho
+329. general, (adj.) chung
+330. gentle, (adj.) dịu dàng
+331. get, (v.) lấy được
+332. girl, (n.) cô gái
+333. give, (v.) đưa, cho
+334. glad, (adj.) vui mừng
+335. glass, (n.) kính, ly
+336. go, (v.) đi
+337. gold, (n., adj.) vàng bạc
+338. gone, đã đi
+339. good, (adj., n.) tốt
+340. govern, (v.) cai quản
+341. grand, (adj.) to lớn
+342. grass, (n.) bãi cỏ
+343. gray, xám
+344. great, (adj.) tuyệt vời
+345. green, (adj., n.) xanh lá
+346. grew, đã mọc
+347. ground, (n.) mặt đất
+348. group, (n.) nhóm
+349. grow, (v.) lớn lên
+350. guess, (v., n.) phỏng đoán
+351. guide, (n., v.) hướng dẫn
+352. gun, (n.) súng
+353. had, đã có
+354. hair, (n.) tóc
+355. half, (n., det., pron., adv.) một nửa
+356. hand, (n., v.) bàn tay
+357. happen, (v.) xảy ra
+358. happy, (adj.) hạnh phúc
+359. hard, (adj., adv.) khó khăn
+360. has, có
+361. hat, (n.) cái mũ
+362. have, (v., auxiliary v.) có
+363. he, (pron.) anh ấy
+364. head, (n., v.) cái đầu
+365. hear, (v.) nghe
+366. heard, đã nghe
+367. heart, (n.) trái tim
+368. heat, (n., v.) sức nóng
+369. heavy, (adj.) nặng nề
+370. held, đã giữ
+371. help, (v., n.) giúp đỡ
+372. her, (pron., det.) cô ấy
+373. here, (adv.) ở đây
+374. high, (adj., adv.) cao
+375. hill, (n.) ngọn đồi
+376. him, (pron.) anh ấy
+377. his, (det., pron.) của anh ấy
+378. history, (n.) lịch sử
+379. hit, (v., n.) đánh trúng
+380. hold, (v., n.) giữ lấy
+381. hole, (n.) cái lỗ
+382. home, (n., adv.) nhà
+383. hope, (v., n.) hy vọng
+384. horse, (n.) con ngựa
+385. hot, (adj.) nóng nực
+386. hour, (n.) giờ đồng hồ
+387. house, (n.) ngôi nhà
+388. how, (adv.) làm sao
+389. huge, (adj.) khổng lồ
+390. human, (adj., n.) con người
+391. hundred, một trăm
+392. hunt, (v.) săn bắn
+393. hurry, (v., n.) nhanh chóng
+394. I, tôi
+395. ice, (n.) băng đá
+396. idea, (n.) ý tưởng
+397. if, (conj.) nếu như
+398. imagine, (v.) tưởng tượng
+399. in, (prep., adv.) bên trong
+400. inch, (n.) đơn vị inch
+401. include, (v.) bao gồm
+402. indicate, (v.) chỉ ra
+403. industry, (n.) công nghiệp
+404. insect, (n.) côn trùng
+405. instant, ngay tức khắc
+406. instrument, (n.) nhạc cụ
+407. interest, (n., v.) sự quan tâm
+408. invent, (v.) phát minh
+409. iron, (n., v.) sắt
+410. island, (n.) hòn đảo
+411. it, (pron., det.) nó
+412. keep, (v.) giữ lại
+413. kept, đã giữ
+414. key, (n., adj.) chìa khóa
+415. kill, (v.) giết chết
+416. kind, (n., adj.) loại, tử tế
+417. king, (n.) nhà vua
+418. knew, đã biết
+419. know, (v.) biết
+420. lady, (n.) quý bà
+421. lake, (n.) hồ nước
+422. land, (n., v.) vùng đất
+423. language, (n.) ngôn ngữ
+424. large, (adj.) rộng lớn
+425. last, (det., adv., n., v.) cuối cùng
+426. late, (adj., adv.) muộn màng
+427. laugh, (v., n.) tiếng cười
+428. law, (n.) luật pháp
+429. lay, (v.) đặt nằm
+430. lead, (v., n.) dẫn dắt
+431. learn, (v.) học hỏi
+432. least, (det., pron., adv.) ít nhất
+433. leave, (v.) rời đi
+434. left, (adj., adv., n.) bên trái
+435. leg, cái chân
+436. length, (n.) chiều dài
+437. less, (det., pron., adv.) ít hơn
+438. let, (v.) để cho
+439. letter, (n.) bức thư
+440. level, (n., adj.) mức độ
+441. lie, (v., n.) nói dối
+442. life, (n.) cuộc sống
+443. lift, (v., n.) nhấc lên
+444. light, (n., adj., v.) ánh sáng
+445. like, (prep., v., conj.) thích
+446. line, (n.) dòng kẻ
+447. liquid, (n., adj.) chất lỏng
+448. list, (n., v.) danh sách
+449. listen, lắng nghe
+450. little, (adj., det., pron., adv.) một chút
+451. live, (v.) sinh sống
+452. locate, (v.) định vị
+453. log, khúc gỗ
+454. lone, đơn độc
+455. long, (adj., adv.) dài
+456. look, (v., n.) nhìn xem
+457. lost, (adj.) thất lạc
+458. lot, nhiều
+459. loud, (adj., adv.) to tiếng
+460. low, (adj., adv.) thấp
+461. machine, (n.) máy móc
+462. made, đã làm
+463. magnet, nam châm
+464. main, (adj.) chính yếu
+465. major, (adj.) quan trọng
+466. make, (v., n.) tạo ra
+467. man, (n.) đàn ông
+468. many, (det., pron.) nhiều
+469. map, (n.) bản đồ
+470. mark, (n., v.) đánh dấu
+471. market, (n.) chợ
+472. mass, (n., adj.) khối lượng
+473. master, (n.) chủ nhân
+474. match, (n., v.) trận đấu
+475. material, (n., adj.) nguyên liệu
+476. matter, (n., v.) vấn đề
+477. may, (n.) tháng năm
+478. me, (pron.) tôi
+479. mean, (v.) ý nghĩa
+480. meant, đã có ý
+481. measure, (v., n.) đo lường
+482. meat, (n.) thịt
+483. meet, (v.) gặp gỡ
+484. melody, giai điệu
+485. men, những người đàn ông
+486. metal, (n.) kim loại
+487. method, (n.) phương pháp
+488. middle, (n., adj.) ở giữa
+489. might, (modal v.) có thể
+490. mile, (n.) dặm
+491. milk, (n.) sữa
+492. million, triệu
+493. mind, (n., v.) tâm trí
+494. mine, (pron., n.) của tôi
+495. minute, (n.) phút
+496. miss, (n.) nhớ nhung
+497. mix, (v., n.) trộn lẫn
+498. modern, (adj.) hiện đại
+499. money, (n.) tiền bạc
+500. month, (n.) tháng
+501. moon, (n.) mặt trăng
+502. more, (det., pron., adv.) nhiều hơn
+503. morning, (n.) buổi sáng
+504. most, (det., pron., adv.) hầu hết
+505. motion, (n.) sự chuyển động
+506. mount, (v., n.) ngọn núi
+507. mouth, (n.) miệng
+508. multiply, (v.) nhân lên
+509. music, (n.) âm nhạc
+510. must, (modal v.) phải
+511. my, (det.) của tôi
+512. name, (n., v.) tên
+513. nation, (n.) quốc gia
+514. natural, (adj.) tự nhiên
+515. nature, (n.) thiên nhiên
+516. near, (adj., adv., prep.) gần
+517. necessary, (adj.) cần thiết
+518. neck, (n.) cái cổ
+519. need, (v., modal v., n.) cần
+520. never, (adv.) không bao giờ
+521. new, (adj.) mới
+522. next, (adj., adv., n.) kế tiếp
+523. night, (n.) ban đêm
+524. nine, chín
+525. no, (det.) không
+526. noise, (n.) tiếng ồn
+527. noon, buổi trưa
+528. nor, (conj., adv.) cũng không
+529. north, (n., adj., adv.) phía bắc
+530. nose, (n.) mũi
+531. note, (n., v.) ghi chú
+532. nothing, (pron.) không có gì
+533. notice, (n., v.) thông báo
+534. noun, danh từ
+535. now, (adv.) bây giờ
+536. number, (n.) con số
+537. numeral, chữ số
+538. object, (n., v.) đồ vật
+539. observe, (v.) quan sát
+540. occur, (v.) xảy ra
+541. ocean, (n.) đại dương
+542. of, (prep.) của
+543. off, (adv., prep.) tắt
+544. offer, (v., n.) đề nghị
+545. office, (n.) văn phòng
+546. often, (adv.) thường xuyên
+547. oh, ồ
+548. oil, (n.) dầu mỏ
+549. old, (adj.) cũ
+550. on, (prep., adv.) trên
+551. once, (adv., conj.) một lần
+552. one, (number, det., pron.) một
+553. only, (adj., adv.) duy nhất
+554. open, (adj., v.) mở ra
+555. operate, (v.) vận hành
+556. opposite, (adj., adv., n., prep.) đối diện
+557. or, hoặc
+558. order, (n., v.) ra lệnh
+559. organ, (n.) cơ quan
+560. original, (adj., n.) bản gốc
+561. other, (adj., pron.) khác
+562. our, (det.) của chúng tôi
+563. out, ngoài
+564. over, (adv., prep.) qua
+565. own, (adj., pron., v.) sở hữu
+566. oxygen, khí oxy
+567. page, (n.) trang giấy
+568. paint, (n., v.) sơn màu
+569. pair, (n.) một cặp
+570. paper, (n.) giấy tờ
+571. paragraph, đoạn văn
+572. parent, (n.) phụ huynh
+573. part, (n.) phần
+574. particular, (adj.) cụ thể
+575. party, (n.) bữa tiệc
+576. pass, (v.) đi qua
+577. past, (adj., n., prep., adv.) quá khứ
+578. pattern, (n.) hoa văn
+579. pay, (v., n.) trả tiền
+580. people, (n.) mọi người
+581. perhaps, (adv.) có lẽ
+582. period, (n.) thời kỳ
+583. person, (n.) một người
+584. phrase, (n.) cụm từ
+585. pick, (v.) nhặt lên
+586. picture, (n.) bức ảnh
+587. piece, (n.) miếng
+588. pitch, (n.) cường độ
+589. place, (n., v.) địa điểm
+590. plain, (adj.) đồng bằng
+591. plan, (n., v.) kế hoạch
+592. plane, (n.) máy bay
+593. planet, (n.) hành tinh
+594. plant, (n., v.) thực vật
+595. play, (v., n.) chơi đùa
+596. please, (v.) làm ơn
+597. plural, số nhiều
+598. poem, (n.) bài thơ
+599. point, (n., v.) điểm số
+600. poor, (adj.) nghèo khó
+601. popular, (adj.) phổ biến
+602. populate, cư dân
+603. port, (n.) bến cảng
+604. pose, (v., n.) tạo dáng
+605. position, (n.) vị trí
+606. possible, (adj.) có thể
+607. post, (n., v.) gửi thư
+608. pound, (n.) bảng anh
+609. power, (n.) quyền lực
+610. practice, (n.) luyện tập
+611. prepare, (v.) chuẩn bị
+612. present, (adj., n., v.) hiện tại
+613. press, (n., v.) nhấn nút
+614. pretty, (adv., adj.) xinh xắn
+615. print, (v., n.) in ấn
+616. probable, (adj.) có khả năng
+617. problem, (n.) vấn đề
+618. process, (n., v.) quá trình
+619. produce, (v.) sản xuất
+620. product, (n.) sản phẩm
+621. proper, (adj.) thích hợp
+622. property, (n.) tài sản
+623. protect, (v.) bảo vệ
+624. prove, (v.) chứng minh
+625. provide, (v.) cung cấp
+626. pull, (v., n.) kéo
+627. push, (v., n.) đẩy
+628. put, (v.) đặt để
+629. quart, một phần tư
+630. question, (n., v.) câu hỏi
+631. quick, (adj.) nhanh nhẹn
+632. quiet, (adj.) yên tĩnh
+633. quite, (adv.) khá là
+634. quotient, thương số
+635. race, (n., v.) cuộc đua
+636. radio, (n.) đài phát thanh
+637. rail, (n.) đường sắt
+638. rain, (n., v.) cơn mưa
+639. raise, (v.) nâng lên
+640. range, (n.) phạm vi
+641. rather, (adv.) thà rằng
+642. reach, (v.) chạm tới
+643. read, (v.) đọc sách
+644. ready, (adj.) sẵn sàng
+645. real, (adj.) thực tế
+646. reason, (n.) lý do
+647. receive, (v.) nhận lấy
+648. record, (n., v.) ghi âm
+649. red, (adj., n.) màu đỏ
+650. region, (n.) khu vực
+651. remember, (v.) ghi nhớ
+652. repeat, (v.) lặp lại
+653. reply, (n., v.) trả lời
+654. represent, (v.) đại diện
+655. require, (v.) yêu cầu
+656. rest, (n., v.) nghỉ ngơi
+657. result, (n., v.) kết quả
+658. rich, (adj.) giàu có
+659. ride, (v., n.) cưỡi xe
+660. right, (adj., adv., n.) bên phải
+661. ring, (n., v.) chiếc nhẫn
+662. rise, (n., v.) tăng lên
+663. river, (n.) dòng sông
+664. road, (n.) con đường
+665. rock, (n.) tảng đá
+666. roll, (n., v.) cuộn lại
+667. room, (n.) căn phòng
+668. root, (n.) rễ cây
+669. rope, (n.) sợi dây
+670. rose, hoa hồng
+671. round, (adj., adv., prep, n.) hình tròn
+672. row, hàng ngang
+673. rub, (v.) chà xát
+674. rule, (n., v.) quy định
+675. run, (v., n.) chạy
+676. safe, (adj.) an toàn
+677. said, đã nói
+678. sail, (v., n.) cánh buồm
+679. salt, (n.) muối ăn
+680. same, (adj., pron.) giống nhau
+681. sand, (n.) cát
+682. sat, đã ngồi
+683. save, (v.) cứu giúp
+684. saw, đã thấy
+685. say, (v.) nói
+686. scale, vảy cá
+687. school, trường học
+688. science, khoa học
+689. score, điểm số
+690. sea, biển cả
+691. search, tìm kiếm
+692. season, mùa màng
+693. seat, chỗ ngồi
+694. second, giây lát
+695. section, bộ phận
+696. see, nhìn thấy
+697. seed, hạt giống
+698. seem, dường như
+699. segment, phân đoạn
+700. select, lựa chọn
+701. self, bản thân
+702. sell, bán buôn
+703. send, gửi đi
+704. sense, cảm giác
+705. sent, đã gửi
+706. sentence, câu văn
+707. separate, tách biệt
+708. serve, phục vụ
+709. set, thiết lập
+710. settle, ổn định
+711. seven, bảy
+712. several, một vài
+713. shall, sẽ phải
+714. shape, hình dáng
+715. share, chia sẻ
+716. sharp, sắc bén
+717. she, cô ấy
+718. sheet, tấm chăn
+719. shell, vỏ sò
+720. shine, tỏa sáng
+721. ship, con tàu
+722. shoe, chiếc giày
+723. shop, cửa hàng
+724. shore, bờ biển
+725. short, ngắn gọn
+726. should, nên làm
+727. shoulder, bờ vai
+728. shout, hét lên
+729. show, chỉ ra
+730. side, phía bên
+731. sight, tầm nhìn
+732. sign, dấu hiệu
+733. silent, im lặng
+734. silver, bạc
+735. similar, tương tự
+736. simple, đơn giản
+737. since, kể từ
+738. sing, hát hò
+739. single, độc thân
+740. sister, chị gái
+741. sit, ngồi
+742. six, sáu
+743. size, kích cỡ
+744. skill, kỹ năng
+745. skin, da thịt
+746. sky, bầu trời
+747. slave, nô lệ
+748. sleep, ngủ
+749. slip, trượt ngã
+750. slow, chậm trễ
+751. small, nhỏ nhắn
+752. smell, ngửi mùi
+753. smile, mỉm cười
+754. snow, tuyết
+755. so, vì thế
+756. soft, mềm mại
+757. soil, đất đai
+758. soldier, quân lính
+759. solution, giải pháp
+760. solve, giải quyết
+761. some, một số
+762. son, con trai
+763. song, bài hát
+764. soon, sớm thôi
+765. sound, âm thanh
+766. south, phía nam
+767. space, không gian
+768. speak, nói chuyện
+769. special, đặc biệt
+770. speech, bài diễn văn
+771. speed, tốc độ
+772. spell, đánh vần
+773. spend, tiêu xài
+774. spoke, đã nói
+775. spot, dấu vết
+776. spread, lây lan
+777. spring, mùa xuân
+778. square, hình vuông
+779. stand, đứng dậy
+780. star, ngôi sao
+781. start, bắt đầu
+782. state, trạng thái
+783. station, nhà ga
+784. stay, ở lại
+785. stead, thay vì
+786. steam, hơi nước
+787. steel, thép cứng
+788. step, bước đi
+789. stick, gậy gộc
+790. still, vẫn còn
+791. stone, hòn đá
+792. stood, đã đứng
+793. stop, dừng lại
+794. store, lưu trữ
+795. story, câu chuyện
+796. straight, thẳng thắn
+797. strange, xa lạ
+798. stream, dòng suối
+799. street, con phố
+800. stretch, vươn vai
+801. string, sợi dây
+802. strong, mạnh mẽ
+803. student, học sinh
+804. study, học tập
+805. subject, môn học
+806. substance, vật chất
+807. subtract, trừ đi
+808. success, thành công
+809. such, như vậy
+810. sudden, đột ngột
+811. suffix, hậu tố
+812. sugar, đường ngọt
+813. suggest, đề nghị
+814. suit, bộ đồ
+815. summer, mùa hè
+816. sun, mặt trời
+817. supply, cung cấp
+818. support, hỗ trợ
+819. sure, chắc chắn
+820. surface, bề mặt
+821. surprise, ngạc nhiên
+822. swim, bơi lội
+823. syllable, âm tiết
+824. symbol, biểu tượng
+825. system, hệ thống
+826. table, cái bàn
+827. tail, cái đuôi
+828. take, lấy đi
+829. talk, trò chuyện
+830. tall, cao ráo
+831. teach, dạy bảo
+832. team, đội ngũ
+833. teeth, hàm răng
+834. tell, bảo cho
+835. temperature, nhiệt độ
+836. ten, mười
+837. term, thuật ngữ
+838. test, kiểm tra
+839. than, hơn là
+840. thank, cảm ơn
+841. that, cái đó
+842. the, cái này
+843. their, của họ
+844. them, bọn họ
+845. then, sau đó
+846. there, ở đó
+847. these, những cái này
+848. they, họ
+849. thick, dày đặc
+850. thin, mỏng manh
+851. thing, đồ vật
+852. think, suy nghĩ
+853. third, thứ ba
+854. this, cái này
+855. though, mặc dù
+856. thought, đã nghĩ
+857. thousand, nghìn
+858. three, ba
+859. through, xuyên qua
+860. throw, ném đi
+861. thus, như vậy
+862. tie, thắt dây
+863. time, thời gian
+864. tiny, nhỏ bé
+865. tire, lốp xe
+866. to, tới
+867. together, cùng nhau
+868. told, đã nói
+869. tone, âm điệu
+870. too, cũng vậy
+871. took, đã lấy
+872. tool, công cụ
+873. top, đỉnh cao
+874. total, tổng số
+875. touch, chạm vào
+876. toward, hướng tới
+877. town, thị trấn
+878. track, theo dõi
+879. trade, buôn bán
+880. train, tàu hỏa
+881. travel, du lịch
+882. tree, cái cây
+883. triangle, tam giác
+884. trip, chuyến đi
+885. trouble, rắc rối
+886. truck, xe tải
+887. true, sự thật
+888. try, thử sức
+889. tube, ống nước
+890. turn, rẽ hướng
+891. twenty, hai mươi
+892. two, hai
+893. type, kiểu loại
+894. under, bên dưới
+895. unit, đơn vị
+896. until, cho đến
+897. up, lên trên
+898. us, chúng ta
+899. use, sử dụng
+900. usual, thông thường
+901. valley, thung lũng
+902. value, giá trị
+903. vary, thay đổi
+904. verb, động từ
+905. very, rất nhiều
+906. view, quang cảnh
+907. village, ngôi làng
+908. visit, thăm viếng
+909. voice, giọng nói
+910. vowel, nguyên âm
+911. wait, đợi chờ
+912. walk, đi bộ
+913. wall, bức tường
+914. want, mong muốn
+915. war, chiến tranh
+916. warm, ấm áp
+917. was, đã là
+918. wash, giặt giũ
+919. watch, đồng hồ
+920. water, dòng nước
+921. wave, ngọn sóng
+922. way, cách thức
+923. we, chúng ta
+924. wear, mặc vào
+925. weather, thời tiết
+926. week, tuần lễ
+927. weight, cân nặng
+928. well, tốt đẹp
+929. were, đã là
+930. west, phía tây
+931. what, cái gì
+932. wheel, bánh xe
+933. when, khi nào
+934. where, ở đâu
+935. whether, liệu rằng
+936. which, cái nào
+937. while, trong khi
+938. white, màu trắng
+939. who, ai đó
+940. whole, toàn bộ
+941. whose, của ai
+942. why, tại sao
+943. wide, rộng rãi
+944. wife, người vợ
+945. wild, hoang dã
+946. will, sẽ làm
+947. win, chiến thắng
+948. wind, ngọn gió
+949. window, cửa sổ
+950. wing, đôi cánh
+951. winter, mùa đông
+952. wire, dây điện
+953. wish, ước nguyện
+954. with, cùng với
+955. woman, người nữ
+956. women, phụ nữ
+957. wonder, thắc mắc
+958. wood, gỗ cây
+959. word, từ vựng
+960. work, làm việc
+961. world, thế giới
+962. write, viết lách
+963. written, đã viết
+964. wrong, sai trái
+965. wrote, đã viết
+966. year, năm học
+967. yellow, màu vàng
+968. yes, vâng ạ
+969. yet, chưa đâu
+970. you, bạn
+971. young, trẻ trung
+972. your, của bạn
+973. yolk: lòng đỏ
+974. yeanling: dê con
+975. yearbook: niên giám
+976. yearling: khao khát
+977. yearlong: kéo dài
+978. yearning: khao khát
+979. yeomanry: phong thủy
+980. yielding: năng suất
+981. youngish: trẻ trung
+982. yourself: bản thân bạn
+983. youthful: trẻ trung
+984. yabbering: tiếng kêu
+985. yachtings: du thuyền
+986. yachtsmen: du thuyền
+987. yappingly: ngáp
+988. yardbirds: chim sân
+989. yardlands: sân đất
+990. yardworks: sân bãi
+991. yawmeters: ngáp
+992. yawningly: ngáp
+993. yearbooks: kỷ yếu
+994. yearlings: năm con
+995. yearnings: khao khát
+996. yeastiest: đẹp nhất
+997. yeastless: không men
+998. yeastlike: giống như men
+999. yellowest: màu vàng nhất
+1000. yuckiness: kinh ngạc

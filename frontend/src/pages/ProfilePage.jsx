@@ -19,6 +19,9 @@ import BookmarkRoundedIcon            from "@mui/icons-material/BookmarkRounded"
 import CheckCircleRoundedIcon         from "@mui/icons-material/CheckCircleRounded";
 import RepeatRoundedIcon              from "@mui/icons-material/RepeatRounded";
 import TrackChangesRoundedIcon        from "@mui/icons-material/TrackChangesRounded";
+import WorkspacePremiumRoundedIcon    from "@mui/icons-material/WorkspacePremiumRounded";
+import AutoAwesomeRoundedIcon         from "@mui/icons-material/AutoAwesomeRounded";
+import LocalLibraryRoundedIcon        from "@mui/icons-material/LocalLibraryRounded";
 import { SbCard, SbButton, SbInput } from "@/components/ui";
 import { setUser } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
@@ -268,6 +271,104 @@ const LearningStatsCard = () => {
   );
 };
 
+// ── Badges Section ────────────────────────────────────────────────────────────
+
+const BadgesSection = () => {
+  const { user } = useSelector((s) => s.auth);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["profile-stats"],
+    queryFn: () => learningApi.getProfileStats().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
+  if (isLoading) return <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 2 }} />;
+
+  const s = stats ?? {};
+  const level = user?.level ?? 1;
+  const streak = user?.streak?.current_streak ?? 0;
+
+  const BADGES = [
+    {
+      id: "level_2",
+      title: "Ngôi sao mới",
+      desc: "Đạt cấp độ 2",
+      icon: <AutoAwesomeRoundedIcon sx={{ fontSize: 36 }} />,
+      color: "#9c27b0",
+      unlocked: level >= 2,
+    },
+    {
+      id: "streak_7",
+      title: "Chăm chỉ",
+      desc: "Chuỗi học 7 ngày",
+      icon: <LocalFireDepartmentRoundedIcon sx={{ fontSize: 36 }} />,
+      color: colors.gold,
+      unlocked: streak >= 7,
+    },
+    {
+      id: "words_50",
+      title: "Thông thái",
+      desc: "Học trên 50 từ",
+      icon: <LocalLibraryRoundedIcon sx={{ fontSize: 36 }} />,
+      color: "#1e88e5",
+      unlocked: (s.total_words_studied ?? 0) >= 50,
+    },
+    {
+      id: "accuracy_85",
+      title: "Xạ thủ",
+      desc: "Chính xác > 85%",
+      icon: <WorkspacePremiumRoundedIcon sx={{ fontSize: 36 }} />,
+      color: colors.greenAccent,
+      unlocked: s.total_review_sessions > 0 && (s.accuracy_pct ?? 0) >= 85,
+    },
+  ];
+
+  const unlockedCount = BADGES.filter(b => b.unlocked).length;
+
+  return (
+    <SbCard>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
+          Huy hiệu thành tích
+        </Typography>
+        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, fontWeight: 700 }}>
+          {unlockedCount} / {BADGES.length} huy hiệu
+        </Typography>
+      </Box>
+
+      <Grid container spacing={2}>
+        {BADGES.map(badge => (
+          <Grid item xs={6} sm={3} key={badge.id}>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: "16px",
+                border: "2px solid",
+                borderColor: badge.unlocked ? `${badge.color}40` : "rgba(0,0,0,0.06)",
+                bgcolor: badge.unlocked ? `${badge.color}08` : "#fafafa",
+                display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
+                opacity: badge.unlocked ? 1 : 0.6,
+                filter: badge.unlocked ? "none" : "grayscale(100%)",
+                transition: "all 0.2s",
+                "&:hover": { transform: "translateY(-4px)", boxShadow: badge.unlocked ? `0 8px 24px ${badge.color}20` : "none" }
+              }}
+            >
+              <Box sx={{ color: badge.color, mb: 1, filter: badge.unlocked ? `drop-shadow(0 4px 8px ${badge.color}40)` : "none" }}>
+                {badge.icon}
+              </Box>
+              <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: colors.textBlack, mb: 0.5, lineHeight: 1.2 }}>
+                {badge.title}
+              </Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft, lineHeight: 1.2 }}>
+                {badge.desc}
+              </Typography>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+    </SbCard>
+  );
+};
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
@@ -424,6 +525,9 @@ const ProfilePage = () => {
 
       {/* ── Activity heatmap ─────────────────────────────────────────── */}
       <ActivityHeatmap />
+
+      {/* ── Badges ───────────────────────────────────────────────────── */}
+      {user?.role === "user" && <BadgesSection />}
 
       {/* ── Learning stats ───────────────────────────────────────────── */}
       <LearningStatsCard />

@@ -20,63 +20,103 @@ class QuizGenerateView(APIView):
 
     def get(self, request):
         from apps.learning.models import Lesson
-        from apps.vocabulary.models import Word
+        from apps.vocabulary.models import Word, WordSet
 
         lesson_id = request.query_params.get("lesson_id")
-        if not lesson_id:
-            return Response({"detail": "Cần lesson_id."}, status=status.HTTP_400_BAD_REQUEST)
+        wordset_id = request.query_params.get("wordset_id")
+        quiz_type = request.query_params.get("type", "mc")
 
-        try:
-            lesson = Lesson.objects.get(pk=lesson_id, is_published=True)
-        except Lesson.DoesNotExist:
-            return Response({"detail": "Không tìm thấy bài học."}, status=status.HTTP_404_NOT_FOUND)
+        if not lesson_id and not wordset_id:
+            return Response({"detail": "Cần lesson_id hoặc wordset_id."}, status=status.HTTP_400_BAD_REQUEST)
 
-        words = [
-            {
-                "id": lw.word_id,
-                "text": lw.word.text,
-                "phonetic": lw.word.phonetic,
-                "definition_vi": lw.word.definition_vi,
-            }
-            for lw in lesson.lesson_words.select_related("word").order_by("order_index")
-        ]
+        title = ""
+        words = []
+        source_obj = None
+
+        if lesson_id:
+            try:
+                source_obj = Lesson.objects.get(pk=lesson_id, is_published=True)
+                title = source_obj.title
+                words = [
+                    {
+                        "id": lw.word_id,
+                        "text": lw.word.text,
+                        "phonetic": lw.word.phonetic,
+                        "definition_vi": lw.word.definition_vi,
+                    }
+                    for lw in source_obj.lesson_words.select_related("word").order_by("order_index")
+                ]
+            except Lesson.DoesNotExist:
+                return Response({"detail": "Không tìm thấy bài học."}, status=status.HTTP_404_NOT_FOUND)
+        elif wordset_id:
+            try:
+                source_obj = WordSet.objects.get(pk=wordset_id)
+                title = source_obj.name
+                words = [
+                    {
+                        "id": wsw.word_id,
+                        "text": wsw.word.text,
+                        "phonetic": wsw.word.phonetic,
+                        "definition_vi": wsw.word.definition_vi,
+                    }
+                    for wsw in source_obj.wordset_words.select_related("word").order_by("order_index")
+                ]
+            except WordSet.DoesNotExist:
+                return Response({"detail": "Không tìm thấy bộ từ."}, status=status.HTTP_404_NOT_FOUND)
+
         if len(words) < 4:
             return Response(
-                {"detail": "Bài học cần ít nhất 4 từ để tạo quiz."},
+                {"detail": "Nguồn cần ít nhất 4 từ để tạo quiz."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Tìm hoặc tạo Quiz object cho bài học này
-        quiz = Quiz.objects.filter(
-            lesson=lesson, quiz_type=Quiz.QuizType.MULTIPLE_CHOICE
-        ).first()
-        if not quiz:
-            quiz = Quiz.objects.create(
-                title=f"Quiz – {lesson.title}",
-                quiz_type=Quiz.QuizType.MULTIPLE_CHOICE,
-                lesson=lesson,
-                created_by=request.user,
-            )
+        q_type_enum = Quiz.QuizType.MATCHING if quiz_type == "match" else Quiz.QuizType.MULTIPLE_CHOICE
 
-        all_defs = [w["definition_vi"] for w in words]
-        sample = random.sample(words, min(10, len(words)))
-        questions = []
-        for w in sample:
-            others = [d for d in all_defs if d != w["definition_vi"]]
-            wrong = random.sample(others, min(3, len(others)))
-            options = wrong + [w["definition_vi"]]
-            random.shuffle(options)
-            questions.append({
-                "word_id": w["id"],
-                "word_text": w["text"],
-                "phonetic": w["phonetic"] or "",
-                "options": options,
-                "correct_index": options.index(w["definition_vi"]),
-            })
+        # Tìm hoặc tạo Quiz object
+        filter_kwargs = {"quiz_type": q_type_enum}
+        if lesson_id:
+            filter_kwargs["lesson"] = source_obj
+        else:
+            filter_kwargs["wordset"] = source_obj
+
+        quiz = Quiz.objects.filter(**filter_kwargs).first()
+        if not quiz:
+            create_kwargs = {
+                "title": f"Quiz – {title}",
+                "quiz_type": q_type_enum,
+                "created_by": request.user,
+            }
+            if lesson_id:
+                create_kwargs["lesson"] = source_obj
+            else:
+                create_kwargs["wordset"] = source_obj
+            quiz = Quiz.objects.create(**create_kwargs)
+
+        sample_size = min(10 if quiz_type == "mc" else 8, len(words))
+        sample = random.sample(words, sample_size)
+        
+        if quiz_type == "match":
+            questions = sample
+        else:
+            all_defs = [w["definition_vi"] for w in words]
+            questions = []
+            for w in sample:
+                others = [d for d in all_defs if d != w["definition_vi"]]
+                wrong = random.sample(others, min(3, len(others)))
+                options = wrong + [w["definition_vi"]]
+                random.shuffle(options)
+                questions.append({
+                    "word_id": w["id"],
+                    "word_text": w["text"],
+                    "phonetic": w["phonetic"] or "",
+                    "options": options,
+                    "correct_index": options.index(w["definition_vi"]),
+                })
 
         return Response({
             "quiz_id": quiz.id,
-            "lesson_title": lesson.title,
+            "quiz_type": quiz_type,
+            "source_title": title,
             "questions": questions,
         })
 

@@ -21,6 +21,7 @@ const learningApi = {
   getReviewHistory: (days = 30)  => axiosClient.get("/learning/review/history/", { params: { days } }),
   submitAnswer:     (wordId, q)  => axiosClient.post(`/learning/review/${wordId}/answer/`, { quality: q }),
   getProfileStats:  ()           => axiosClient.get("/learning/profile/stats/"),
+  getLeaderboard:   ()           => axiosClient.get("/learning/leaderboard/"),
 
   // ── Notifications ─────────────────────────────────────────────────────────
   getNotifications: ()   => axiosClient.get("/learning/notifications/"),

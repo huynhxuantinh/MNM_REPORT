@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Chip, LinearProgress,
-  CircularProgress, IconButton, Tooltip, Skeleton,
+  CircularProgress, IconButton, Tooltip, Skeleton, keyframes
 } from "@mui/material";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
@@ -14,6 +14,7 @@ import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 import { SbButton, SbCard, SbBadge } from "@/components/ui";
 import { setUser } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
@@ -37,123 +38,165 @@ const posStyle = (pos) =>
 
 // ── Speak word ────────────────────────────────────────────────────────────────
 
-const speakWord = (text) => {
+const speakWord = (text, setSpeaking) => {
   if (!window.speechSynthesis) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "en-US";
   utterance.rate = 0.85;
+  if (setSpeaking) {
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+  }
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 };
 
-// ── Word card content ─────────────────────────────────────────────────────────
+const pulseAnim = keyframes`
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 117, 74, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 117, 74, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 117, 74, 0); }
+`;
 
-const WordCardContent = ({ word, revealed }) => {
+// ── Flip card ─────────────────────────────────────────────────────────────────
+
+const CARD_HEIGHT = { xs: 300, sm: 360 };
+
+const CardFace = ({ sx, children }) => (
+  <Box sx={{
+    position: "absolute",
+    inset: 0,
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
+    borderRadius: "16px",
+    bgcolor: "#fff",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    p: "24px 28px",
+    overflow: "hidden",
+    ...sx,
+  }}>
+    {children}
+  </Box>
+);
+
+const FlipCard = ({ flipped, front, back, onClick }) => (
+  <Box
+    onClick={onClick}
+    sx={{
+      perspective: "1400px",
+      height: CARD_HEIGHT,
+      cursor: !flipped ? "pointer" : "default",
+      userSelect: "none",
+    }}
+  >
+    <Box sx={{
+      position: "relative",
+      width: "100%",
+      height: "100%",
+      transformStyle: "preserve-3d",
+      transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
+      transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+    }}>
+      <CardFace>
+        {front}
+      </CardFace>
+      <CardFace sx={{ transform: "rotateY(180deg)", justifyContent: "flex-start", pt: { xs: 3, sm: 4 } }}>
+        {back}
+      </CardFace>
+    </Box>
+  </Box>
+);
+
+// ── Card content: front ───────────────────────────────────────────────────────
+
+const CardFront = ({ word, speaking, setSpeaking }) => {
   const ps = posStyle(word.part_of_speech);
-
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 1 }}>
-      {/* Word + phonetic */}
-      <Box sx={{ textAlign: "center" }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1.5, mb: 0.5 }}>
-          <Typography
+    <Box sx={{ textAlign: "center", width: "100%" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1.25, mb: 0.75 }}>
+        <Typography sx={{
+          fontSize: { xs: "2.8rem", sm: "3.4rem" },
+          fontWeight: 800,
+          color: colors.greenStarbucks,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.1,
+        }}>
+          {word.text}
+        </Typography>
+        <Tooltip title="Nghe phát âm" arrow>
+          <IconButton
+            onClick={(e) => { e.stopPropagation(); speakWord(word.text, setSpeaking); }}
+            size="small"
             sx={{
-              fontSize: { xs: "2.6rem", md: "3.2rem" },
-              fontWeight: 800,
-              color: colors.greenStarbucks,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.1,
+              color: colors.greenAccent,
+              bgcolor: `${colors.greenAccent}14`,
+              "&:hover": { bgcolor: `${colors.greenAccent}28` },
+              animation: speaking ? `${pulseAnim} 1.5s infinite` : "none",
             }}
           >
-            {word.text}
-          </Typography>
-          <Tooltip title="Nghe phát âm" arrow>
-            <IconButton
-              onClick={() => speakWord(word.text)}
-              sx={{ color: colors.greenAccent, bgcolor: `${colors.greenAccent}14`, "&:hover": { bgcolor: `${colors.greenAccent}28` } }}
-            >
-              <VolumeUpRoundedIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {word.phonetic && (
-          <Typography sx={{ fontSize: "1.1rem", color: colors.textBlackSoft, fontStyle: "italic", letterSpacing: "0.02em" }}>
-            /{word.phonetic}/
-          </Typography>
-        )}
-
-        {word.part_of_speech && (
-          <Box sx={{ mt: 1 }}>
-            <Chip
-              label={word.part_of_speech}
-              size="small"
-              sx={{ bgcolor: ps.bg, color: ps.color, fontWeight: 700, fontSize: "0.75rem" }}
-            />
-          </Box>
-        )}
+            <VolumeUpRoundedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
 
-      {/* Meaning — revealed after button click */}
-      <Box
-        sx={{
-          opacity: revealed ? 1 : 0,
-          transform: revealed ? "translateY(0)" : "translateY(12px)",
-          transition: "opacity 0.35s ease, transform 0.35s ease",
-          pointerEvents: revealed ? "auto" : "none",
-          display: "flex", flexDirection: "column", gap: 1.5,
-        }}
-      >
-        <Box sx={{ borderTop: `1px solid rgba(0,0,0,0.08)`, pt: 2 }}>
-          {/* Vietnamese definition */}
-          <Typography sx={{ fontSize: "1.25rem", fontWeight: 700, color: colors.textBlack, textAlign: "center", mb: 0.5 }}>
-            {word.definition_vi}
-          </Typography>
-
-          {/* English definition */}
-          {word.definition_en && (
-            <Typography sx={{ fontSize: "0.9rem", color: colors.textBlackSoft, textAlign: "center" }}>
-              {word.definition_en}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Example sentence */}
-        {word.example_en && (
-          <Box
-            sx={{
-              bgcolor: `${colors.greenAccent}0f`,
-              border: `1px solid ${colors.greenAccent}30`,
-              borderRadius: "10px",
-              p: "12px 16px",
-            }}
-          >
-            <Typography sx={{ fontSize: "0.9rem", fontStyle: "italic", color: colors.rewardsGreen, lineHeight: 1.6 }}>
-              "{word.example_en}"
-            </Typography>
-            {word.example_vi && (
-              <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mt: 0.5 }}>
-                → {word.example_vi}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
-
-      {/* Hint when not revealed */}
-      {!revealed && (
-        <Typography
-          sx={{
-            textAlign: "center", fontSize: "0.85rem", color: colors.textBlackSoft,
-            fontStyle: "italic", mt: 1,
-          }}
-        >
-          Nhấn "Xem nghĩa" để tiếp tục
+      {word.phonetic && (
+        <Typography sx={{ fontSize: "1.1rem", color: colors.textBlackSoft, fontStyle: "italic", letterSpacing: "0.03em", mb: 1 }}>
+          /{word.phonetic}/
         </Typography>
       )}
+
+      {word.part_of_speech && (
+        <Chip label={word.part_of_speech} size="small"
+          sx={{ bgcolor: ps.bg, color: ps.color, fontWeight: 700, fontSize: "0.72rem", mb: 2 }} />
+      )}
+
+      <Box sx={{ mt: 3, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, color: colors.textBlackSoft }}>
+        <TouchAppRoundedIcon sx={{ fontSize: 16 }} />
+        <Typography sx={{ fontSize: "0.78rem" }}>Nhấn thẻ hoặc nút dưới để xem nghĩa</Typography>
+      </Box>
     </Box>
   );
 };
+
+// ── Card content: back ────────────────────────────────────────────────────────
+
+const CardBack = ({ word }) => (
+  <Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box sx={{ textAlign: "center" }}>
+      <Typography sx={{ fontSize: "1.6rem", fontWeight: 800, color: colors.textBlack, lineHeight: 1.3, mb: 0.5 }}>
+        {word.definition_vi}
+      </Typography>
+      {word.definition_en && (
+        <Typography sx={{ fontSize: "0.95rem", color: colors.textBlackSoft }}>
+          {word.definition_en}
+        </Typography>
+      )}
+    </Box>
+
+    {word.example_en && (
+      <Box sx={{
+        bgcolor: `${colors.greenAccent}0d`,
+        border: `1px solid ${colors.greenAccent}28`,
+        borderRadius: "10px",
+        p: "12px 16px",
+        mt: 1
+      }}>
+        <Typography sx={{ fontSize: "0.95rem", fontStyle: "italic", color: colors.rewardsGreen, lineHeight: 1.6 }}>
+          "{word.example_en}"
+        </Typography>
+        {word.example_vi && (
+          <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mt: 0.5 }}>
+            → {word.example_vi}
+          </Typography>
+        )}
+      </Box>
+    )}
+  </Box>
+);
 
 // ── Completion screen ─────────────────────────────────────────────────────────
 
@@ -248,6 +291,7 @@ const StudyPage = () => {
   const [completionData, setCompletionData] = useState(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [started, setStarted]         = useState(false);
+  const [speaking, setSpeaking]       = useState(false);
 
   // Fetch lesson detail
   const { data: lesson, isLoading, isError } = useQuery({
@@ -409,24 +453,20 @@ const StudyPage = () => {
       </Box>
 
       {/* ── Word card ────────────────────────────────────────────────── */}
-      <SbCard
-        sx={{
-          minHeight: { xs: 300, sm: 360 },
-          display: "flex", flexDirection: "column", justifyContent: "center",
-          cursor: !revealed ? "pointer" : "default",
-          transition: "box-shadow 0.2s",
-          "&:hover": !revealed ? { boxShadow: "0 6px 20px rgba(0,0,0,0.12)" } : {},
-        }}
-        onClick={!revealed ? () => setRevealed(true) : undefined}
-      >
-        {currentWord ? (
-          <WordCardContent word={currentWord} revealed={revealed} />
-        ) : (
+      {currentWord ? (
+        <FlipCard
+          flipped={revealed}
+          onClick={!revealed ? () => setRevealed(true) : undefined}
+          front={<CardFront word={currentWord} speaking={speaking} setSpeaking={setSpeaking} />}
+          back={<CardBack word={currentWord} />}
+        />
+      ) : (
+        <SbCard sx={{ minHeight: CARD_HEIGHT, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Typography sx={{ textAlign: "center", color: colors.textBlackSoft }}>
             Không có dữ liệu từ
           </Typography>
-        )}
-      </SbCard>
+        </SbCard>
+      )}
 
       {/* ── Navigation buttons ────────────────────────────────────────── */}
       {!revealed ? (

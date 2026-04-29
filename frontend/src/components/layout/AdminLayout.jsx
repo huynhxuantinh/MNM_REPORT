@@ -9,6 +9,8 @@ import {
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
+import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -29,6 +31,8 @@ const ADMIN_ACCENT = "#5c6bc0";   // indigo
 const NAV_ITEMS = [
   { label: "Tổng quan",   to: "/admin",          icon: <DashboardRoundedIcon />,        end: true },
   { label: "Người dùng",  to: "/admin/users",    icon: <PeopleRoundedIcon /> },
+  { label: "Từ vựng",     to: "/admin/words",    icon: <TranslateRoundedIcon /> },
+  { label: "Bài học",     to: "/admin/lessons",  icon: <MenuBookRoundedIcon /> },
   { label: "Nội dung",    to: "/admin/content",  icon: <LibraryBooksRoundedIcon /> },
 ];
 

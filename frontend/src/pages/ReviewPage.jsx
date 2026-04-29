@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Chip, LinearProgress,
-  CircularProgress, IconButton, Tooltip, Skeleton,
+  CircularProgress, IconButton, Tooltip, Skeleton, keyframes
 } from "@mui/material";
 import VolumeUpRoundedIcon   from "@mui/icons-material/VolumeUpRounded";
 import ArrowBackRoundedIcon  from "@mui/icons-material/ArrowBackRounded";
@@ -38,14 +38,25 @@ const posStyle = (pos) =>
 
 // ── Speech ────────────────────────────────────────────────────────────────────
 
-const speakWord = (text) => {
+const speakWord = (text, setSpeaking) => {
   if (!window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
   u.rate = 0.85;
+  if (setSpeaking) {
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+  }
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
 };
+
+const pulseAnim = keyframes`
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 117, 74, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 117, 74, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 117, 74, 0); }
+`;
 
 // ── Quality button config (SM-2 quality 0-5) ─────────────────────────────────
 
@@ -116,7 +127,7 @@ const FlipCard = ({ flipped, front, back, onClick }) => (
 
 // ── Card content: front ───────────────────────────────────────────────────────
 
-const CardFront = ({ word }) => {
+const CardFront = ({ word, speaking, setSpeaking }) => {
   const ps = posStyle(word.part_of_speech);
   return (
     <Box sx={{ textAlign: "center", width: "100%" }}>
@@ -132,9 +143,14 @@ const CardFront = ({ word }) => {
         </Typography>
         <Tooltip title="Nghe phát âm" arrow>
           <IconButton
-            onClick={(e) => { e.stopPropagation(); speakWord(word.text); }}
+            onClick={(e) => { e.stopPropagation(); speakWord(word.text, setSpeaking); }}
             size="small"
-            sx={{ color: colors.greenAccent, bgcolor: `${colors.greenAccent}14`, "&:hover": { bgcolor: `${colors.greenAccent}28` } }}
+            sx={{
+              color: colors.greenAccent,
+              bgcolor: `${colors.greenAccent}14`,
+              "&:hover": { bgcolor: `${colors.greenAccent}28` },
+              animation: speaking ? `${pulseAnim} 1.5s infinite` : "none",
+            }}
           >
             <VolumeUpRoundedIcon fontSize="small" />
           </IconButton>
@@ -282,6 +298,7 @@ const ReviewPage = () => {
   const [flipped, setFlipped]         = useState(false);
   const [submitting, setSubmitting]   = useState(false);
   const [done, setDone]               = useState(false);
+  const [speaking, setSpeaking]       = useState(false);
   const [stats, setStats]             = useState({
     total: 0, correct: 0, xpEarned: 0, streak: 0, totalXP: null, level: null,
   });
@@ -303,7 +320,7 @@ const ReviewPage = () => {
   const progress = items.length > 0 ? (currentIdx / items.length) * 100 : 0;
 
   // Reset flip on card change
-  useEffect(() => { setFlipped(false); }, [currentIdx]);
+  useEffect(() => { setFlipped(false); setSpeaking(false); }, [currentIdx]);
 
   const handleQualityRef = useRef(null);
 
@@ -495,7 +512,7 @@ const ReviewPage = () => {
         <FlipCard
           flipped={flipped}
           onClick={() => !flipped && setFlipped(true)}
-          front={<CardFront word={current.word} />}
+          front={<CardFront word={current.word} speaking={speaking} setSpeaking={setSpeaking} />}
           back={<CardBack word={current.word} log={current} />}
         />
       )}

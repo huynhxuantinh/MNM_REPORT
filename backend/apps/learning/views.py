@@ -667,3 +667,29 @@ class NotificationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
             user=request.user, is_read=False
         ).update(is_read=True)
         return Response({"updated": updated})
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  LEADERBOARD
+# ══════════════════════════════════════════════════════════════════════════════
+
+class LeaderboardView(APIView):
+    """
+    GET /api/v1/learning/leaderboard/
+    Trả về Top 50 học sinh có điểm XP cao nhất.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.users.models import User
+        users = User.objects.filter(role="user").order_by("-xp")[:50]
+        data = []
+        for u in users:
+            data.append({
+                "id": u.id,
+                "full_name": u.get_full_name(),
+                "avatar_url": request.build_absolute_uri(u.avatar.url) if u.avatar else None,
+                "level": u.level,
+                "xp": u.xp,
+                "streak": u.streak,
+            })
+        return Response(data)

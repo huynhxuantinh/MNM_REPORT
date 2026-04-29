@@ -13,6 +13,7 @@ from .views import (
     ReviewSummaryView,
     StudentClassViewSet,
     TeacherStatsView,
+    LeaderboardView,
 )
 
 router = DefaultRouter()
@@ -35,4 +36,5 @@ urlpatterns = [
 
     # ── Profile ──────────────────────────────────────────────────
     path("profile/stats/", ProfileStatsView.as_view(), name="profile-stats"),
+    path("leaderboard/", LeaderboardView.as_view(), name="leaderboard"),
 ]
