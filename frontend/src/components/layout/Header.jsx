@@ -5,14 +5,16 @@ import {
   AppBar, Toolbar, Box, IconButton, Typography,
   Badge, Menu, MenuItem, Divider, Tooltip, useMediaQuery, useTheme,
 } from "@mui/material";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import MenuRoundedIcon          from "@mui/icons-material/MenuRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import LogoutRoundedIcon        from "@mui/icons-material/LogoutRounded";
+import PersonRoundedIcon        from "@mui/icons-material/PersonRounded";
+import DarkModeRoundedIcon      from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon     from "@mui/icons-material/LightModeRounded";
 import { logout } from "@/features/auth/authSlice";
 import { SbAvatar } from "@/components/ui";
 import { colors } from "@/styles/theme";
+import { useAppTheme } from "@/contexts/ThemeContext";
 import { SIDEBAR_WIDTH } from "./Sidebar";
 
 const PAGE_TITLES = {
@@ -30,6 +32,7 @@ const Header = ({ onMenuClick }) => {
   const { user } = useSelector((state) => state.auth);
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
+  const { mode, toggleMode } = useAppTheme();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifAnchor, setNotifAnchor] = useState(null);
@@ -53,11 +56,10 @@ const Header = ({ onMenuClick }) => {
       position="fixed"
       elevation={0}
       sx={{
-        bgcolor: "#fff",
-        color: colors.textBlack,
+        bgcolor: "background.paper",
+        color: "text.primary",
         width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
         ml: { md: `${SIDEBAR_WIDTH}px` },
-        boxShadow: "0 1px 3px rgba(0,0,0,0.10), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)",
         zIndex: (t) => t.zIndex.drawer - 1,
       }}
     >
@@ -90,11 +92,23 @@ const Header = ({ onMenuClick }) => {
 
         {/* Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {/* Dark mode toggle */}
+          <Tooltip title={mode === "dark" ? "Chế độ sáng" : "Chế độ tối"} arrow>
+            <IconButton
+              onClick={toggleMode}
+              sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}
+            >
+              {mode === "dark"
+                ? <LightModeRoundedIcon fontSize="small" />
+                : <DarkModeRoundedIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+
           {/* Notifications */}
           <Tooltip title="Thông báo" arrow>
             <IconButton
               onClick={handleNotifOpen}
-              sx={{ color: colors.textBlackSoft, "&:hover": { color: colors.greenAccent } }}
+              sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}
             >
               <Badge badgeContent={unreadCount} color="error" max={9}>
                 <NotificationsRoundedIcon />

@@ -13,9 +13,12 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import { SbAvatar } from "@/components/ui";
 import { logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
+import { useAppTheme } from "@/contexts/ThemeContext";
 
 const SIDEBAR_WIDTH = 260;
 const HEADER_HEIGHT = 64;
@@ -115,6 +118,7 @@ const AdminHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { mode, toggleMode } = useAppTheme();
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleLogout = () => {
@@ -153,6 +157,12 @@ const AdminHeader = ({ onMenuClick }) => {
         </Box>
 
         <Box sx={{ flex: 1 }} />
+
+        <Tooltip title={mode === "dark" ? "Chế độ sáng" : "Chế độ tối"} arrow>
+          <IconButton onClick={toggleMode} sx={{ color: "text.secondary" }}>
+            {mode === "dark" ? <LightModeRoundedIcon fontSize="small" /> : <DarkModeRoundedIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
 
         <Tooltip title={user?.email} arrow>
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
@@ -198,7 +208,7 @@ const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f0f2f8" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Sidebar */}
       <Box component="nav" sx={{ width: { md: SIDEBAR_WIDTH }, flexShrink: { md: 0 } }}>
         {isMobile ? (

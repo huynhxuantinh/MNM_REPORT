@@ -36,7 +36,7 @@ from apps.accounts.models import User
 from apps.vocabulary.models import Word
 from .models import (
     Assignment, Lesson, LessonProgress, LessonWord,
-    Notification, ReviewLog, UserStreak,
+    Notification, ReviewLog, StudentClass, UserStreak,
 )
 from .permissions import IsOwnerOrAdmin, IsTeacherOrAdmin
 from .serializers import (
@@ -44,6 +44,7 @@ from .serializers import (
     LessonDetailSerializer, LessonSerializer,
     LessonWordSerializer, NotificationSerializer,
     ReviewAnswerSerializer, ReviewLogSerializer,
+    StudentClassDetailSerializer, StudentClassSerializer,
     UserStreakSerializer,
 )
 
@@ -322,6 +323,102 @@ class AssignmentViewSet(viewsets.GenericViewSet,
 
         return Response(
             {"assigned": created_count, "skipped": len(student_ids) - created_count},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  STUDENT CLASS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class StudentClassViewSet(viewsets.ModelViewSet):
+    """
+    list:    GET  /classes/
+    create:  POST /classes/
+    retrieve: GET  /classes/{id}/
+    update:  PATCH /classes/{id}/
+    destroy: DELETE /classes/{id}/
+    add_students: POST /classes/{id}/add_students/
+    remove_student: POST /classes/{id}/remove_student/
+    assign_lesson: POST /classes/{id}/assign_lesson/
+    """
+
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+
+    def get_queryset(self):
+        return StudentClass.objects.filter(teacher=self.request.user).annotate(
+            student_count=Count("students", distinct=True)
+        )
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return StudentClassDetailSerializer
+        return StudentClassSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(teacher=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def add_students(self, request, pk=None):
+        klass = self.get_object()
+        student_ids = request.data.get("student_ids", [])
+        students = User.objects.filter(id__in=student_ids, is_active=True)
+        klass.students.add(*students)
+        return Response({"added": students.count()})
+
+    @action(detail=True, methods=["post"])
+    def remove_student(self, request, pk=None):
+        klass = self.get_object()
+        student_id = request.data.get("student_id")
+        try:
+            student = klass.students.get(id=student_id)
+            klass.students.remove(student)
+            return Response({"removed": True})
+        except Exception:
+            return Response({"removed": False}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def assign_lesson(self, request, pk=None):
+        klass = self.get_object()
+        lesson_id = request.data.get("lesson_id")
+        due_date = request.data.get("due_date")
+
+        try:
+            lesson = Lesson.objects.get(id=lesson_id, is_published=True)
+        except Lesson.DoesNotExist:
+            return Response(
+                {"detail": "Bài học không tồn tại hoặc chưa công bố."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        students = klass.students.filter(is_active=True)
+        if not students.exists():
+            return Response(
+                {"detail": "Lớp chưa có học sinh nào."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created_count = 0
+        for student in students:
+            _, created = Assignment.objects.get_or_create(
+                lesson=lesson, student=student,
+                defaults={"teacher": request.user, "due_date": due_date or None},
+            )
+            if created:
+                created_count += 1
+                Notification.objects.create(
+                    user=student,
+                    type=Notification.Type.ASSIGNMENT,
+                    message=f"Bạn được giao bài học mới: {lesson.title}",
+                    related_id=lesson.id,
+                )
+
+        return Response(
+            {
+                "assigned": created_count,
+                "skipped": students.count() - created_count,
+                "class_name": klass.name,
+            },
             status=status.HTTP_201_CREATED,
         )
 

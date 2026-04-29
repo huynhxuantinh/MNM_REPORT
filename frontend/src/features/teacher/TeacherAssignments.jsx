@@ -6,11 +6,14 @@ import {
   DialogActions, FormControl, InputLabel, Select, MenuItem,
   Chip, Skeleton, Alert, Snackbar, IconButton, Tooltip,
   TextField, InputAdornment, Checkbox, CircularProgress,
+  ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import AddRoundedIcon          from "@mui/icons-material/AddRounded";
 import DeleteRoundedIcon       from "@mui/icons-material/DeleteRounded";
 import AssignmentRoundedIcon   from "@mui/icons-material/AssignmentRounded";
 import SearchRoundedIcon       from "@mui/icons-material/SearchRounded";
+import PeopleRoundedIcon       from "@mui/icons-material/PeopleRounded";
+import GroupsRoundedIcon       from "@mui/icons-material/GroupsRounded";
 import { SbButton, SbInput } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import teacherApi from "@/api/teacherApi";
@@ -43,13 +46,14 @@ const Toast = ({ toast, onClose }) => (
 
 // ── AssignDialog — giao bài mới ───────────────────────────────────────────────
 
-const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
+const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => {
+  const [mode, setMode]             = useState("students"); // "students" | "class"
   const [lessonId, setLessonId]     = useState("");
   const [studentIds, setStudentIds] = useState([]);
+  const [classId, setClassId]       = useState("");
   const [dueDate, setDueDate]       = useState("");
   const [studentSearch, setStudentSearch] = useState("");
 
-  // Danh sách bài học (chỉ lấy những bài đã công bố để giao)
   const { data: lessonData, isLoading: loadingLessons } = useQuery({
     queryKey: ["teacher-lessons-for-assign"],
     queryFn: () =>
@@ -58,37 +62,41 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
     staleTime: 60_000,
   });
 
-  // Danh sách học sinh
   const { data: studentData, isLoading: loadingStudents, isFetching: fetchingStudents } = useQuery({
     queryKey: ["teacher-students", studentSearch],
     queryFn: () =>
       teacherApi.getStudents({ search: studentSearch || undefined, page_size: 100 }).then((r) => r.data),
-    enabled: open,
+    enabled: open && mode === "students",
     staleTime: 30_000,
   });
 
-  // Chỉ hiển thị bài đã công bố trong dropdown (backend enforce is_published khi tạo assignment)
+  const { data: classData, isLoading: loadingClasses } = useQuery({
+    queryKey: ["teacher-classes"],
+    queryFn: () => teacherApi.getClasses().then((r) => r.data),
+    enabled: open && mode === "class",
+    staleTime: 30_000,
+  });
+
   const lessons  = (lessonData?.results ?? []).filter((l) => l.is_published);
   const students = studentData?.results ?? [];
+  const classes  = classData?.results ?? classData ?? [];
 
   const reset = () => {
-    setLessonId("");
-    setStudentIds([]);
-    setDueDate("");
-    setStudentSearch("");
+    setLessonId(""); setStudentIds([]); setClassId("");
+    setDueDate(""); setStudentSearch(""); setMode("students");
   };
 
   const handleClose = () => { reset(); onClose(); };
 
   const handleSave = () => {
-    onSave({
-      lesson_id: lessonId,
-      student_ids: studentIds,
-      due_date: dueDate || null,
-    });
+    if (mode === "class") {
+      onSaveClass({ class_id: classId, lesson_id: lessonId, due_date: dueDate || null });
+    } else {
+      onSave({ lesson_id: lessonId, student_ids: studentIds, due_date: dueDate || null });
+    }
   };
 
-  const canSave = lessonId && studentIds.length > 0;
+  const canSave = lessonId && (mode === "class" ? !!classId : studentIds.length > 0);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth
@@ -99,6 +107,28 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
 
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "8px !important" }}>
         {error && <Alert severity="error" sx={{ borderRadius: "8px" }}>{error}</Alert>}
+
+        {/* Toggle mode */}
+        <ToggleButtonGroup
+          value={mode}
+          exclusive
+          onChange={(_, v) => v && setMode(v)}
+          size="small"
+          sx={{ alignSelf: "flex-start" }}
+        >
+          <ToggleButton value="students"
+            sx={{ gap: 0.75, fontWeight: 700, fontSize: "0.8rem", textTransform: "none",
+              "&.Mui-selected": { bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, borderColor: `${colors.greenAccent}60` } }}>
+            <PeopleRoundedIcon sx={{ fontSize: 17 }} />
+            Học sinh cụ thể
+          </ToggleButton>
+          <ToggleButton value="class"
+            sx={{ gap: 0.75, fontWeight: 700, fontSize: "0.8rem", textTransform: "none",
+              "&.Mui-selected": { bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, borderColor: `${colors.greenAccent}60` } }}>
+            <GroupsRoundedIcon sx={{ fontSize: 17 }} />
+            Cả lớp
+          </ToggleButton>
+        </ToggleButtonGroup>
 
         {/* Chọn bài học */}
         <FormControl fullWidth size="small">
@@ -126,90 +156,107 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
           </Select>
         </FormControl>
 
-        {/* Chọn học sinh */}
-        <Box>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Tìm học sinh theo tên hoặc email..."
-            value={studentSearch}
-            onChange={(e) => setStudentSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  {fetchingStudents
-                    ? <CircularProgress size={14} sx={{ color: colors.greenAccent }} />
-                    : <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />}
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 1 }}
-          />
-
-          {/* Danh sách học sinh với checkbox */}
-          <Box sx={{
-            border: "1px solid rgba(0,0,0,0.23)", borderRadius: "8px",
-            maxHeight: 200, overflowY: "auto",
-          }}>
-            {loadingStudents
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <Box key={i} sx={{ px: 2, py: 1 }}>
-                    <Skeleton width="60%" />
-                  </Box>
-                ))
-              : students.length === 0
-                ? (
-                  <Box sx={{ py: 3, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
-                      {studentSearch ? "Không tìm thấy học sinh." : "Chưa có học sinh nào."}
-                    </Typography>
-                  </Box>
-                )
-                : students.map((s) => {
-                    const checked = studentIds.includes(s.id);
-                    return (
-                      <Box
-                        key={s.id}
-                        onClick={() =>
-                          setStudentIds((prev) =>
-                            checked ? prev.filter((id) => id !== s.id) : [...prev, s.id]
-                          )
-                        }
-                        sx={{
-                          display: "flex", alignItems: "center", gap: 1,
-                          px: 1.5, py: 1,
-                          cursor: "pointer",
-                          borderBottom: "1px solid rgba(0,0,0,0.05)",
-                          "&:last-child": { borderBottom: "none" },
-                          "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
-                          bgcolor: checked ? `${colors.greenAccent}0c` : "transparent",
-                        }}
-                      >
-                        <Checkbox
-                          size="small"
-                          checked={checked}
-                          onChange={() => {}}
-                          sx={{ p: 0.25, color: colors.textBlackSoft, "&.Mui-checked": { color: colors.greenAccent } }}
-                        />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 600, fontSize: "0.85rem", color: colors.textBlack }}>
-                            {s.full_name || s.username}
-                          </Typography>
-                          <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }}>
-                            {s.email}
+        {/* Chọn lớp (mode = class) */}
+        {mode === "class" && (
+          <FormControl fullWidth size="small">
+            <InputLabel>Chọn lớp *</InputLabel>
+            <Select
+              value={classId}
+              label="Chọn lớp *"
+              onChange={(e) => setClassId(e.target.value)}
+              disabled={loadingClasses}
+            >
+              {loadingClasses
+                ? <MenuItem disabled><CircularProgress size={16} /></MenuItem>
+                : classes.length === 0
+                  ? <MenuItem disabled>Chưa có lớp học nào</MenuItem>
+                  : classes.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>
+                        <Box>
+                          <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{c.name}</Typography>
+                          <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+                            {c.student_count ?? 0} học sinh
                           </Typography>
                         </Box>
-                      </Box>
-                    );
-                  })}
-          </Box>
+                      </MenuItem>
+                    ))}
+            </Select>
+          </FormControl>
+        )}
 
-          {studentIds.length > 0 && (
-            <Typography sx={{ fontSize: "0.78rem", color: colors.greenAccent, mt: 0.75, fontWeight: 600 }}>
-              Đã chọn {studentIds.length} học sinh
-            </Typography>
-          )}
-        </Box>
+        {/* Chọn học sinh (mode = students) */}
+        {mode === "students" && (
+          <Box>
+            <TextField
+              fullWidth size="small"
+              placeholder="Tìm học sinh theo tên hoặc email..."
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {fetchingStudents
+                      ? <CircularProgress size={14} sx={{ color: colors.greenAccent }} />
+                      : <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />}
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 1 }}
+            />
+
+            <Box sx={{ border: "1px solid rgba(0,0,0,0.23)", borderRadius: "8px", maxHeight: 200, overflowY: "auto" }}>
+              {loadingStudents
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <Box key={i} sx={{ px: 2, py: 1 }}><Skeleton width="60%" /></Box>
+                  ))
+                : students.length === 0
+                  ? (
+                    <Box sx={{ py: 3, textAlign: "center" }}>
+                      <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                        {studentSearch ? "Không tìm thấy học sinh." : "Chưa có học sinh nào."}
+                      </Typography>
+                    </Box>
+                  )
+                  : students.map((s) => {
+                      const checked = studentIds.includes(s.id);
+                      return (
+                        <Box key={s.id}
+                          onClick={() =>
+                            setStudentIds((prev) =>
+                              checked ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+                            )
+                          }
+                          sx={{
+                            display: "flex", alignItems: "center", gap: 1,
+                            px: 1.5, py: 1, cursor: "pointer",
+                            borderBottom: "1px solid rgba(0,0,0,0.05)",
+                            "&:last-child": { borderBottom: "none" },
+                            "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
+                            bgcolor: checked ? `${colors.greenAccent}0c` : "transparent",
+                          }}
+                        >
+                          <Checkbox size="small" checked={checked} onChange={() => {}}
+                            sx={{ p: 0.25, "&.Mui-checked": { color: colors.greenAccent } }} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 600, fontSize: "0.85rem", color: colors.textBlack }}>
+                              {s.full_name || s.username}
+                            </Typography>
+                            <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }}>
+                              {s.email}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+            </Box>
+
+            {studentIds.length > 0 && (
+              <Typography sx={{ fontSize: "0.78rem", color: colors.greenAccent, mt: 0.75, fontWeight: 600 }}>
+                Đã chọn {studentIds.length} học sinh
+              </Typography>
+            )}
+          </Box>
+        )}
 
         {/* Hạn nộp */}
         <SbInput
@@ -224,12 +271,7 @@ const AssignDialog = ({ open, onClose, onSave, saving, error }) => {
 
       <DialogActions sx={{ p: "16px 24px", gap: 1 }}>
         <SbButton variant="outlined" onClick={handleClose}>Hủy</SbButton>
-        <SbButton
-          variant="primary"
-          loading={saving}
-          disabled={!canSave}
-          onClick={handleSave}
-        >
+        <SbButton variant="primary" loading={saving} disabled={!canSave} onClick={handleSave}>
           Giao bài
         </SbButton>
       </DialogActions>
@@ -299,6 +341,23 @@ const TeacherAssignments = () => {
         e.response?.data?.lesson_id?.[0] ??
         e.response?.data?.detail ??
         "Giao bài thất bại.";
+      setFormError(detail);
+    },
+  });
+
+  const createClassMut = useMutation({
+    mutationFn: ({ class_id, lesson_id, due_date }) =>
+      teacherApi.assignLessonToClass(class_id, { lesson_id, due_date }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["teacher-assignments"] });
+      qc.invalidateQueries({ queryKey: ["teacher-stats"] });
+      setAssignDlg(false);
+      setFormError("");
+      const { assigned, skipped, class_name } = res.data;
+      show(`Giao bài cho lớp "${class_name}": ${assigned} học sinh${skipped ? ` (bỏ qua ${skipped})` : ""}.`);
+    },
+    onError: (e) => {
+      const detail = e.response?.data?.detail ?? "Giao bài thất bại.";
       setFormError(detail);
     },
   });
@@ -445,7 +504,8 @@ const TeacherAssignments = () => {
         open={assignDlg}
         onClose={() => setAssignDlg(false)}
         onSave={(d) => createMut.mutate(d)}
-        saving={createMut.isPending}
+        onSaveClass={(d) => createClassMut.mutate(d)}
+        saving={createMut.isPending || createClassMut.isPending}
         error={formError}
       />
 

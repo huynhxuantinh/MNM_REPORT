@@ -3,8 +3,6 @@ import { Outlet } from "react-router-dom";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import Sidebar, { SIDEBAR_WIDTH } from "./Sidebar";
 import Header from "./Header";
-import { colors } from "@/styles/theme";
-
 const HEADER_HEIGHT = 64;
 
 const MainLayout = () => {
@@ -13,7 +11,7 @@ const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: colors.neutralWarm }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Sidebar – permanent on desktop, drawer on mobile */}
       <Box
         component="nav"

@@ -191,18 +191,19 @@ CELERY_ACCEPT_CONTENT    = ["json"]
 CELERY_TIMEZONE          = TIME_ZONE
 CELERY_ENABLE_UTC        = True
 
-from celery.schedules import crontab  # noqa: E402
-
+# Lịch chạy task tự động.
+# LUᷔU Ý: Không import crontab tại đây để tránh circular import với celery.py.
+# Cấu hình cụ thể theo giờ (crontab) được đặt trong config/celery.py.
 CELERY_BEAT_SCHEDULE = {
-    # 20:00 ICT mỗi ngày — nhắc ôn từ đến hạn
+    # 20:00 ICT mỗi ngày — nhắc ôn từ đến hạn (override bằng crontab trong config/celery.py)
     "review-reminders-daily": {
         "task": "learning.send_review_reminders",
-        "schedule": crontab(hour=20, minute=0),
+        "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
     },
     # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn
     "assignment-digest-daily": {
         "task": "learning.send_assignment_digest",
-        "schedule": crontab(hour=8, minute=0),
+        "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
     },
 }
 

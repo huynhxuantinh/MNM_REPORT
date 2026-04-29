@@ -255,6 +255,34 @@ class UserStreak(models.Model):
         self.save()
 
 
+class StudentClass(models.Model):
+    """Lớp học do giáo viên tạo ra để nhóm học sinh và giao bài hàng loạt."""
+
+    name = models.CharField("Tên lớp", max_length=200)
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="classes_taught",
+        verbose_name="Giáo viên",
+    )
+    students = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="classes_enrolled",
+        blank=True,
+        verbose_name="Học sinh",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Lớp học"
+        verbose_name_plural = "Lớp học"
+        db_table = "student_classes"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.teacher})"
+
+
 class Notification(models.Model):
     """Bảng Notification – thông báo trong ứng dụng."""
 

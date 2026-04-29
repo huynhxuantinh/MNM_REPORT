@@ -6,17 +6,21 @@ import {
   ListItemText, Divider, AppBar, Toolbar, IconButton,
   Tooltip, Menu, MenuItem, useMediaQuery, useTheme,
 } from "@mui/material";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
-import CastForEducationRoundedIcon from "@mui/icons-material/CastForEducationRounded";
+import DashboardRoundedIcon           from "@mui/icons-material/DashboardRounded";
+import MenuBookRoundedIcon            from "@mui/icons-material/MenuBookRounded";
+import AssignmentRoundedIcon          from "@mui/icons-material/AssignmentRounded";
+import MenuRoundedIcon                from "@mui/icons-material/MenuRounded";
+import LogoutRoundedIcon              from "@mui/icons-material/LogoutRounded";
+import PersonRoundedIcon              from "@mui/icons-material/PersonRounded";
+import PeopleRoundedIcon              from "@mui/icons-material/PeopleRounded";
+import CastForEducationRoundedIcon    from "@mui/icons-material/CastForEducationRounded";
+import DarkModeRoundedIcon            from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon           from "@mui/icons-material/LightModeRounded";
+import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
 import { SbAvatar } from "@/components/ui";
 import { logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
+import { useAppTheme } from "@/contexts/ThemeContext";
 
 const SIDEBAR_WIDTH = 260;
 const HEADER_HEIGHT = 64;
@@ -25,8 +29,9 @@ const TEACHER_BG   = "#1a3a2a";   // xanh đậm hơn học sinh
 const TEACHER_ACCENT = "#4caf7d"; // xanh nhạt hơn
 
 const NAV_ITEMS = [
-  { label: "Tổng quan",  to: "/teacher",             icon: <DashboardRoundedIcon />,   end: true },
+  { label: "Tổng quan",  to: "/teacher",             icon: <DashboardRoundedIcon />,            end: true },
   { label: "Bài học",    to: "/teacher/lessons",      icon: <MenuBookRoundedIcon /> },
+  { label: "Bộ từ",      to: "/teacher/wordsets",     icon: <CollectionsBookmarkRoundedIcon /> },
   { label: "Giao bài",   to: "/teacher/assignments",  icon: <AssignmentRoundedIcon /> },
   { label: "Học sinh",   to: "/teacher/students",     icon: <PeopleRoundedIcon /> },
 ];
@@ -118,6 +123,7 @@ const TeacherHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { mode, toggleMode } = useAppTheme();
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleLogout = () => {
@@ -156,6 +162,12 @@ const TeacherHeader = ({ onMenuClick }) => {
         </Box>
 
         <Box sx={{ flex: 1 }} />
+
+        <Tooltip title={mode === "dark" ? "Chế độ sáng" : "Chế độ tối"} arrow>
+          <IconButton onClick={toggleMode} sx={{ color: "text.secondary" }}>
+            {mode === "dark" ? <LightModeRoundedIcon fontSize="small" /> : <DarkModeRoundedIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
 
         <Tooltip title={user?.email} arrow>
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
@@ -201,7 +213,7 @@ const TeacherLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f7f5" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Sidebar */}
       <Box component="nav" sx={{ width: { md: SIDEBAR_WIDTH }, flexShrink: { md: 0 } }}>
         {isMobile ? (

@@ -28,6 +28,19 @@ const teacherApi = {
   // ── Học sinh (dành cho giáo viên) ─────────────────────────────────────────
   // Hỗ trợ ?search=<keyword>
   getStudents: (params) => axiosClient.get("/auth/teacher/students/", { params }),
+
+  // ── Lớp học ───────────────────────────────────────────────────────────────
+  getClasses:   ()         => axiosClient.get("/learning/classes/"),
+  getClass:     (id)       => axiosClient.get(`/learning/classes/${id}/`),
+  createClass:  (data)     => axiosClient.post("/learning/classes/", data),
+  updateClass:  (id, data) => axiosClient.patch(`/learning/classes/${id}/`, data),
+  deleteClass:  (id)       => axiosClient.delete(`/learning/classes/${id}/`),
+  addStudentsToClass:    (id, studentIds) =>
+    axiosClient.post(`/learning/classes/${id}/add_students/`, { student_ids: studentIds }),
+  removeStudentFromClass: (id, studentId) =>
+    axiosClient.post(`/learning/classes/${id}/remove_student/`, { student_id: studentId }),
+  assignLessonToClass:   (id, data) =>
+    axiosClient.post(`/learning/classes/${id}/assign_lesson/`, data),
 };
 
 export default teacherApi;

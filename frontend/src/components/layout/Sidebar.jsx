@@ -14,14 +14,16 @@ import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSetting
 import CastForEducationRoundedIcon from "@mui/icons-material/CastForEducationRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
 import { SbAvatar } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
 const SIDEBAR_WIDTH = 260;
 
 const BASE_NAV = [
-  { label: "Trang chủ",  to: "/",              icon: <HomeRoundedIcon />,       end: true },
+  { label: "Trang chủ",  to: "/",              icon: <HomeRoundedIcon />,                    end: true },
   { label: "Từ vựng",    to: "/vocabulary",     icon: <MenuBookRoundedIcon /> },
+  { label: "Bộ từ",      to: "/wordsets",       icon: <CollectionsBookmarkRoundedIcon /> },
   { label: "Học tập",    to: "/learning",       icon: <SchoolRoundedIcon /> },
   { label: "Quiz",       to: "/quiz",           icon: <QuizRoundedIcon /> },
   { label: "Thông báo",  to: "/notifications",  icon: <NotificationsRoundedIcon /> },

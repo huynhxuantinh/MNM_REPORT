@@ -15,6 +15,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 // Protected pages are lazy-loaded to split the initial bundle
 const HomePage          = lazy(() => import("@/pages/HomePage"));
 const VocabularyPage    = lazy(() => import("@/pages/VocabularyPage"));
+const WordSetsPage      = lazy(() => import("@/pages/WordSetsPage"));
 const LearningPage      = lazy(() => import("@/pages/LearningPage"));
 const StudyPage         = lazy(() => import("@/pages/StudyPage"));
 const ReviewPage        = lazy(() => import("@/pages/ReviewPage"));
@@ -25,6 +26,7 @@ const WordDetailPage    = lazy(() => import("@/pages/WordDetailPage"));
 // Teacher feature pages
 const TeacherDashboard   = lazy(() => import("@/features/teacher/TeacherDashboard"));
 const TeacherLessons     = lazy(() => import("@/features/teacher/TeacherLessons"));
+const TeacherWordSets    = lazy(() => import("@/features/teacher/TeacherWordSets"));
 const TeacherAssignments = lazy(() => import("@/features/teacher/TeacherAssignments"));
 const TeacherStudents    = lazy(() => import("@/features/teacher/TeacherStudents"));
 // Admin feature pages
@@ -105,6 +107,7 @@ const App = () => {
           <Route index element={<ErrorBoundary><Suspense fallback={<PageFallback />}><HomePage /></Suspense></ErrorBoundary>} />
           <Route path="vocabulary"           element={<ErrorBoundary><Suspense fallback={<PageFallback />}><VocabularyPage /></Suspense></ErrorBoundary>} />
           <Route path="vocabulary/:id"       element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordDetailPage /></Suspense></ErrorBoundary>} />
+          <Route path="wordsets"             element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordSetsPage /></Suspense></ErrorBoundary>} />
           <Route path="learning"             element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/:id/study"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><StudyPage /></Suspense></ErrorBoundary>} />
           <Route path="review"               element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />
@@ -138,6 +141,7 @@ const App = () => {
         >
           <Route index element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherDashboard /></Suspense></ErrorBoundary>} />
           <Route path="lessons"     element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherLessons /></Suspense></ErrorBoundary>} />
+          <Route path="wordsets"    element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherWordSets /></Suspense></ErrorBoundary>} />
           <Route path="assignments" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherAssignments /></Suspense></ErrorBoundary>} />
           <Route path="students"    element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherStudents /></Suspense></ErrorBoundary>} />
         </Route>

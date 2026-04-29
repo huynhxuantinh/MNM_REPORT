@@ -11,6 +11,7 @@ from .views import (
     ReviewHistoryView,
     ReviewListView,
     ReviewSummaryView,
+    StudentClassViewSet,
     TeacherStatsView,
 )
 
@@ -18,6 +19,7 @@ router = DefaultRouter()
 router.register("lessons", LessonViewSet, basename="lesson")
 router.register("assignments", AssignmentViewSet, basename="assignment")
 router.register("notifications", NotificationViewSet, basename="notification")
+router.register("classes", StudentClassViewSet, basename="class")
 
 urlpatterns = [
     path("", include(router.urls)),

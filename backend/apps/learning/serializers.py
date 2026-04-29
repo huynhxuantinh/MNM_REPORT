@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from apps.vocabulary.serializers import WordListSerializer
-from .models import Assignment, Lesson, LessonProgress, LessonWord, Notification, ReviewLog, UserStreak
+from .models import Assignment, Lesson, LessonProgress, LessonWord, Notification, ReviewLog, StudentClass, UserStreak
 
 
 # ── Lesson ─────────────────────────────────────────────────────────────────
@@ -129,6 +129,29 @@ class UserStreakSerializer(serializers.ModelSerializer):
         model = UserStreak
         fields = ("current_streak", "longest_streak", "last_active_date")
         read_only_fields = fields
+
+
+# ── StudentClass ───────────────────────────────────────────────────────────
+
+class StudentClassSerializer(serializers.ModelSerializer):
+    student_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = StudentClass
+        fields = ("id", "name", "teacher", "student_count", "created_at")
+        read_only_fields = ("id", "teacher", "created_at")
+
+
+class StudentClassDetailSerializer(StudentClassSerializer):
+    students = serializers.SerializerMethodField()
+
+    class Meta(StudentClassSerializer.Meta):
+        fields = StudentClassSerializer.Meta.fields + ("students",)
+
+    def get_students(self, obj):
+        return list(
+            obj.students.all().values("id", "username", "full_name", "email", "xp", "level")
+        )
 
 
 # ── Notification ───────────────────────────────────────────────────────────

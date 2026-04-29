@@ -1,0 +1,42 @@
+"""
+Celery application entry point cho dự án MNM English.
+
+Đặt trong package config/ để tránh conflict với package celery của pip.
+  Khởi động worker: celery -A config.celery worker -l info
+  Khởi động beat:   celery -A config.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+Hoặc dùng alias qua backend/celery.py:
+  celery -A celery worker -l info
+"""
+import os
+
+from celery import Celery
+from celery.schedules import crontab  # An toàn: import ở đây KHÔNG gây circular import
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+
+app = Celery("mnm_english")
+
+# Đọc cấu hình từ CELERY_* trong Django settings
+app.config_from_object("django.conf:settings", namespace="CELERY")
+
+# Tự phát hiện tasks.py trong mỗi installed app
+app.autodiscover_tasks()
+
+# Override beat schedule với crontab đúng giờ (20:00 và 08:00 ICT)
+# base.py dùng timedelta làm fallback; ở đây chúng ta đặt lịch chính xác.
+app.conf.beat_schedule = {
+    # 20:00 ICT mỗi ngày — nhắc học sinh có từ đến hạn chưa ôn
+    "review-reminders-daily": {
+        "task": "learning.send_review_reminders",
+        "schedule": crontab(hour=20, minute=0),
+    },
+    # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn (≤ 2 ngày)
+    "assignment-digest-daily": {
+        "task": "learning.send_assignment_digest",
+        "schedule": crontab(hour=8, minute=0),
+    },
+}
+
+
+

@@ -25,7 +25,9 @@
       "Bash(docker restart mnm_backend *)",
       "Bash(docker exec mnm_backend *)",
       "Bash(docker exec mnm_frontend *)",
-      "Bash(docker restart *)"
+      "Bash(docker restart *)",
+      "Bash(grep -E \"\\\\.\\(jsx|js\\)$\")",
+      "Bash(grep -E \"\\\\.jsx$\")"
     ]
   }
 }
