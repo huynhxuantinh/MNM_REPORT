@@ -47,6 +47,10 @@ def _set_refresh_cookie(response, refresh_token: str) -> None:
     )
 
 
+def _get_refresh_token_value(request):
+    return request.data.get("refresh") or request.COOKIES.get("refresh_token")
+
+
 class RegisterView(APIView):
     """
     POST /api/v1/auth/register/
@@ -137,6 +141,7 @@ class LoginView(APIView):
         response = Response(
             {
                 "access": str(refresh.access_token),
+                "refresh": str(refresh),
                 "user": UserSerializer(user).data,
             }
         )
@@ -153,12 +158,17 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        refresh_value = request.COOKIES.get("refresh_token")
+        refresh_value = _get_refresh_token_value(request)
         if refresh_value:
             try:
                 RefreshToken(refresh_value).blacklist()
             except TokenError:
-                pass  # Token hết hạn hoặc đã bị blacklist — vẫn xóa cookie
+                response = Response(
+                    {"detail": "Refresh token không hợp lệ."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                response.delete_cookie("refresh_token", path="/")
+                return response
 
         response = Response({"detail": "Đăng xuất thành công."})
         response.delete_cookie("refresh_token", path="/")
@@ -175,15 +185,20 @@ class CookieTokenRefreshView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        refresh_value = request.COOKIES.get("refresh_token")
+        refresh_value = _get_refresh_token_value(request)
         if not refresh_value:
             return Response(
                 {"detail": "Không tìm thấy refresh token."},
-                status=status.HTTP_401_UNAUTHORIZED,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = TokenRefreshSerializer(data={"refresh": refresh_value})
-        if not serializer.is_valid():
+        try:
+            is_valid = serializer.is_valid()
+        except TokenError:
+            is_valid = False
+
+        if not is_valid:
             return Response(
                 {"detail": "Token không hợp lệ hoặc đã hết hạn."},
                 status=status.HTTP_401_UNAUTHORIZED,

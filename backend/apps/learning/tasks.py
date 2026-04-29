@@ -118,7 +118,7 @@ def send_assignment_digest() -> dict:
             user=user,
             type=Notification.Type.REMINDER,
             message=(
-                f"Bài học "{assignment.lesson.title}" đến hạn {label}. "
+                f'Bài học "{assignment.lesson.title}" đến hạn {label}. '
                 f"Hãy hoàn thành trước khi quá muộn!"
             ),
             related_id=assignment.lesson_id,
@@ -130,7 +130,7 @@ def send_assignment_digest() -> dict:
                     subject="[MNM English] Nhắc nhở bài tập sắp đến hạn",
                     message=(
                         f"Xin chào {user.full_name or user.username},\n\n"
-                        f"Bài học "{assignment.lesson.title}" sẽ đến hạn {label}.\n"
+                        f'Bài học "{assignment.lesson.title}" sẽ đến hạn {label}.\n'
                         f"Hãy vào MNM English để hoàn thành bài tập!\n\n"
                         f"Truy cập: {settings.FRONTEND_URL}/learning\n\n"
                         f"Chúc bạn học tốt,\nĐội ngũ MNM English"

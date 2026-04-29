@@ -80,7 +80,7 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(axiosClient.default.post).toHaveBeenCalledWith(
-        "/auth/token/",
+        "/auth/login/",
         { email: "test@example.com", password: "pass123" }
       );
     });

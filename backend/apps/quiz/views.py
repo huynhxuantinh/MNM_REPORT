@@ -31,10 +31,15 @@ class QuizGenerateView(APIView):
         except Lesson.DoesNotExist:
             return Response({"detail": "Không tìm thấy bài học."}, status=status.HTTP_404_NOT_FOUND)
 
-        words = list(
-            Word.objects.filter(lesson_words__lesson=lesson)
-            .values("id", "text", "phonetic", "definition_vi")
-        )
+        words = [
+            {
+                "id": lw.word_id,
+                "text": lw.word.text,
+                "phonetic": lw.word.phonetic,
+                "definition_vi": lw.word.definition_vi,
+            }
+            for lw in lesson.lesson_words.select_related("word").order_by("order_index")
+        ]
         if len(words) < 4:
             return Response(
                 {"detail": "Bài học cần ít nhất 4 từ để tạo quiz."},

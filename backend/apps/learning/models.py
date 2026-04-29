@@ -108,6 +108,10 @@ class Assignment(models.Model):
     def is_completed(self) -> bool:
         return self.completed_at is not None
 
+    @is_completed.setter
+    def is_completed(self, value: bool) -> None:
+        self.completed_at = timezone.now() if value else None
+
 
 class LessonProgress(models.Model):
     """Theo dõi tiến trình học sinh bắt đầu / hoàn thành từng bài."""

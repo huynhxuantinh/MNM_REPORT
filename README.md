@@ -97,17 +97,31 @@ cp .env.example .env
 
 ### Cách 1: Docker Compose (khuyến nghị)
 
+#### ⚡ Lần sau (đã setup rồi) — chỉ cần 1 lệnh:
+
 ```bash
 docker compose up -d
 ```
 
-Sau khi các service khởi động (~30s):
+Sau đó mở: **http://localhost:5173**
+
+Tắt dự án:
+```bash
+docker compose down
+```
+
+---
+
+#### 🔧 Lần đầu tiên setup:
 
 ```bash
-# Chạy migration
+# Bước 1: Khởi động tất cả services
+docker compose up -d
+
+# Bước 2: Chạy migration (chỉ cần lần đầu hoặc khi có migration mới)
 docker compose exec backend python manage.py migrate
 
-# Seed 200 từ vựng, 14 bài học, 3 tài khoản mẫu
+# Bước 3: Seed dữ liệu mẫu (chỉ cần lần đầu)
 docker compose exec backend python manage.py seed_data
 ```
 
@@ -119,7 +133,7 @@ docker compose exec backend python manage.py seed_data
 
 ```bash
 docker compose down      # dừng service
-docker compose down -v   # dừng + xoá volumes
+docker compose down -v   # dừng + xoá volumes (reset hoàn toàn)
 ```
 
 ---
