@@ -47,6 +47,7 @@
 - **Kiểm tra trắc nghiệm:** chọn bài → 10 câu MC → highlight đúng/sai → xem kết quả chi tiết
 - Theo dõi XP, level, streak học hàng ngày, biểu đồ lịch sử ôn tập
 - Thông báo in-app: lên cấp, streak milestone, bài được giao, nhắc ôn tập
+- **Dark mode:** giao diện tối với chữ trắng, lưu tùy chọn vào `localStorage`
 
 ### Giáo viên (portal riêng)
 - Dashboard thống kê: số bài học, số bài giao, số học sinh
@@ -61,6 +62,7 @@
 - Quản lý bài học: CRUD, toggle publish
 - Xem kết quả quiz: tất cả học sinh, lọc theo tên/email, phân trang
 - Dashboard thống kê toàn hệ thống (users, lessons, reviews, quiz, assignments)
+- **Import CSV bộ từ:** upload CSV để tạo bộ từ mới kèm danh sách từ (`POST /vocabulary/sets/import/`)
 
 ### Hệ thống (Celery)
 - Nhắc ôn từ đến hạn lúc 20:00 mỗi ngày (in-app notification + email)
@@ -281,6 +283,7 @@ Trên production, docs bị ẩn mặc định. Bật lại: `ENABLE_API_DOCS=Tr
 | GET | `/api/v1/auth/teacher/students/` | Danh sách học sinh (teacher only) |
 | GET | `/api/v1/auth/admin/stats/` | Thống kê hệ thống (admin only) |
 | GET | `/api/v1/quiz/admin/results/` | Kết quả quiz tất cả HS (admin only) |
+| POST | `/api/v1/vocabulary/sets/import/` | Upload CSV tạo bộ từ mới (teacher/admin) |
 
 ---
 

@@ -74,6 +74,13 @@
 
 ## 🔧 Recent Fixes & Improvements
 
+### Backend — WordSet CSV Import (v1.1.1)
+- **Added:** `POST /vocabulary/sets/import/` — upload CSV to create new word sets with words
+  - `WordSetImportSerializer`: validates `.csv` only, max 5 MB
+  - Parse header: `text` (required), `phonetic`, `part_of_speech`, `definition_en/vi`, `example_en/vi`, `level`
+  - Upsert words via `bulk_create(..., ignore_conflicts=True)`, auto-link into `WordSet`
+  - Response: `id`, `name`, `imported`, `skipped`, `errors[]`
+
 ### Backend (Accounts Module)
 1. **Email Verification Flow**
    - Fixed: Registration now succeeds even if email fails (logs error)
@@ -88,6 +95,20 @@
 3. **Rate Limiting**
    - Enabled: `RegisterRateThrottle` (was commented out)
    - Added: Strict throttles for repeated failures
+
+### Frontend — Dark Mode Support (v1.1.1)
+- **Fixed:** Replaced all hardcoded `colors.textBlack` → `"text.primary"` (theme-aware, white in dark mode)
+- **Fixed:** Replaced all `colors.textBlackSoft` → `"text.secondary"`
+- **Fixed:** Replaced `bgcolor: "#fff"` → `bgcolor: "background.paper"` across 36 files
+- **Restored:** `ThemeContext` persists mode to `localStorage` (`mnm-theme`) so dark mode survives reload
+
+### Frontend — Vocabulary (v1.1.1)
+- **Added:** `CsvImportSetDialog` in `VocabularyPage.jsx` — form to upload CSV and create a new word set
+  - Fields: name, description, level, public/private, file upload
+  - Calls `vocabularyApi.importSetCsv(fd)` with `multipart/form-data`
+  - Displays import result: number of words added, errors (if any)
+- **Fixed:** `getSets()` fetches `page_size: 200` to avoid pagination truncation
+- **Fixed:** `SetDialog` resets form when `initial` prop changes
 
 ### Frontend
 1. **Auth Improvements**
@@ -206,6 +227,6 @@ MNM_REPORT/
 
 ---
 
-**Last Updated**: May 1, 2026
-**Version**: 1.1.0
+**Last Updated**: May 2, 2026
+**Version**: 1.1.1
 **Status**: ✅ Production Ready (with email service switch)

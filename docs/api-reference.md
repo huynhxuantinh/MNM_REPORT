@@ -351,6 +351,43 @@ POST   /vocabulary/sets/{id}/remove_word/  # Body: {"word_id": 5}
 
 ---
 
+### Import CSV tạo bộ từ mới
+
+```
+POST /vocabulary/sets/import/
+```
+
+*(Yêu cầu role: teacher hoặc admin)*
+
+**Content-Type:** `multipart/form-data`
+
+**Form fields:**
+
+| Field | Mô tả | Bắt buộc |
+|---|---|---|
+| `name` | Tên bộ từ | **Có** |
+| `description` | Mô tả | Không |
+| `level` | Cấp độ (A1, A2, B1, B2, C1, C2, TOEIC, IELTS) | Không |
+| `is_public` | `true` / `false` | Không (mặc định `true`) |
+| `file` | File CSV (tối đa 5 MB) | **Có** |
+
+**Header CSV bắt buộc:** `text` — các cột tùy chọn: `phonetic`, `part_of_speech`, `definition_en`, `definition_vi`, `example_en`, `example_vi`, `level`
+
+**Response 201:**
+```json
+{
+  "id": 42,
+  "name": "Động vật rừng",
+  "imported": 25,
+  "skipped": 3,
+  "errors": [
+    {"row": 7, "error": "Trường 'text' bắt buộc."}
+  ]
+}
+```
+
+---
+
 ### Bookmark
 
 ```

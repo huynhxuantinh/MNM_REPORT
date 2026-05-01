@@ -37,4 +37,8 @@
 - `teacher` → Giáo viên (/teacher portal)
 - `admin`   → Quản trị viên (/admin portal)
 
-## Phiên bản hiện tại: 1.1.0 (2026-05-01)
+## Phiên bản hiện tại: 1.1.1 (2026-05-02)
+
+### Ghi chú gần đây
+- **Dark mode:** toàn bộ `colors.textBlack` đã được thay bằng MUI theme token `"text.primary"`, `colors.textBlackSoft` → `"text.secondary"`, `bgcolor: "#fff"` → `"background.paper"`. Dark mode giờ hiển thị chữ trắng đúng cách.
+- **WordSet CSV Import:** `POST /vocabulary/sets/import/` — upload CSV để tạo bộ từ mới (backend serializer `WordSetImportSerializer`, frontend dialog `CsvImportSetDialog`).

@@ -559,6 +559,22 @@ Inferred from component width tokens and progressive nav heights:
 
 10. "Create a Starbucks nutrition facts table — two-column layout inside a White card. Left column: 'Ingredients' header (24/400 Text Black), followed by ingredient list or 'Not available for this item' placeholder paragraph in 14/400 Text Black Soft. Right column: 'Nutrition' header, then label/value rows (nutrient name left, value right) separated by `1px solid #e7e7e7` hairlines. Typography: labels in 14/400 Text Black, values in 14/700 Text Black right-aligned. Footnote asterisk markers in 13/400 Text Black Soft at the bottom."
 
+### MUI Theme Token Mapping (Project Implementation)
+
+The project uses Material UI v5 with a dynamic light/dark theme. Hardcoded color values have been replaced with MUI theme tokens so that dark mode renders correctly:
+
+| Design Token | MUI Token | Light Mode Value | Dark Mode Value |
+|---|---|---|---|
+| Text Black | `theme.palette.text.primary` | `rgba(0,0,0,0.87)` | `rgba(255,255,255,0.87)` |
+| Text Black Soft | `theme.palette.text.secondary` | `rgba(0,0,0,0.58)` | `rgba(255,255,255,0.60)` |
+| White (card surface) | `theme.palette.background.paper` | `#ffffff` | derived dark paper |
+| Warm canvas | `theme.palette.background.default` | `#f2f0eb` | derived dark bg |
+| Starbucks Green | `theme.palette.primary.main` | `#006241` | unchanged |
+| Green Accent | `theme.palette.primary.dark` | `#00754A` | unchanged |
+| Error / Red | `theme.palette.error.main` | `#c82014` | unchanged |
+
+**Implementation rule:** Prefer `color: "text.primary"`, `color: "text.secondary"`, and `bgcolor: "background.paper"` in all `sx` props and inline styles instead of hardcoded `colors.textBlack` or `#fff`. This ensures white text on dark surfaces when `mode === "dark"`.
+
 ### Iteration Guide
 
 When refining existing screens generated with this design system:

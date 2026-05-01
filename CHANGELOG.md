@@ -5,6 +5,35 @@ Format theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.1] — 2026-05-02
+
+### Backend — Từ vựng (Vocabulary)
+
+- **Thêm:** `POST /vocabulary/sets/import/` — upload CSV để tạo bộ từ mới (`WordSetImportSerializer`)
+  - Validate: chỉ `.csv`, tối đa 5 MB
+  - Parse header: `text` (bắt buộc), `phonetic`, `part_of_speech`, `definition_en/vi`, `example_en/vi`, `level`
+  - Upsert từ bằng `bulk_create(..., ignore_conflicts=True)`
+  - Tự động liên kết từ vào `WordSet` qua `WordSetWord`
+  - Trả về: `id`, `name`, `imported`, `skipped`, `errors[]`
+- **Sửa:** `getSets()` thêm `page_size: 200` để fetch đầy đủ danh sách bộ từ
+- **Sửa:** `SetDialog` reset form khi `initial` thay đổi (tránh giữ state cũ khi chuyển qua lại giữa tạo/sửa)
+
+### Frontend — Dark Mode Support
+
+- **Thay thế:** toàn bộ `colors.textBlack` → `"text.primary"` (theme-aware, trắng khi dark mode)
+- **Thay thế:** toàn bộ `colors.textBlackSoft` → `"text.secondary"`
+- **Thay thế:** `bgcolor: "#fff"` → `bgcolor: "background.paper"` (36 file JSX/JS)
+- **Khôi phục:** `ThemeContext` lưu `mode` vào `localStorage` (`mnm-theme`) để dark mode có hiệu lực xuyên phiên
+
+### Frontend — Từ vựng (Vocabulary)
+
+- **Thêm:** `CsvImportSetDialog` component trong `VocabularyPage.jsx`
+  - Form: tên bộ từ, mô tả, cấp độ, quyền truy cập (public/private), upload CSV
+  - Gọi `vocabularyApi.importSetCsv(fd)` với `multipart/form-data`
+  - Hiển thị kết quả: số từ được thêm, số lỗi (nếu có)
+
+---
+
 ## [1.1.0] — 2026-05-01
 
 ### Backend — Xác thực & Tài khoản

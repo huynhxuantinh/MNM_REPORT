@@ -682,4 +682,4 @@ python manage.py migrate <app_name> zero
 
 ---
 
-*Tài liệu này phản ánh trạng thái dự án tính đến phiên bản 1.1.0 (2026-05-01).*
+*Tài liệu này phản ánh trạng thái dự án tính đến phiên bản 1.1.1 (2026-05-02).*
