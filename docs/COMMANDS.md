@@ -232,4 +232,4 @@ git checkout HEAD -- frontend/src/
 
 ---
 
-*Tài liệu này phản ánh trạng thái dự án tính đến phiên bản 1.1.1 (2026-05-02).*
+*Tài liệu này phản ánh trạng thái dự án tính đến phiên bản 1.1.2 (2026-05-02).*

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import {
   Box, Typography, Tabs, Tab, Chip, TextField, InputAdornment,
   Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Tooltip, MenuItem, Select, FormControl, InputLabel,
-  CircularProgress, Alert, Skeleton, Table, TableBody,
+  Alert, Skeleton, Pagination, Stack, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Paper,
 } from "@mui/material";
 import AddRoundedIcon           from "@mui/icons-material/AddRounded";
@@ -23,12 +23,13 @@ import vocabularyApi from "@/api/vocabularyApi";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2", "TOEIC", "IELTS"];
 const POS_OPTIONS = ["noun", "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "other"];
 const LEVEL_CHIP = {
   A1: { bg: "#e8f5e9", color: "#2e7d32" }, A2: { bg: "#e3f2fd", color: "#1565c0" },
   B1: { bg: "#fff3e0", color: "#e65100" }, B2: { bg: "#fce4ec", color: "#c62828" },
   C1: { bg: "#ede7f6", color: "#4527a0" }, C2: { bg: "#fafafa", color: "#212121" },
+  TOEIC: { bg: "#e0f7fa", color: "#006064" }, IELTS: { bg: "#fff8e1", color: "#f57f17" },
 };
 
 const emptyWord = { text: "", phonetic: "", part_of_speech: "noun", definition_en: "", definition_vi: "", example_en: "", example_vi: "", level: "A1", image_url: "" };
@@ -41,7 +42,7 @@ const WordDialog = ({ open, onClose, initial, onSave, saving, error }) => {
   const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
   // Reset when initial changes (open with different word)
-  useState(() => { setForm(initial ?? emptyWord); }, [initial]);
+  useEffect(() => { setForm(initial ?? emptyWord); }, [initial]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -90,6 +91,8 @@ const WordDialog = ({ open, onClose, initial, onSave, saving, error }) => {
 const SetDialog = ({ open, onClose, initial, onSave, saving, error }) => {
   const [form, setForm] = useState(initial ?? emptySet);
   const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  useEffect(() => { setForm(initial ?? emptySet); }, [initial]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -193,23 +196,117 @@ const CsvDialog = ({ open, onClose }) => {
   );
 };
 
+// ── WordSet CSV import dialog ─────────────────────────────────────────────────
+
+const CsvImportSetDialog = ({ open, onClose }) => {
+  const [file, setFile] = useState(null);
+  const [form, setForm] = useState({ name: "", description: "", level: "A1", is_public: true });
+  const [result, setResult] = useState(null);
+  const fileRef = useRef();
+  const qc = useQueryClient();
+  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const importMut = useMutation({
+    mutationFn: ({ file: f, form: fd }) => {
+      const data = new FormData();
+      data.append("name", fd.name);
+      data.append("description", fd.description);
+      data.append("level", fd.level);
+      data.append("is_public", String(fd.is_public));
+      data.append("file", f);
+      return vocabularyApi.importSetCsv(data).then((r) => r.data);
+    },
+    onSuccess: (d) => { setResult(d); qc.invalidateQueries({ queryKey: ["wordsets"] }); },
+  });
+
+  const handleClose = () => {
+    setFile(null);
+    setResult(null);
+    setForm({ name: "", description: "", level: "A1", is_public: true });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700, color: colors.greenStarbucks }}>Nhập CSV — Tạo bộ từ</DialogTitle>
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "16px !important" }}>
+        <SbInput label="Tên bộ từ *" value={form.name} onChange={set("name")} required />
+        <SbInput label="Mô tả" value={form.description} onChange={set("description")} multiline rows={2} />
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+          <FormControl size="small">
+            <InputLabel>Cấp độ</InputLabel>
+            <Select value={form.level} label="Cấp độ" onChange={set("level")}>
+              {LEVELS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small">
+            <InputLabel>Quyền truy cập</InputLabel>
+            <Select value={form.is_public ? "public" : "private"} label="Quyền truy cập"
+              onChange={(e) => setForm((p) => ({ ...p, is_public: e.target.value === "public" }))}>
+              <MenuItem value="public">Công khai</MenuItem>
+              <MenuItem value="private">Riêng tư</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
+          Header CSV bắt buộc: <code>text</code>. Tùy chọn: <code>phonetic, part_of_speech, definition_en, definition_vi, example_en, example_vi, level</code>
+        </Typography>
+        <input type="file" accept=".csv,text/csv" ref={fileRef} style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files[0]; if (f) setFile(f); }} />
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <SbButton variant="outlined" size="small" onClick={() => fileRef.current?.click()}>
+            Chọn file CSV
+          </SbButton>
+          {file && <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>{file.name}</Typography>}
+        </Box>
+        {result && (
+          <Alert severity="success" sx={{ mt: 1 }}>
+            Tạo <strong>{result.name}</strong> — thêm <strong>{result.imported}</strong> từ
+            {result.errors?.length > 0 && ` · ${result.errors.length} lỗi`}
+          </Alert>
+        )}
+        {importMut.isError && (
+          <Alert severity="error" sx={{ mt: 1 }}>Import thất bại. Kiểm tra định dạng file.</Alert>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: "12px 24px", gap: 1 }}>
+        <SbButton variant="outlined" onClick={handleClose}>Đóng</SbButton>
+        <SbButton variant="primary" loading={importMut.isPending}
+          disabled={!file || !form.name}
+          onClick={() => importMut.mutate({ file, form })}>
+          Nhập
+        </SbButton>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 // ── Words tab ─────────────────────────────────────────────────────────────────
 
 const WordsTab = ({ isTeacher }) => {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch]     = useState("");
   const [levelFilter, setLevel] = useState("");
   const [wordDialog, setWordDialog] = useState({ open: false, word: null });
   const [csvOpen, setCsvOpen]   = useState(false);
   const [error, setError]       = useState(null);
+  const [page, setPage]         = useState(1);
+
+  const PAGE_SIZE = 20;
+
+  useEffect(() => { setPage(1); }, [search, levelFilter]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["words", search, levelFilter],
-    queryFn: () => vocabularyApi.getWords({ search, level: levelFilter || undefined }).then((r) => r.data),
+    queryKey: ["words", search, levelFilter, page],
+    queryFn: () => vocabularyApi.getWords({ search, level: levelFilter || undefined, page, page_size: PAGE_SIZE }).then((r) => r.data),
     staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
-  const words = data?.results ?? [];
+  const words    = data?.results ?? [];
+  const total    = data?.count ?? 0;
+  const numPages = Math.ceil(total / PAGE_SIZE);
 
   const saveMut = useMutation({
     mutationFn: (form) => form.id
@@ -333,6 +430,16 @@ const WordsTab = ({ isTeacher }) => {
         </TableContainer>
       )}
 
+      {numPages > 1 && (
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+            {total.toLocaleString()} từ
+          </Typography>
+          <Pagination count={numPages} page={page} onChange={(_, p) => setPage(p)}
+            color="primary" shape="rounded" size="small" />
+        </Stack>
+      )}
+
       <WordDialog
         open={wordDialog.open}
         initial={wordDialog.word}
@@ -351,11 +458,12 @@ const WordsTab = ({ isTeacher }) => {
 const SetsTab = ({ isTeacher }) => {
   const qc = useQueryClient();
   const [setDialog, setSetDialog] = useState({ open: false, set: null });
+  const [csvSetOpen, setCsvSetOpen] = useState(false);
   const [error, setError] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["wordsets"],
-    queryFn: () => vocabularyApi.getSets().then((r) => r.data),
+    queryFn: () => vocabularyApi.getSets({ page_size: 200 }).then((r) => r.data),
     staleTime: 60_000,
   });
 
@@ -377,7 +485,11 @@ const SetsTab = ({ isTeacher }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {isTeacher && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+          <SbButton variant="outlined" size="small" startIcon={<FileUploadRoundedIcon />}
+            onClick={() => setCsvSetOpen(true)}>
+            Nhập CSV
+          </SbButton>
           <SbButton variant="primary" size="small" startIcon={<AddRoundedIcon />}
             onClick={() => { setError(null); setSetDialog({ open: true, set: null }); }}>
             Tạo bộ từ
@@ -401,8 +513,10 @@ const SetsTab = ({ isTeacher }) => {
             return (
               <SbCard key={s.id} sx={{ height: "100%" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                  <Chip label={s.level} size="small"
-                    sx={{ bgcolor: lv.bg, color: lv.color, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
+                  {s.level
+                    ? <Chip label={s.level} size="small"
+                        sx={{ bgcolor: lv.bg, color: lv.color, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
+                    : <Box />}
                   <Chip label={s.is_public ? "Công khai" : "Riêng tư"} size="small"
                     sx={{ bgcolor: s.is_public ? `${colors.greenAccent}18` : "#f5f5f5", color: s.is_public ? colors.greenAccent : "text.secondary", fontWeight: 600, fontSize: "0.68rem", height: 20 }} />
                 </Box>
@@ -434,6 +548,7 @@ const SetsTab = ({ isTeacher }) => {
         saving={saveMut.isPending}
         error={error}
       />
+      <CsvImportSetDialog open={csvSetOpen} onClose={() => setCsvSetOpen(false)} />
     </Box>
   );
 };
@@ -442,7 +557,6 @@ const SetsTab = ({ isTeacher }) => {
 
 const VocabularyPage = () => {
   const [tab, setTab] = useState(0);
-  const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
 

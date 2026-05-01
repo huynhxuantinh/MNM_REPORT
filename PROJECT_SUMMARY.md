@@ -74,6 +74,18 @@
 
 ## 🔧 Recent Fixes & Improvements
 
+### Frontend — Bug Fixes & Features (v1.1.2)
+- **Fix:** `navigate` crash trong `WordsTab` khi click tên từ
+- **Fix:** Form `WordDialog` / `SetDialog` reset đúng khi chuyển giữa các mục
+- **Fix:** `adminApi.getQuizResults` thiếu → thêm vào `adminApi.js`
+- **Fix:** `AdminQuizResults.jsx` encoding corrupt — đã sửa toàn bộ
+- **Fix:** Route + nav `/admin/quizzes` cho `AdminQuizResults`
+- **Fix:** Dark mode: matching game cards dùng `bgcolor: "background.paper"`
+- **Fix:** `Word.text unique=True` + migration `0003`
+- **Thêm:** TOEIC / IELTS làm tuỳ chọn cấp độ trong form từ vựng
+- **Thêm:** Phân trang server-side (20 từ/trang) cho tab Từ vựng
+- **Xóa:** Dead code `AdminPage.jsx`, `TeacherPage.jsx`
+
 ### Backend — WordSet CSV Import (v1.1.1)
 - **Added:** `POST /vocabulary/sets/import/` — upload CSV to create new word sets with words
   - `WordSetImportSerializer`: validates `.csv` only, max 5 MB
@@ -228,5 +240,5 @@ MNM_REPORT/
 ---
 
 **Last Updated**: May 2, 2026
-**Version**: 1.1.1
+**Version**: 1.1.2
 **Status**: ✅ Production Ready (with email service switch)

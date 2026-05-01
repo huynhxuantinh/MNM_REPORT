@@ -393,7 +393,7 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
                   sx={{
                     p: 2, borderRadius: "12px", border: "2px solid",
                     borderColor: isMatched ? colors.greenAccent : isErrorState ? colors.red : isSelected ? "#2196f3" : "rgba(0,0,0,0.08)",
-                    bgcolor: isMatched ? `${colors.greenAccent}14` : isErrorState ? `${colors.red}14` : isSelected ? "#2196f314" : "#fff",
+                    bgcolor: isMatched ? `${colors.greenAccent}14` : isErrorState ? `${colors.red}14` : isSelected ? "#2196f314" : "background.paper",
                     opacity: isMatched ? 0.6 : 1, transition: "all 0.2s",
                     textAlign: "center"
                   }}
@@ -419,7 +419,7 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
                   sx={{
                     p: 2, borderRadius: "12px", border: "2px solid",
                     borderColor: isMatched ? colors.greenAccent : isErrorState ? colors.red : isSelected ? "#2196f3" : "rgba(0,0,0,0.08)",
-                    bgcolor: isMatched ? `${colors.greenAccent}14` : isErrorState ? `${colors.red}14` : isSelected ? "#2196f314" : "#fff",
+                    bgcolor: isMatched ? `${colors.greenAccent}14` : isErrorState ? `${colors.red}14` : isSelected ? "#2196f314" : "background.paper",
                     opacity: isMatched ? 0.6 : 1, transition: "all 0.2s",
                     textAlign: "center"
                   }}

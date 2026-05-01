@@ -37,8 +37,13 @@
 - `teacher` → Giáo viên (/teacher portal)
 - `admin`   → Quản trị viên (/admin portal)
 
-## Phiên bản hiện tại: 1.1.1 (2026-05-02)
+## Phiên bản hiện tại: 1.1.2 (2026-05-02)
 
 ### Ghi chú gần đây
+- **Pagination từ vựng:** `WordsTab` phân trang server-side 20 từ/trang. Backend nhận `page` + `page_size` params.
+- **TOEIC/IELTS:** đã thêm vào `LEVELS` và `LEVEL_CHIP` trong `VocabularyPage.jsx`.
+- **Admin quiz route:** `/admin/quizzes` trỏ tới `AdminQuizResults`, `adminApi.getQuizResults` được thêm.
+- **Word.text unique:** migration `0003_word_text_unique.py` — chạy `migrate` sau khi pull.
+- **Dead code removed:** `AdminPage.jsx`, `TeacherPage.jsx` đã xóa.
 - **Dark mode:** toàn bộ `colors.textBlack` đã được thay bằng MUI theme token `"text.primary"`, `colors.textBlackSoft` → `"text.secondary"`, `bgcolor: "#fff"` → `"background.paper"`. Dark mode giờ hiển thị chữ trắng đúng cách.
 - **WordSet CSV Import:** `POST /vocabulary/sets/import/` — upload CSV để tạo bộ từ mới (backend serializer `WordSetImportSerializer`, frontend dialog `CsvImportSetDialog`).

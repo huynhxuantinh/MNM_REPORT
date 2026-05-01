@@ -11,6 +11,7 @@ import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { label: "Từ vựng",     to: "/admin/words",    icon: <TranslateRoundedIcon /> },
   { label: "Bài học",     to: "/admin/lessons",  icon: <MenuBookRoundedIcon /> },
   { label: "Nội dung",    to: "/admin/content",  icon: <LibraryBooksRoundedIcon /> },
+  { label: "Kết quả Quiz", to: "/admin/quizzes", icon: <QuizRoundedIcon /> },
 ];
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────

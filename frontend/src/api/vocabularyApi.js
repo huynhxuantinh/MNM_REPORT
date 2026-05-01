@@ -21,6 +21,9 @@ const vocabularyApi = {
   addWordToSet: (id, d)  => axiosClient.post(`/vocabulary/sets/${id}/words/`, d),
   removeWordFromSet: (setId, wordId) =>
     axiosClient.delete(`/vocabulary/sets/${setId}/words/${wordId}/`),
+  importSetCsv: (fd) => axiosClient.post("/vocabulary/sets/import/", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  }),
 
   // ── Bookmarks ─────────────────────────────────────────────────────────────
   getBookmarks: () => axiosClient.get("/vocabulary/bookmarks/"),

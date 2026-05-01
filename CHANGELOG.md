@@ -5,6 +5,32 @@ Format theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.2] — 2026-05-02
+
+### Bug Fixes
+
+- **Fix:** `VocabularyPage.jsx` — `navigate` undefined trong `WordsTab` (crash khi click tên từ)
+- **Fix:** `VocabularyPage.jsx` — `useState` → `useEffect` để reset form `WordDialog` và `SetDialog` đúng khi chuyển từ/bộ từ
+- **Fix:** `VocabularyPage.jsx` — `CsvImportSetDialog` và nút "Nhập CSV" được thêm vào `SetsTab`
+- **Fix:** `vocabularyApi.js` — thêm method `importSetCsv` cho `POST /vocabulary/sets/import/`
+- **Fix:** `adminApi.js` — thêm method `getQuizResults` cho `GET /quiz/admin/results/`
+- **Fix:** `AdminQuizResults.jsx` — sửa encoding corrupt toàn bộ văn bản tiếng Việt
+- **Fix:** `App.jsx` + `AdminLayout.jsx` — thêm route `/admin/quizzes` và nav item "Kết quả Quiz"
+- **Fix:** `QuizPage.jsx` — `bgcolor: "#fff"` → `"background.paper"` trong matching game (dark mode)
+- **Fix:** `Word` model — thêm `unique=True` trên `text` + migration `0003_word_text_unique.py`
+
+### Tính năng mới
+
+- **Thêm:** TOEIC và IELTS vào `LEVELS` và `LEVEL_CHIP` trong `VocabularyPage.jsx` (hỗ trợ gán cấp độ TOEIC/IELTS cho từ vựng)
+- **Thêm:** Phân trang server-side cho tab Từ vựng — 20 từ/trang, reset về trang 1 khi tìm kiếm/lọc, hiển thị tổng số từ
+
+### Dọn dẹp
+
+- **Xóa:** `AdminPage.jsx` và `TeacherPage.jsx` — dead code, không được route
+- **Xóa:** import thừa `CircularProgress` trong `VocabularyPage.jsx`
+
+---
+
 ## [1.1.1] — 2026-05-02
 
 ### Backend — Từ vựng (Vocabulary)

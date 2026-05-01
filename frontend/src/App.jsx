@@ -32,11 +32,12 @@ const TeacherAssignments = lazy(() => import("@/features/teacher/TeacherAssignme
 const TeacherStudents    = lazy(() => import("@/features/teacher/TeacherStudents"));
 const TeacherClasses     = lazy(() => import("@/features/teacher/TeacherClasses"));
 // Admin feature pages
-const AdminDashboard = lazy(() => import("@/features/admin/AdminDashboard"));
-const AdminUsers     = lazy(() => import("@/features/admin/AdminUsers"));
-const AdminWords     = lazy(() => import("@/features/admin/AdminWords"));
-const AdminLessons   = lazy(() => import("@/features/admin/AdminLessons"));
-const AdminContent   = lazy(() => import("@/features/admin/AdminContent"));
+const AdminDashboard    = lazy(() => import("@/features/admin/AdminDashboard"));
+const AdminUsers        = lazy(() => import("@/features/admin/AdminUsers"));
+const AdminWords        = lazy(() => import("@/features/admin/AdminWords"));
+const AdminLessons      = lazy(() => import("@/features/admin/AdminLessons"));
+const AdminContent      = lazy(() => import("@/features/admin/AdminContent"));
+const AdminQuizResults  = lazy(() => import("@/features/admin/AdminQuizResults"));
 import { initAuth } from "@/features/auth/authSlice";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -143,6 +144,7 @@ const App = () => {
           <Route path="words"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminWords /></Suspense></ErrorBoundary>} />
           <Route path="lessons" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminLessons /></Suspense></ErrorBoundary>} />
           <Route path="content" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminContent /></Suspense></ErrorBoundary>} />
+          <Route path="quizzes" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminQuizResults /></Suspense></ErrorBoundary>} />
         </Route>
 
         {/* ── Teacher portal — completely separate from student layout ── */}

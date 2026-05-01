@@ -48,6 +48,7 @@
 - Theo dõi XP, level, streak học hàng ngày, biểu đồ lịch sử ôn tập
 - Thông báo in-app: lên cấp, streak milestone, bài được giao, nhắc ôn tập
 - **Dark mode:** giao diện tối với chữ trắng, lưu tùy chọn vào `localStorage`
+- **Từ vựng:** phân trang 20 từ/trang, hỗ trợ cấp độ TOEIC và IELTS
 
 ### Giáo viên (portal riêng)
 - Dashboard thống kê: số bài học, số bài giao, số học sinh

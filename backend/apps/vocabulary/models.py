@@ -18,7 +18,7 @@ class Word(models.Model):
         TOEIC = "TOEIC", "TOEIC"
         IELTS = "IELTS", "IELTS"
 
-    text = models.CharField("Từ tiếng Anh", max_length=200)
+    text = models.CharField("Từ tiếng Anh", max_length=200, unique=True)
     phonetic = models.CharField("Phiên âm IPA", max_length=100, blank=True)
     part_of_speech = models.CharField("Loại từ", max_length=50, blank=True)
     definition_en = models.TextField("Định nghĩa tiếng Anh", blank=True)

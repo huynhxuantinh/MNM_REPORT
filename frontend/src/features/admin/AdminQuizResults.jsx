@@ -21,13 +21,13 @@ const scoreColor = (score) => {
 };
 
 const scoreLabel = (score) => {
-  if (score >= 80) return "Xuáº¥t sáº¯c";
-  if (score >= 50) return "Trung bĂ¬nh";
-  return "ChÆ°a Ä‘áº¡t";
+  if (score >= 80) return "Xuất sắc";
+  if (score >= 50) return "Trung bình";
+  return "Chưa đạt";
 };
 
 const fmtDate = (dt) =>
-  dt ? new Date(dt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "â€”";
+  dt ? new Date(dt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
 const AdminQuizResults = () => {
   const [search, setSearch] = useState("");
@@ -60,14 +60,14 @@ const AdminQuizResults = () => {
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: ADMIN_BG }}>
-            Káº¿t quáº£ kiá»ƒm tra
+            Kết quả kiểm tra
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: "0.875rem", mt: 0.5 }}>
-            {total.toLocaleString()} lÆ°á»£t lĂ m bĂ i trong há»‡ thá»‘ng
+            {total.toLocaleString()} lượt làm bài trong hệ thống
             {avgScore !== null && (
               <Chip
                 icon={<EmojiEventsRoundedIcon sx={{ fontSize: 14 }} />}
-                label={`Äiá»ƒm TB trang nĂ y: ${avgScore}/100`}
+                label={`Điểm TB trang này: ${avgScore}/100`}
                 size="small"
                 sx={{ ml: 1.5, fontWeight: 700, fontSize: "0.75rem", bgcolor: `${scoreColor(avgScore)}18`, color: scoreColor(avgScore) }}
               />
@@ -80,7 +80,7 @@ const AdminQuizResults = () => {
       <Box sx={{ mb: 2 }}>
         <TextField
           size="small"
-          placeholder="TĂ¬m theo tĂªn hoáº·c email há»c sinhâ€¦"
+          placeholder="Tìm theo tên hoặc email học sinh…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           sx={{ width: 340 }}
@@ -103,11 +103,11 @@ const AdminQuizResults = () => {
         <Table size="small">
           <TableHead sx={{ bgcolor: "#f5f7ff" }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG, py: 1.5 }}>Há»c sinh</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>BĂ i kiá»ƒm tra</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }} align="center">Äiá»ƒm</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }} align="center">ÄĂºng / Tá»•ng</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Thá»i gian</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG, py: 1.5 }}>Học sinh</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Bài kiểm tra</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }} align="center">Điểm</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }} align="center">Đúng / Tổng</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Thời gian</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -123,7 +123,7 @@ const AdminQuizResults = () => {
                   <TableRow key={r.id} sx={{ "&:hover": { bgcolor: "#f8f9ff" } }}>
                     <TableCell>
                       <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: ADMIN_BG }}>
-                        {r.user_name || "â€”"}
+                        {r.user_name || "—"}
                       </Typography>
                       <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                         {r.user_email}
@@ -173,7 +173,7 @@ const AdminQuizResults = () => {
             {!isLoading && results.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                  KhĂ´ng tĂ¬m tháº¥y káº¿t quáº£ nĂ o.
+                  Không tìm thấy kết quả nào.
                 </TableCell>
               </TableRow>
             )}
