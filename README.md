@@ -51,11 +51,16 @@
 ### Giáo viên (portal riêng)
 - Dashboard thống kê: số bài học, số bài giao, số học sinh
 - Quản lý bài học: tạo / sửa / xóa / publish, thêm-xóa từ vựng trong bài
-- Giao bài cho nhiều học sinh cùng lúc, đặt hạn nộp, thu hồi bài
+- **Quản lý lớp học:** tạo / sửa / xóa lớp, thêm/xóa học sinh, giao bài cho cả lớp kèm deadline
+- Giao bài cho từng học sinh cụ thể, đặt hạn nộp, thu hồi bài
 - Danh sách học sinh: level, XP progress, số bài được giao, chi tiết tiến độ
 
 ### Admin
 - Quản lý người dùng: tìm kiếm, đổi role, vô hiệu hoá tài khoản
+- Quản lý từ vựng: CRUD, import CSV hàng loạt
+- Quản lý bài học: CRUD, toggle publish
+- Xem kết quả quiz: tất cả học sinh, lọc theo tên/email, phân trang
+- Dashboard thống kê toàn hệ thống (users, lessons, reviews, quiz, assignments)
 
 ### Hệ thống (Celery)
 - Nhắc ôn từ đến hạn lúc 20:00 mỗi ngày (in-app notification + email)
@@ -255,18 +260,27 @@ Trên production, docs bị ẩn mặc định. Bật lại: `ENABLE_API_DOCS=Tr
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
 | POST | `/api/v1/auth/register/` | Đăng ký tài khoản |
-| POST | `/api/v1/auth/login/` | Đăng nhập (JWT cookie) |
+| POST | `/api/v1/auth/verify-email/` | Xác thực email bằng token |
+| POST | `/api/v1/auth/resend-verification/` | Gửi lại email xác thực (60s cooldown) |
+| POST | `/api/v1/auth/login/` | Đăng nhập (JWT) |
 | POST | `/api/v1/auth/logout/` | Đăng xuất |
 | POST | `/api/v1/auth/token/refresh/` | Làm mới access token |
+| POST | `/api/v1/auth/forgot-password/` | Gửi email đặt lại mật khẩu |
+| POST | `/api/v1/auth/change-password/` | Đổi mật khẩu (invalidates all sessions) |
 | GET | `/api/v1/vocabulary/words/` | Danh sách từ (filter, search, paginate) |
 | GET/POST | `/api/v1/learning/lessons/` | Danh sách / tạo bài học |
 | GET | `/api/v1/learning/review/` | Từ đến hạn ôn (SRS queue) |
 | POST | `/api/v1/learning/review/{id}/answer/` | Submit kết quả ôn (quality 0–5) |
 | GET | `/api/v1/quiz/generate/?lesson_id=X` | Tạo 10 câu trắc nghiệm từ bài học |
-| POST | `/api/v1/quiz/submit/` | Lưu kết quả quiz `{quiz_id, score, …}` |
+| POST | `/api/v1/quiz/submit/` | Lưu kết quả quiz |
 | GET | `/api/v1/quiz/sessions/` | Lịch sử quiz của user |
+| GET/POST | `/api/v1/learning/classes/` | Quản lý lớp học (teacher) |
+| POST | `/api/v1/learning/classes/{id}/add_students/` | Thêm học sinh vào lớp |
+| POST | `/api/v1/learning/classes/{id}/assign_lesson/` | Giao bài cho cả lớp |
 | GET | `/api/v1/learning/teacher/stats/` | Thống kê tổng quan giáo viên |
 | GET | `/api/v1/auth/teacher/students/` | Danh sách học sinh (teacher only) |
+| GET | `/api/v1/auth/admin/stats/` | Thống kê hệ thống (admin only) |
+| GET | `/api/v1/quiz/admin/results/` | Kết quả quiz tất cả HS (admin only) |
 
 ---
 
@@ -306,9 +320,10 @@ npx cypress run    # headless CI
 MNM_REPORT/
 ├── backend/
 │   ├── apps/
-│   │   ├── accounts/          # User, auth (register/login/JWT/reset-password/verify-email)
+│   │   └── accounts/          # User, auth (register/login/JWT/reset-password/verify-email)
 │   │   │   ├── management/commands/seed_data.py
-│   │   │   ├── permissions.py  # IsAdmin, IsTeacherOrAdmin
+│   │   │   ├── permissions.py           # IsAdmin, IsTeacherOrAdmin
+│   │   │   ├── views_resend_email.py    # ResendVerificationEmailView
 │   │   │   └── tests/
 │   │   ├── vocabulary/        # Word, WordSet, Bookmark, import CSV
 │   │   │   └── tests/
@@ -334,10 +349,14 @@ MNM_REPORT/
 │   │   ├── api/               # axiosClient, authApi, learningApi, quizApi, teacherApi, adminApi
 │   │   ├── features/
 │   │   │   ├── auth/          # authSlice (Redux)
-│   │   │   └── teacher/       # TeacherDashboard, TeacherLessons, TeacherAssignments, TeacherStudents
+│   │   │   ├── teacher/       # TeacherDashboard, TeacherLessons, TeacherAssignments,
+│   │   │   │   │              # TeacherStudents, TeacherClasses, TeacherWordSets
+│   │   │   │   └── dialogs/   # ClassFormDialog, DeleteClassDialog, ManageClassDialog (shared)
+│   │   │   └── admin/         # AdminDashboard, AdminUsers, AdminWords, AdminLessons,
+│   │   │                      # AdminQuizResults, AdminContent
 │   │   ├── pages/             # HomePage, VocabularyPage, StudyPage, ReviewPage, QuizPage, ProfilePage…
 │   │   ├── components/
-│   │   │   ├── layout/        # MainLayout, TeacherLayout, Sidebar
+│   │   │   ├── layout/        # MainLayout, TeacherLayout, AdminLayout
 │   │   │   └── ui/            # SbButton, SbCard, SbInput, SbAvatar…
 │   │   └── styles/
 │   │       └── theme.js       # Starbucks color tokens

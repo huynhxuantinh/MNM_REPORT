@@ -66,11 +66,11 @@ const NotifRow = ({ notif, onRead }) => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.25 }}>
           <Chip label={cfg.label} size="small"
             sx={{ bgcolor: `${cfg.color}18`, color: cfg.color, fontWeight: 700, fontSize: "0.68rem", height: 18 }} />
-          <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
             {timeAgo(notif.created_at)}
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: "0.9rem", color: colors.textBlack, lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: "0.9rem", color: "text.primary", lineHeight: 1.5 }}>
           {notif.message}
         </Typography>
       </Box>
@@ -116,7 +116,7 @@ const NotificationsPage = () => {
           <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
             Thông báo
           </Typography>
-          <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
             {unreadCount > 0 ? `${unreadCount} chưa đọc` : "Tất cả đã đọc"}
           </Typography>
         </Box>
@@ -143,10 +143,10 @@ const NotificationsPage = () => {
         <SbCard>
           <Box sx={{ textAlign: "center", py: 5 }}>
             <NotificationsRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 1 }} />
-            <Typography sx={{ fontWeight: 700, color: colors.textBlack, mb: 0.5 }}>
+            <Typography sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}>
               Chưa có thông báo
             </Typography>
-            <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
               Hoàn thành bài học hoặc lên cấp để nhận thông báo.
             </Typography>
           </Box>

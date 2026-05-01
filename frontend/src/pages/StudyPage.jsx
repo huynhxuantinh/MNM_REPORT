@@ -69,7 +69,7 @@ const CardFace = ({ sx, children }) => (
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden",
     borderRadius: "16px",
-    bgcolor: "#fff",
+    bgcolor: "background.paper",
     boxShadow: "0 2px 12px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)",
     display: "flex",
     flexDirection: "column",
@@ -144,7 +144,7 @@ const CardFront = ({ word, speaking, setSpeaking }) => {
       </Box>
 
       {word.phonetic && (
-        <Typography sx={{ fontSize: "1.1rem", color: colors.textBlackSoft, fontStyle: "italic", letterSpacing: "0.03em", mb: 1 }}>
+        <Typography sx={{ fontSize: "1.1rem", color: "text.secondary", fontStyle: "italic", letterSpacing: "0.03em", mb: 1 }}>
           /{word.phonetic}/
         </Typography>
       )}
@@ -154,7 +154,7 @@ const CardFront = ({ word, speaking, setSpeaking }) => {
           sx={{ bgcolor: ps.bg, color: ps.color, fontWeight: 700, fontSize: "0.72rem", mb: 2 }} />
       )}
 
-      <Box sx={{ mt: 3, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, color: colors.textBlackSoft }}>
+      <Box sx={{ mt: 3, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, color: "text.secondary" }}>
         <TouchAppRoundedIcon sx={{ fontSize: 16 }} />
         <Typography sx={{ fontSize: "0.78rem" }}>Nhấn thẻ hoặc nút dưới để xem nghĩa</Typography>
       </Box>
@@ -167,11 +167,11 @@ const CardFront = ({ word, speaking, setSpeaking }) => {
 const CardBack = ({ word }) => (
   <Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
     <Box sx={{ textAlign: "center" }}>
-      <Typography sx={{ fontSize: "1.6rem", fontWeight: 800, color: colors.textBlack, lineHeight: 1.3, mb: 0.5 }}>
+      <Typography sx={{ fontSize: "1.6rem", fontWeight: 800, color: "text.primary", lineHeight: 1.3, mb: 0.5 }}>
         {word.definition_vi}
       </Typography>
       {word.definition_en && (
-        <Typography sx={{ fontSize: "0.95rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.95rem", color: "text.secondary" }}>
           {word.definition_en}
         </Typography>
       )}
@@ -189,7 +189,7 @@ const CardBack = ({ word }) => (
           "{word.example_en}"
         </Typography>
         {word.example_vi && (
-          <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mt: 0.5 }}>
+          <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", mt: 0.5 }}>
             → {word.example_vi}
           </Typography>
         )}
@@ -207,7 +207,7 @@ const CompletionScreen = ({ lesson, result, understoodCount, totalCount, onBack 
       <Typography sx={{ fontWeight: 800, fontSize: "1.8rem", color: colors.greenStarbucks, letterSpacing: "-0.02em", mb: 0.5 }}>
         Xuất sắc! 🎉
       </Typography>
-      <Typography sx={{ color: colors.textBlackSoft, mb: 3 }}>
+      <Typography sx={{ color: "text.secondary", mb: 3 }}>
         Bạn đã hoàn thành bài <strong>{lesson?.title}</strong>
       </Typography>
 
@@ -222,7 +222,7 @@ const CompletionScreen = ({ lesson, result, understoodCount, totalCount, onBack 
                   +{result.xp_earned}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>XP kiếm được</Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>XP kiếm được</Typography>
             </Box>
             <Box sx={{ textAlign: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "center" }}>
@@ -231,7 +231,7 @@ const CompletionScreen = ({ lesson, result, understoodCount, totalCount, onBack 
                   {result.new_words}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Từ mới vào SRS</Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Từ mới vào SRS</Typography>
             </Box>
             <Box sx={{ textAlign: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "center" }}>
@@ -240,7 +240,7 @@ const CompletionScreen = ({ lesson, result, understoodCount, totalCount, onBack 
                   {result.streak}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Streak ngày</Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Streak ngày</Typography>
             </Box>
           </>
         )}
@@ -252,7 +252,7 @@ const CompletionScreen = ({ lesson, result, understoodCount, totalCount, onBack 
               {understoodCount}/{totalCount}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Từ đã hiểu</Typography>
+          <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Từ đã hiểu</Typography>
         </Box>
       </Box>
 
@@ -421,17 +421,17 @@ const StudyPage = () => {
         <Tooltip title="Thoát bài học" arrow>
           <IconButton
             onClick={() => navigate("/learning")}
-            sx={{ color: colors.textBlackSoft }}
+            sx={{ color: "text.secondary" }}
           >
             <ArrowBackRoundedIcon />
           </IconButton>
         </Tooltip>
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.textBlack, noWrap: true }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary", noWrap: true }}>
               {lesson.title}
             </Typography>
-            <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, fontWeight: 600, flexShrink: 0 }}>
+            <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", fontWeight: 600, flexShrink: 0 }}>
               {currentIdx + 1} / {words.length}
             </Typography>
           </Box>
@@ -462,7 +462,7 @@ const StudyPage = () => {
         />
       ) : (
         <SbCard sx={{ minHeight: CARD_HEIGHT, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Typography sx={{ textAlign: "center", color: colors.textBlackSoft }}>
+          <Typography sx={{ textAlign: "center", color: "text.secondary" }}>
             Không có dữ liệu từ
           </Typography>
         </SbCard>
@@ -522,7 +522,7 @@ const StudyPage = () => {
       )}
 
       {/* ── Keyboard hint ──────────────────────────────────────────────── */}
-      <Typography sx={{ textAlign: "center", fontSize: "0.75rem", color: colors.textBlackSoft }}>
+      <Typography sx={{ textAlign: "center", fontSize: "0.75rem", color: "text.secondary" }}>
         {!revealed ? "Nhấn vào card hoặc Space để xem nghĩa" : "← → để chuyển bài · Enter = Đã hiểu"}
       </Typography>
     </Box>

@@ -103,7 +103,7 @@ const WordDetailPage = () => {
         <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: colors.greenStarbucks }}>
           <ArrowBackRoundedIcon />
         </IconButton>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
           Từ vựng
         </Typography>
       </Box>
@@ -140,7 +140,7 @@ const WordDetailPage = () => {
                 <IconButton
                   onClick={() => toggleBookmark()}
                   disabled={bookmarkPending}
-                  sx={{ color: word.is_bookmarked ? colors.gold : colors.textBlackSoft }}
+                  sx={{ color: word.is_bookmarked ? colors.gold : "text.secondary" }}
                 >
                   {word.is_bookmarked
                     ? <BookmarkRoundedIcon />
@@ -161,7 +161,7 @@ const WordDetailPage = () => {
               </Tooltip>
             </Box>
             {word.phonetic && (
-              <Typography sx={{ fontSize: "1.1rem", color: colors.textBlackSoft, mb: 2, fontStyle: "italic" }}>
+              <Typography sx={{ fontSize: "1.1rem", color: "text.secondary", mb: 2, fontStyle: "italic" }}>
                 {word.phonetic}
               </Typography>
             )}
@@ -171,18 +171,18 @@ const WordDetailPage = () => {
             {/* Definitions */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
-                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: colors.textBlackSoft, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.5 }}>
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.5 }}>
                   Định nghĩa (EN)
                 </Typography>
-                <Typography sx={{ fontSize: "1rem", color: colors.textBlack, lineHeight: 1.6 }}>
+                <Typography sx={{ fontSize: "1rem", color: "text.primary", lineHeight: 1.6 }}>
                   {word.definition_en || "—"}
                 </Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: colors.textBlackSoft, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.5 }}>
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.5 }}>
                   Nghĩa tiếng Việt
                 </Typography>
-                <Typography sx={{ fontSize: "1rem", color: colors.textBlack, lineHeight: 1.6 }}>
+                <Typography sx={{ fontSize: "1rem", color: "text.primary", lineHeight: 1.6 }}>
                   {word.definition_vi || "—"}
                 </Typography>
               </Box>
@@ -198,7 +198,7 @@ const WordDetailPage = () => {
                   </Typography>
                   {word.example_en && (
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-                      <Typography sx={{ fontSize: "0.95rem", color: colors.textBlack, fontStyle: "italic", flex: 1, lineHeight: 1.5 }}>
+                      <Typography sx={{ fontSize: "0.95rem", color: "text.primary", fontStyle: "italic", flex: 1, lineHeight: 1.5 }}>
                         "{word.example_en}"
                       </Typography>
                       <IconButton size="small" onClick={() => speak(word.example_en)} sx={{ color: colors.greenAccent, flexShrink: 0, mt: "-2px" }}>
@@ -207,7 +207,7 @@ const WordDetailPage = () => {
                     </Box>
                   )}
                   {word.example_vi && (
-                    <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+                    <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
                       → {word.example_vi}
                     </Typography>
                   )}
@@ -228,13 +228,13 @@ const WordDetailPage = () => {
             {isLoading ? (
               <Skeleton width={160} height={20} />
             ) : log ? (
-              <Typography sx={{ fontSize: "0.8rem", color: isDue ? "#ef5350" : colors.textBlackSoft, fontWeight: isDue ? 700 : 400 }}>
+              <Typography sx={{ fontSize: "0.8rem", color: isDue ? "#ef5350" : "text.secondary", fontWeight: isDue ? 700 : 400 }}>
                 {isDue
                   ? `Đến hạn ôn hôm nay!`
                   : `Ôn tiếp ngày ${log.next_review_date ?? "—"}`}
               </Typography>
             ) : (
-              <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+              <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
                 Chưa học từ này
               </Typography>
             )}
@@ -298,7 +298,7 @@ const WordDetailPage = () => {
             {accuracy !== null && (
               <Box sx={{ mt: 2 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                  <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Độ chính xác tổng thể</Typography>
+                  <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Độ chính xác tổng thể</Typography>
                   <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: accuracy >= 70 ? "#43a047" : "#ef5350" }}>
                     {accuracy}%
                   </Typography>
@@ -319,7 +319,7 @@ const WordDetailPage = () => {
             )}
           </>
         ) : (
-          <Box sx={{ textAlign: "center", py: 3, color: colors.textBlackSoft }}>
+          <Box sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
             <RepeatRoundedIcon sx={{ fontSize: 36, mb: 1, opacity: 0.4 }} />
             <Typography sx={{ fontSize: "0.875rem" }}>
               Học bài học chứa từ này để bắt đầu theo dõi tiến trình SRS.

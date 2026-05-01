@@ -141,7 +141,7 @@ const CsvDialog = ({ open, onClose }) => {
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, color: colors.greenStarbucks }}>Nhập CSV</DialogTitle>
       <DialogContent sx={{ pt: "16px !important" }}>
-        <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mb: 1.5 }}>
+        <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", mb: 1.5 }}>
           Header bắt buộc: <code>text</code>. Tùy chọn: <code>phonetic, part_of_speech, definition_en, definition_vi, example_en, example_vi, level, image_url</code>
         </Typography>
         <input
@@ -169,7 +169,7 @@ const CsvDialog = ({ open, onClose }) => {
           <SbButton variant="outlined" size="small" onClick={() => fileRef.current?.click()}>
             Chọn file
           </SbButton>
-          {file && <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>{file.name}</Typography>}
+          {file && <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>{file.name}</Typography>}
         </Box>
 
         {result && (
@@ -262,13 +262,13 @@ const WordsTab = ({ isTeacher }) => {
       ) : words.length === 0 ? (
         <SbCard><Box sx={{ textAlign: "center", py: 5 }}>
           <MenuBookRoundedIcon sx={{ fontSize: 48, color: colors.greenLight, mb: 1 }} />
-          <Typography sx={{ color: colors.textBlackSoft }}>Chưa có từ nào</Typography>
+          <Typography sx={{ color: "text.secondary" }}>Chưa có từ nào</Typography>
         </Box></SbCard>
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: "12px", boxShadow: "none", border: "1px solid rgba(0,0,0,0.08)", overflowX: "auto" }}>
           <Table size="small" sx={{ minWidth: 560 }}>
             <TableHead>
-              <TableRow sx={{ "& th": { fontWeight: 700, color: colors.textBlackSoft, fontSize: "0.8rem", bgcolor: "#fafaf9" } }}>
+              <TableRow sx={{ "& th": { fontWeight: 700, color: "text.secondary", fontSize: "0.8rem", bgcolor: "#fafaf9" } }}>
                 <TableCell>Từ</TableCell>
                 <TableCell>Phiên âm</TableCell>
                 <TableCell>Loại từ</TableCell>
@@ -288,7 +288,7 @@ const WordsTab = ({ isTeacher }) => {
                     >
                       {w.text}
                     </TableCell>
-                    <TableCell sx={{ color: colors.textBlackSoft, fontStyle: "italic" }}>
+                    <TableCell sx={{ color: "text.secondary", fontStyle: "italic" }}>
                       {w.phonetic ? `/${w.phonetic}/` : "—"}
                     </TableCell>
                     <TableCell>{w.part_of_speech || "—"}</TableCell>
@@ -303,7 +303,7 @@ const WordsTab = ({ isTeacher }) => {
                       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
                         <Tooltip title="Bookmark" arrow>
                           <IconButton size="small" onClick={() => bookmarkMut.mutate(w.id)}
-                            sx={{ color: w.is_bookmarked ? colors.gold : colors.textBlackSoft }}>
+                            sx={{ color: w.is_bookmarked ? colors.gold : "text.secondary" }}>
                             {w.is_bookmarked ? <BookmarkRoundedIcon fontSize="small" /> : <BookmarkBorderRoundedIcon fontSize="small" />}
                           </IconButton>
                         </Tooltip>
@@ -392,7 +392,7 @@ const SetsTab = ({ isTeacher }) => {
       ) : sets.length === 0 ? (
         <SbCard><Box sx={{ textAlign: "center", py: 5 }}>
           <MenuBookRoundedIcon sx={{ fontSize: 48, color: colors.greenLight, mb: 1 }} />
-          <Typography sx={{ color: colors.textBlackSoft }}>Chưa có bộ từ nào</Typography>
+          <Typography sx={{ color: "text.secondary" }}>Chưa có bộ từ nào</Typography>
         </Box></SbCard>
       ) : (
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 2 }}>
@@ -404,11 +404,11 @@ const SetsTab = ({ isTeacher }) => {
                   <Chip label={s.level} size="small"
                     sx={{ bgcolor: lv.bg, color: lv.color, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
                   <Chip label={s.is_public ? "Công khai" : "Riêng tư"} size="small"
-                    sx={{ bgcolor: s.is_public ? `${colors.greenAccent}18` : "#f5f5f5", color: s.is_public ? colors.greenAccent : colors.textBlackSoft, fontWeight: 600, fontSize: "0.68rem", height: 20 }} />
+                    sx={{ bgcolor: s.is_public ? `${colors.greenAccent}18` : "#f5f5f5", color: s.is_public ? colors.greenAccent : "text.secondary", fontWeight: 600, fontSize: "0.68rem", height: 20 }} />
                 </Box>
-                <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.textBlack, mb: 0.5 }}>{s.name}</Typography>
-                {s.description && <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mb: 1 }}>{s.description}</Typography>}
-                <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mb: 1.5 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary", mb: 0.5 }}>{s.name}</Typography>
+                {s.description && <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 1 }}>{s.description}</Typography>}
+                <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 1.5 }}>
                   {s.word_count ?? 0} từ · {s.created_by_name}
                 </Typography>
                 {isTeacher && (
@@ -452,7 +452,7 @@ const VocabularyPage = () => {
         <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
           {isTeacher ? "Quản lý từ vựng" : "Từ vựng"}
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
           {isTeacher ? "Tạo, sửa, xóa từ và bộ từ" : "Khám phá kho từ vựng"}
         </Typography>
       </Box>

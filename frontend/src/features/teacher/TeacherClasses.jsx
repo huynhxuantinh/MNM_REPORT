@@ -178,7 +178,7 @@ const TeacherClasses = () => {
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
             startAdornment: (
-              <InputAdornment position="start"><SearchRoundedIcon sx={{ color: colors.textBlackSoft }} /></InputAdornment>
+              <InputAdornment position="start"><SearchRoundedIcon sx={{ color: "text.secondary" }} /></InputAdornment>
             ),
           }}
           sx={{ flex: 1, minWidth: 200, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
@@ -208,12 +208,12 @@ const TeacherClasses = () => {
           ))}
         </Grid>
       ) : filteredClasses.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 8, bgcolor: "#fff", borderRadius: "16px", border: "1px dashed rgba(0,0,0,0.15)" }}>
+        <Box sx={{ textAlign: "center", py: 8, bgcolor: "background.paper", borderRadius: "16px", border: "1px dashed rgba(0,0,0,0.15)" }}>
           <SchoolRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 2 }} />
-          <Typography sx={{ fontWeight: 700, color: colors.textBlack, mb: 0.5 }}>
+          <Typography sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}>
             {search ? "Không tìm thấy lớp học" : "Chưa có lớp học nào"}
           </Typography>
-          <Typography sx={{ color: colors.textBlackSoft, mb: 2 }}>
+          <Typography sx={{ color: "text.secondary", mb: 2 }}>
             {search ? "Thử tìm kiếm khác" : "Tạo lớp học để quản lý học sinh theo nhóm"}
           </Typography>
           {!search && (
@@ -251,7 +251,7 @@ const TeacherClasses = () => {
                       <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: colors.greenStarbucks }}>
                         {cls.name}
                       </Typography>
-                      <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+                      <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                         {cls.student_count || cls.students?.length || 0} học sinh
                       </Typography>
                     </Box>
@@ -284,7 +284,7 @@ const TeacherClasses = () => {
                   <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
                     <AvatarGroup students={cls.students.slice(0, 5)} />
                     {cls.students.length > 5 && (
-                      <Typography sx={{ ml: 1, fontSize: "0.75rem", color: colors.textBlackSoft, fontWeight: 600 }}>
+                      <Typography sx={{ ml: 1, fontSize: "0.75rem", color: "text.secondary", fontWeight: 600 }}>
                         +{cls.students.length - 5}
                       </Typography>
                     )}

@@ -17,3 +17,18 @@ class QuizResultSerializer(serializers.ModelSerializer):
         model = QuizResult
         fields = ["id", "quiz", "quiz_title", "score", "total_questions", "correct_answers", "completed_at"]
         read_only_fields = ["id", "completed_at"]
+
+
+class AdminQuizResultSerializer(serializers.ModelSerializer):
+    quiz_title = serializers.CharField(source="quiz.title", read_only=True)
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_name  = serializers.CharField(source="user.full_name", read_only=True)
+
+    class Meta:
+        model = QuizResult
+        fields = [
+            "id", "user", "user_email", "user_name",
+            "quiz", "quiz_title",
+            "score", "total_questions", "correct_answers", "completed_at",
+        ]
+        read_only_fields = ["id", "completed_at"]

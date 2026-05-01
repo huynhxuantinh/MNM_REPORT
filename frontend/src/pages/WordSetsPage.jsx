@@ -94,14 +94,14 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
                   <Chip label={set.level} size="small"
                     sx={{ height: 20, fontWeight: 700, fontSize: "0.7rem", bgcolor: lc.bg, color: lc.color }} />
                 )}
-                <Typography sx={{ fontSize: "0.78rem", color: colors.textBlackSoft }}>
+                <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
                   {isLoading ? "" : `${set?.word_count ?? 0} từ`}
                 </Typography>
               </Box>
             </Box>
           </Box>
           {set?.description && (
-            <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mt: 1, ml: "60px" }}>
+            <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", mt: 1, ml: "60px" }}>
               {set.description}
             </Typography>
           )}
@@ -121,7 +121,7 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
             </Box>
           ) : !set?.words?.length ? (
             <Box sx={{ py: 6, textAlign: "center" }}>
-              <Typography sx={{ color: colors.textBlackSoft }}>Bộ từ chưa có từ nào.</Typography>
+              <Typography sx={{ color: "text.secondary" }}>Bộ từ chưa có từ nào.</Typography>
             </Box>
           ) : (
             set.words.map(({ word }, idx) => {
@@ -135,7 +135,7 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
                   transition: "background 0.15s",
                 }}>
                   {/* Số thứ tự */}
-                  <Typography sx={{ fontSize: "0.78rem", color: colors.textBlackSoft, minWidth: 24, textAlign: "right" }}>
+                  <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", minWidth: 24, textAlign: "right" }}>
                     {idx + 1}
                   </Typography>
 
@@ -146,16 +146,16 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
                         {word.text}
                       </Typography>
                       {word.phonetic && (
-                        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+                        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
                           {word.phonetic}
                         </Typography>
                       )}
                       {word.part_of_speech && (
                         <Chip label={word.part_of_speech} size="small"
-                          sx={{ height: 18, fontSize: "0.68rem", color: colors.textBlackSoft, bgcolor: "rgba(0,0,0,0.06)" }} />
+                          sx={{ height: 18, fontSize: "0.68rem", color: "text.secondary", bgcolor: "rgba(0,0,0,0.06)" }} />
                       )}
                     </Box>
-                    <Typography sx={{ fontSize: "0.85rem", color: colors.textBlack, mt: 0.25 }}>
+                    <Typography sx={{ fontSize: "0.85rem", color: "text.primary", mt: 0.25 }}>
                       {word.definition_vi}
                     </Typography>
                   </Box>
@@ -169,7 +169,7 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
                   {/* TTS */}
                   <Tooltip title="Nghe phát âm" arrow>
                     <IconButton size="small" onClick={() => speak(word.text)}
-                      sx={{ color: colors.textBlackSoft, "&:hover": { color: colors.greenAccent } }}>
+                      sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}>
                       <VolumeUpRoundedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
@@ -179,7 +179,7 @@ const WordSetDetailDialog = ({ open, setId, onClose }) => {
                     <IconButton size="small"
                       onClick={() => bookmarkMut.mutate(word.id)}
                       disabled={bookmarkMut.isPending}
-                      sx={{ color: isBookmarked ? colors.greenAccent : colors.textBlackSoft }}>
+                      sx={{ color: isBookmarked ? colors.greenAccent : "text.secondary" }}>
                       {isBookmarked
                         ? <BookmarkRoundedIcon sx={{ fontSize: 20 }} />
                         : <BookmarkBorderRoundedIcon sx={{ fontSize: 20 }} />}
@@ -230,7 +230,7 @@ const WordSetCard = ({ set, onClick }) => {
             <Chip label={set.level} size="small"
               sx={{ height: 20, fontWeight: 700, fontSize: "0.7rem", bgcolor: lc.bg, color: lc.color }} />
           )}
-          <Typography sx={{ fontSize: "0.74rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.74rem", color: "text.secondary" }}>
             {set.word_count ?? 0} từ
           </Typography>
         </Box>
@@ -242,7 +242,7 @@ const WordSetCard = ({ set, onClick }) => {
 
       {set.description ? (
         <Typography sx={{
-          fontSize: "0.82rem", color: colors.textBlackSoft, flex: 1,
+          fontSize: "0.82rem", color: "text.secondary", flex: 1,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>
           {set.description}
@@ -252,12 +252,12 @@ const WordSetCard = ({ set, onClick }) => {
       )}
 
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1.5 }}>
-        <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
           {set.created_by_name}
         </Typography>
         {!set.is_public && (
           <Chip label="Riêng tư" size="small"
-            sx={{ height: 18, fontSize: "0.65rem", color: colors.textBlackSoft, bgcolor: "rgba(0,0,0,0.06)" }} />
+            sx={{ height: 18, fontSize: "0.65rem", color: "text.secondary", bgcolor: "rgba(0,0,0,0.06)" }} />
         )}
       </Box>
     </Box>
@@ -304,7 +304,7 @@ const WordSetsPage = () => {
             Bộ từ vựng
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: "0.9rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.9rem", color: "text.secondary" }}>
           Khám phá các bộ từ được tuyển chọn theo chủ đề và cấp độ
         </Typography>
       </Box>
@@ -319,7 +319,7 @@ const WordSetsPage = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />
+                <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
@@ -333,7 +333,7 @@ const WordSetsPage = () => {
             sx={{
               fontWeight: 700, fontSize: "0.78rem", cursor: "pointer",
               bgcolor: !levelFilter ? colors.greenAccent : "rgba(0,0,0,0.07)",
-              color: !levelFilter ? "#fff" : colors.textBlackSoft,
+              color: !levelFilter ? "#fff" : "text.secondary",
             }}
           />
           {LEVELS.map((lv) => {
@@ -347,7 +347,7 @@ const WordSetsPage = () => {
                 sx={{
                   fontWeight: 700, fontSize: "0.78rem", cursor: "pointer",
                   bgcolor: active ? lc.color : lc.bg || "rgba(0,0,0,0.07)",
-                  color: active ? "#fff" : lc.color || colors.textBlackSoft,
+                  color: active ? "#fff" : lc.color || "text.secondary",
                   border: active ? "none" : `1px solid ${lc.color || "transparent"}33`,
                 }}
               />
@@ -364,7 +364,7 @@ const WordSetsPage = () => {
 
       {/* Count */}
       {!isLoading && (
-        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mb: 2 }}>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 2 }}>
           {sets.length} bộ từ
           {levelFilter ? ` · ${levelFilter}` : ""}
           {debouncedSearch ? ` · "${debouncedSearch}"` : ""}
@@ -384,7 +384,7 @@ const WordSetsPage = () => {
               <Grid item xs={12}>
                 <Box sx={{ py: 8, textAlign: "center" }}>
                   <CollectionsBookmarkRoundedIcon sx={{ fontSize: 56, color: colors.greenAccent, opacity: 0.2, mb: 1 }} />
-                  <Typography sx={{ color: colors.textBlackSoft }}>
+                  <Typography sx={{ color: "text.secondary" }}>
                     {debouncedSearch || levelFilter
                       ? "Không tìm thấy bộ từ phù hợp."
                       : "Chưa có bộ từ nào."}

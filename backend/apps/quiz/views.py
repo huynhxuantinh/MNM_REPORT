@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Quiz, QuizResult
-from .serializers import QuizResultSerializer
+from .serializers import QuizResultSerializer, AdminQuizResultSerializer
 
 
 class QuizGenerateView(APIView):
@@ -164,3 +164,32 @@ class QuizViewSet(viewsets.ReadOnlyModelViewSet):
             .select_related("quiz")
             .order_by("-completed_at")
         )
+
+
+class AdminQuizResultListView(viewsets.ReadOnlyModelViewSet):
+    """
+    GET /api/v1/quiz/admin/results/      — Tất cả kết quả quiz (admin only)
+    GET /api/v1/quiz/admin/results/{id}/ — Chi tiết 1 kết quả
+    Filter: ?search=email/name  ?quiz=id  ?page=N
+    """
+
+    from apps.accounts.permissions import IsAdmin as _IsAdmin
+    permission_classes = [IsAuthenticated, _IsAdmin]
+    serializer_class = AdminQuizResultSerializer
+
+    def get_queryset(self):
+        from django.db.models import Q
+        qs = (
+            QuizResult.objects.all()
+            .select_related("quiz", "user")
+            .order_by("-completed_at")
+        )
+        search = self.request.query_params.get("search", "").strip()
+        if search:
+            qs = qs.filter(
+                Q(user__email__icontains=search) | Q(user__full_name__icontains=search)
+            )
+        quiz_id = self.request.query_params.get("quiz")
+        if quiz_id:
+            qs = qs.filter(quiz_id=quiz_id)
+        return qs

@@ -56,7 +56,7 @@ const SbInput = ({
           },
         },
         "& .MuiInputLabel-root": {
-          color: colors.textBlackSoft,
+          color: "text.secondary",
           "&.Mui-focused": { color: error ? colors.red : colors.greenAccent },
         },
         "& .MuiFormHelperText-root": {

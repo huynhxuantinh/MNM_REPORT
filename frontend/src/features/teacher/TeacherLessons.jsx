@@ -115,7 +115,7 @@ const LessonDialog = ({ open, onClose, initial, onSave, saving, error }) => {
               />
             }
             label={
-              <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: colors.textBlack }}>
+              <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: "text.primary" }}>
                 {form.is_published ? "Công bố ngay" : "Lưu nháp"}
               </Typography>
             }
@@ -234,7 +234,7 @@ const WordsDialog = ({ open, onClose, lesson }) => {
               <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: colors.greenStarbucks, lineHeight: 1.2 }}>
                 Quản lý từ vựng
               </Typography>
-              <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, fontWeight: 400 }}>
+              <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 400 }}>
                 {lesson?.title} — {wordsInLesson.length} từ
               </Typography>
             </Box>
@@ -264,7 +264,7 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                   : wordsInLesson.length === 0
                     ? (
                       <Box sx={{ py: 6, textAlign: "center" }}>
-                        <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                        <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
                           Chưa có từ. Thêm từ bên phải →
                         </Typography>
                       </Box>
@@ -281,10 +281,10 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                           }}
                         >
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: "0.88rem", color: colors.textBlack }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: "0.88rem", color: "text.primary" }}>
                               {lw.word.text}
                             </Typography>
-                            <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }} noWrap>
+                            <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }} noWrap>
                               {lw.word.definition_vi}
                             </Typography>
                           </Box>
@@ -319,7 +319,7 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                     <InputAdornment position="start">
                       {searching
                         ? <CircularProgress size={16} sx={{ color: colors.greenAccent }} />
-                        : <SearchRoundedIcon sx={{ color: colors.textBlackSoft, fontSize: 20 }} />}
+                        : <SearchRoundedIcon sx={{ color: "text.secondary", fontSize: 20 }} />}
                     </InputAdornment>
                   ),
                 }}
@@ -333,8 +333,8 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                 {search.length < 2
                   ? (
                     <Box sx={{ py: 6, textAlign: "center" }}>
-                      <SearchRoundedIcon sx={{ fontSize: 32, color: colors.textBlackSoft, opacity: 0.3, mb: 1 }} />
-                      <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                      <SearchRoundedIcon sx={{ fontSize: 32, color: "text.secondary", opacity: 0.3, mb: 1 }} />
+                      <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
                         Nhập từ khoá để tìm kiếm
                       </Typography>
                     </Box>
@@ -342,7 +342,7 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                   : searchResults.length === 0 && !searching
                     ? (
                       <Box sx={{ py: 6, textAlign: "center" }}>
-                        <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                        <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
                           Không tìm thấy kết quả.
                         </Typography>
                       </Box>
@@ -365,12 +365,12 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                               <Typography sx={{ fontWeight: 700, fontSize: "0.88rem" }}>
                                 {word.text}
                                 {word.phonetic && (
-                                  <Typography component="span" sx={{ fontSize: "0.76rem", color: colors.textBlackSoft, ml: 0.75, fontWeight: 400 }}>
+                                  <Typography component="span" sx={{ fontSize: "0.76rem", color: "text.secondary", ml: 0.75, fontWeight: 400 }}>
                                     {word.phonetic}
                                   </Typography>
                                 )}
                               </Typography>
-                              <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }} noWrap>
+                              <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }} noWrap>
                                 {word.definition_vi}
                               </Typography>
                             </Box>
@@ -382,7 +382,7 @@ const WordsDialog = ({ open, onClose, lesson }) => {
                                   disabled={inLesson || addMut.isPending}
                                   sx={{
                                     ml: 0.5,
-                                    color: inLesson ? colors.textBlackSoft : colors.greenAccent,
+                                    color: inLesson ? "text.secondary" : colors.greenAccent,
                                     "&:hover": { bgcolor: inLesson ? "transparent" : `${colors.greenAccent}18` },
                                   }}
                                 >
@@ -496,7 +496,7 @@ const TeacherLessons = () => {
             Quản lý bài học
           </Typography>
           {!isLoading && (
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {lessons.length} bài học
             </Typography>
           )}
@@ -556,7 +556,7 @@ const TeacherLessons = () => {
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 7 }}>
                       <MenuBookRoundedIcon sx={{ fontSize: 48, color: colors.greenAccent, opacity: 0.25, mb: 1 }} />
-                      <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.875rem" }}>
+                      <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
                         Chưa có bài học nào. Nhấn "Tạo bài học mới" để bắt đầu.
                       </Typography>
                     </TableCell>
@@ -572,12 +572,12 @@ const TeacherLessons = () => {
                       >
                         {/* Tiêu đề */}
                         <TableCell>
-                          <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: colors.textBlack }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: "text.primary" }}>
                             {lesson.title}
                           </Typography>
                           {lesson.description && (
                             <Typography
-                              sx={{ fontSize: "0.78rem", color: colors.textBlackSoft, mt: 0.25 }}
+                              sx={{ fontSize: "0.78rem", color: "text.secondary", mt: 0.25 }}
                               noWrap
                             >
                               {lesson.description}
@@ -601,7 +601,7 @@ const TeacherLessons = () => {
                                 }}
                               />
                             )
-                            : <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.82rem" }}>—</Typography>}
+                            : <Typography sx={{ color: "text.secondary", fontSize: "0.82rem" }}>—</Typography>}
                         </TableCell>
 
                         {/* Số từ */}
@@ -625,7 +625,7 @@ const TeacherLessons = () => {
                                 : "rgba(0,0,0,0.07)",
                               color: lesson.is_published
                                 ? colors.greenAccent
-                                : colors.textBlackSoft,
+                                : "text.secondary",
                             }}
                           />
                         </TableCell>
@@ -653,7 +653,7 @@ const TeacherLessons = () => {
                                   setLessonDlg({ open: true, data: lesson });
                                 }}
                                 sx={{
-                                  color: colors.textBlackSoft,
+                                  color: "text.secondary",
                                   "&:hover": { bgcolor: "rgba(0,0,0,0.06)" },
                                 }}
                               >

@@ -24,7 +24,7 @@ const NotFoundPage = () => {
             width: 96,
             height: 96,
             borderRadius: "50%",
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -53,7 +53,7 @@ const NotFoundPage = () => {
           sx={{
             fontWeight: 700,
             fontSize: { xs: "1.1rem", sm: "1.3rem" },
-            color: colors.textBlack,
+            color: "text.primary",
             mb: 1,
           }}
         >
@@ -63,7 +63,7 @@ const NotFoundPage = () => {
         <Typography
           sx={{
             fontSize: "0.9375rem",
-            color: colors.textBlackSoft,
+            color: "text.secondary",
             mb: 3.5,
             lineHeight: 1.6,
           }}

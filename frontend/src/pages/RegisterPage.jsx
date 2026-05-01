@@ -150,9 +150,9 @@ const RegisterSuccess = ({ email }) => {
       <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
         Kiểm tra email của bạn!
       </Typography>
-      <Typography sx={{ color: colors.textBlackSoft, mb: 2, lineHeight: 1.7 }}>
+      <Typography sx={{ color: "text.secondary", mb: 2, lineHeight: 1.7 }}>
         Chúng tôi đã gửi email xác thực đến{" "}
-        <Box component="span" sx={{ fontWeight: 700, color: colors.textBlack }}>
+        <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
           {email}
         </Box>
         . Nhấn vào link trong email để kích hoạt tài khoản.
@@ -266,7 +266,7 @@ const RegisterPage = () => {
         >
           Tạo tài khoản
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, mb: 3 }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", mb: 3 }}>
           Đã có tài khoản?{" "}
           <Box component={Link} to="/login" sx={{ color: colors.greenAccent, fontWeight: 700, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
             Đăng nhập
@@ -290,7 +290,7 @@ const RegisterPage = () => {
             helperText={fieldError("username")}
             autoComplete="username"
             autoFocus
-            startAdornment={<PersonRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<PersonRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
           {/* Email */}
@@ -303,7 +303,7 @@ const RegisterPage = () => {
             error={!!fieldError("email")}
             helperText={fieldError("email")}
             autoComplete="email"
-            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
           {/* Password */}
@@ -317,7 +317,7 @@ const RegisterPage = () => {
               error={!!fieldError("password")}
               helperText={fieldError("password")}
               autoComplete="new-password"
-              startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+              startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
               endAdornment={
                 <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1}>
                   {showPassword
@@ -340,7 +340,7 @@ const RegisterPage = () => {
             helperText={fieldError("confirmPassword")}
             success={!!(form.confirmPassword && form.confirmPassword === form.password)}
             autoComplete="new-password"
-            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
             endAdornment={
               form.confirmPassword && form.confirmPassword === form.password ? (
                 <CheckCircleRoundedIcon sx={{ fontSize: 20, color: colors.greenAccent }} />

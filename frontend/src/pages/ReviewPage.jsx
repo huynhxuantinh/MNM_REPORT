@@ -80,7 +80,7 @@ const CardFace = ({ sx, children }) => (
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden",
     borderRadius: "16px",
-    bgcolor: "#fff",
+    bgcolor: "background.paper",
     boxShadow: "0 2px 12px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)",
     display: "flex",
     flexDirection: "column",
@@ -158,7 +158,7 @@ const CardFront = ({ word, speaking, setSpeaking }) => {
       </Box>
 
       {word.phonetic && (
-        <Typography sx={{ fontSize: "1.1rem", color: colors.textBlackSoft, fontStyle: "italic", letterSpacing: "0.03em", mb: 1 }}>
+        <Typography sx={{ fontSize: "1.1rem", color: "text.secondary", fontStyle: "italic", letterSpacing: "0.03em", mb: 1 }}>
           /{word.phonetic}/
         </Typography>
       )}
@@ -168,7 +168,7 @@ const CardFront = ({ word, speaking, setSpeaking }) => {
           sx={{ bgcolor: ps.bg, color: ps.color, fontWeight: 700, fontSize: "0.72rem" }} />
       )}
 
-      <Box sx={{ mt: 2.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, color: colors.textBlackSoft }}>
+      <Box sx={{ mt: 2.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, color: "text.secondary" }}>
         <TouchAppRoundedIcon sx={{ fontSize: 16 }} />
         <Typography sx={{ fontSize: "0.78rem" }}>Nhấn để xem nghĩa</Typography>
       </Box>
@@ -182,11 +182,11 @@ const CardBack = ({ word, log }) => (
   <Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 1.5 }}>
     {/* Main definition */}
     <Box sx={{ textAlign: "center" }}>
-      <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, color: colors.textBlack, lineHeight: 1.3, mb: 0.25 }}>
+      <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, color: "text.primary", lineHeight: 1.3, mb: 0.25 }}>
         {word.definition_vi}
       </Typography>
       {word.definition_en && (
-        <Typography sx={{ fontSize: "0.9rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.9rem", color: "text.secondary" }}>
           {word.definition_en}
         </Typography>
       )}
@@ -204,7 +204,7 @@ const CardBack = ({ word, log }) => (
           "{word.example_en}"
         </Typography>
         {word.example_vi && (
-          <Typography sx={{ fontSize: "0.8125rem", color: colors.textBlackSoft, mt: 0.4 }}>
+          <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary", mt: 0.4 }}>
             → {word.example_vi}
           </Typography>
         )}
@@ -212,7 +212,7 @@ const CardBack = ({ word, log }) => (
     )}
 
     {/* SRS meta */}
-    <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft, textAlign: "center" }}>
+    <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", textAlign: "center" }}>
       {log.repetitions === 0
         ? "Lần đầu ôn tập"
         : `Ôn lần ${log.repetitions + 1} · khoảng cách hiện tại ${log.interval_days} ngày`}
@@ -231,7 +231,7 @@ const CompletionScreen = ({ stats, onBack, onRestart }) => {
         <Typography sx={{ fontWeight: 800, fontSize: "1.85rem", color: colors.greenStarbucks, letterSpacing: "-0.02em", mb: 0.5 }}>
           Phiên ôn hoàn thành!
         </Typography>
-        <Typography sx={{ color: colors.textBlackSoft, mb: 3 }}>
+        <Typography sx={{ color: "text.secondary", mb: 3 }}>
           Bạn đã ôn xong <strong>{stats.total}</strong> từ hôm nay
         </Typography>
 
@@ -247,7 +247,7 @@ const CompletionScreen = ({ stats, onBack, onRestart }) => {
                 <Icon sx={{ color, fontSize: 22 }} />
                 <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color }}>{value}</Typography>
               </Box>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>{label}</Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{label}</Typography>
             </Box>
           ))}
         </Box>
@@ -262,7 +262,7 @@ const CompletionScreen = ({ stats, onBack, onRestart }) => {
             { label: "Cần ôn thêm (Quên → Khó, chất lượng < 3)", value: stats.total - stats.correct, color: colors.red },
           ].map(({ label, value, color }) => (
             <Box key={label} sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-              <Typography sx={{ fontSize: "0.8375rem", color: colors.textBlackSoft }}>{label}</Typography>
+              <Typography sx={{ fontSize: "0.8375rem", color: "text.secondary" }}>{label}</Typography>
               <Typography sx={{ fontSize: "0.8375rem", fontWeight: 700, color }}>{value} từ</Typography>
             </Box>
           ))}
@@ -431,7 +431,7 @@ const ReviewPage = () => {
           <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
             Tất cả đã ôn xong!
           </Typography>
-          <Typography sx={{ color: colors.textBlackSoft, mb: 3, fontSize: "0.9375rem" }}>
+          <Typography sx={{ color: "text.secondary", mb: 3, fontSize: "0.9375rem" }}>
             Không có từ nào đến hạn hôm nay. Quay lại vào ngày mai hoặc học bài mới.
           </Typography>
           <Box sx={{ display: "flex", gap: 1.5, justifyContent: "center" }}>
@@ -463,16 +463,16 @@ const ReviewPage = () => {
       {/* ── Header bar ─────────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <Tooltip title="Thoát ôn tập" arrow>
-          <IconButton onClick={() => navigate("/")} sx={{ color: colors.textBlackSoft }}>
+          <IconButton onClick={() => navigate("/")} sx={{ color: "text.secondary" }}>
             <ArrowBackRoundedIcon />
           </IconButton>
         </Tooltip>
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.6 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.textBlack }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary" }}>
               Ôn tập SRS
             </Typography>
-            <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", fontWeight: 600 }}>
               Từ {currentIdx + 1}/{items.length}
             </Typography>
           </Box>
@@ -526,7 +526,7 @@ const ReviewPage = () => {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           <Typography sx={{
             textAlign: "center", fontSize: "0.8rem", fontWeight: 700,
-            color: colors.textBlackSoft, textTransform: "uppercase", letterSpacing: "0.07em",
+            color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.07em",
           }}>
             Bạn nhớ từ này ở mức nào?
           </Typography>
@@ -582,7 +582,7 @@ const ReviewPage = () => {
       )}
 
       {/* ── Keyboard hint ────────────────────────────────────────────── */}
-      <Typography sx={{ textAlign: "center", fontSize: "0.75rem", color: colors.textBlackSoft }}>
+      <Typography sx={{ textAlign: "center", fontSize: "0.75rem", color: "text.secondary" }}>
         {!flipped
           ? "Space / Enter hoặc nhấn vào thẻ để lật"
           : "Nhấn phím 0-5 hoặc click để chấm điểm"}

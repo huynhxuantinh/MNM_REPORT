@@ -143,7 +143,7 @@ const SbAvatar = ({
           value={progress}
           sx={{ height: 4, borderRadius: 2 }}
         />
-        <Typography variant="caption" sx={{ color: colors.textBlackSoft, fontSize: "0.7rem" }}>
+        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
           {xp} / {nextThreshold} XP
         </Typography>
       </Box>

@@ -165,3 +165,27 @@ class WordImportSerializer(serializers.Serializer):
 class AddWordToSetSerializer(serializers.Serializer):
     word_id = serializers.PrimaryKeyRelatedField(queryset=Word.objects.all())
     order_index = serializers.IntegerField(min_value=0, default=0)
+
+
+# ── WordSet CSV Import ──────────────────────────────────────────────────────
+
+class WordSetImportSerializer(serializers.Serializer):
+    """Import CSV để tạo bộ từ mới kèm danh sách từ."""
+
+    name        = serializers.CharField(max_length=200)
+    description = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    level       = serializers.ChoiceField(
+        choices=[(c.value, c.value) for c in Word.Level],
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    is_public   = serializers.BooleanField(default=True)
+    file        = serializers.FileField()
+
+    def validate_file(self, value):
+        if not value.name.lower().endswith(".csv"):
+            raise serializers.ValidationError("Chỉ chấp nhận file .csv.")
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("File không được vượt quá 5 MB.")
+        return value

@@ -19,14 +19,14 @@ const ForgotSuccess = ({ email }) => (
     <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1.5 }}>
       Email đã được gửi!
     </Typography>
-    <Typography sx={{ color: colors.textBlackSoft, mb: 1, lineHeight: 1.7 }}>
+    <Typography sx={{ color: "text.secondary", mb: 1, lineHeight: 1.7 }}>
       Nếu tài khoản với email{" "}
-      <Box component="span" sx={{ fontWeight: 700, color: colors.textBlack }}>
+      <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
         {email}
       </Box>{" "}
       tồn tại, bạn sẽ nhận được link đặt lại mật khẩu trong vài phút.
     </Typography>
-    <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mb: 4 }}>
+    <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 4 }}>
       Kiểm tra cả hộp thư rác nếu không thấy email.
     </Typography>
     <SbButton variant="primary" component={Link} to="/login" fullWidth startIcon={<ArrowBackRoundedIcon />}>
@@ -97,7 +97,7 @@ const ForgotPasswordPage = () => {
         >
           Quên mật khẩu
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, mb: 3 }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", mb: 3 }}>
           Nhập email đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu cho bạn.
         </Typography>
 
@@ -118,7 +118,7 @@ const ForgotPasswordPage = () => {
             helperText={emailError}
             autoComplete="email"
             autoFocus
-            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
           <SbButton

@@ -98,7 +98,7 @@ export const StatsCardSkeleton = ({ count = 3 }) => (
       <Grid item xs={12} sm={4} key={i}>
         <Box
           sx={{
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             border: "1px solid rgba(0,0,0,0.07)",
             borderRadius: "14px",
             p: 2.5,
@@ -128,7 +128,7 @@ export const StatsCardSkeleton = ({ count = 3 }) => (
 export const WordCardSkeleton = () => (
   <Box
     sx={{
-      bgcolor: "#fff",
+      bgcolor: "background.paper",
       borderRadius: "16px",
       p: { xs: 2.5, sm: 4 },
       boxShadow: "0 2px 16px rgba(0,0,0,0.08)",
@@ -240,7 +240,7 @@ export const DashboardSkeleton = () => (
       <Grid item xs={12} lg={6}>
         <Box
           sx={{
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             borderRadius: "12px",
             p: 2,
             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
@@ -253,7 +253,7 @@ export const DashboardSkeleton = () => (
       <Grid item xs={12} lg={6}>
         <Box
           sx={{
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             borderRadius: "12px",
             p: 2,
             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",

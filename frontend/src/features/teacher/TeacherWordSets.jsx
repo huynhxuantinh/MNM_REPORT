@@ -117,7 +117,7 @@ const WordSetFormDialog = ({ open, onClose, onSave, saving, initial }) => {
               <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
                 {isPublic ? "Công khai" : "Riêng tư"}
               </Typography>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                 {isPublic ? "Học sinh có thể xem bộ từ này" : "Chỉ bạn mới thấy"}
               </Typography>
             </Box>
@@ -236,7 +236,7 @@ const ManageWordsDialog = ({ open, onClose, set, show }) => {
               </Box>
             ) : wordsInSet.length === 0 ? (
               <Box sx={{ py: 4, textAlign: "center", px: 2 }}>
-                <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
                   Chưa có từ nào trong bộ.
                 </Typography>
               </Box>
@@ -252,7 +252,7 @@ const ManageWordsDialog = ({ open, onClose, set, show }) => {
                     <Typography sx={{ fontWeight: 700, fontSize: "0.875rem" }} noWrap>
                       {word.text}
                     </Typography>
-                    <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }} noWrap>
+                    <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }} noWrap>
                       {word.definition_vi}
                     </Typography>
                   </Box>
@@ -286,7 +286,7 @@ const ManageWordsDialog = ({ open, onClose, set, show }) => {
                   <InputAdornment position="start">
                     {loadingWords
                       ? <CircularProgress size={14} />
-                      : <SearchRoundedIcon sx={{ fontSize: 17, color: colors.textBlackSoft }} />}
+                      : <SearchRoundedIcon sx={{ fontSize: 17, color: "text.secondary" }} />}
                   </InputAdornment>
                 ),
               }}
@@ -299,7 +299,7 @@ const ManageWordsDialog = ({ open, onClose, set, show }) => {
               </Box>
             ) : allWords.length === 0 ? (
               <Box sx={{ py: 4, textAlign: "center", px: 2 }}>
-                <Typography sx={{ fontSize: "0.82rem", color: colors.textBlackSoft }}>
+                <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
                   {debouncedSearch ? "Không tìm thấy từ phù hợp." : "Tất cả từ đã trong bộ."}
                 </Typography>
               </Box>
@@ -315,7 +315,7 @@ const ManageWordsDialog = ({ open, onClose, set, show }) => {
                     <Typography sx={{ fontWeight: 700, fontSize: "0.875rem" }} noWrap>
                       {w.text}
                     </Typography>
-                    <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }} noWrap>
+                    <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }} noWrap>
                       {w.definition_vi}
                     </Typography>
                   </Box>
@@ -404,7 +404,7 @@ const TeacherWordSets = () => {
             Bộ từ của tôi
           </Typography>
           {!isLoading && (
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {sets.length} bộ từ
             </Typography>
           )}
@@ -454,7 +454,7 @@ const TeacherWordSets = () => {
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 7 }}>
                       <CollectionsBookmarkRoundedIcon sx={{ fontSize: 48, color: colors.greenAccent, opacity: 0.25, mb: 1 }} />
-                      <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.875rem" }}>
+                      <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
                         Chưa có bộ từ nào. Tạo bộ từ đầu tiên!
                       </Typography>
                     </TableCell>
@@ -467,7 +467,7 @@ const TeacherWordSets = () => {
                         <TableCell>
                           <Typography sx={{ fontWeight: 700, fontSize: "0.875rem" }}>{s.name}</Typography>
                           {s.description && (
-                            <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }} noWrap>
+                            <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }} noWrap>
                               {s.description}
                             </Typography>
                           )}
@@ -477,7 +477,7 @@ const TeacherWordSets = () => {
                             <Chip label={s.level} size="small"
                               sx={{ height: 22, fontWeight: 700, fontSize: "0.72rem", bgcolor: lc.bg, color: lc.color }} />
                           ) : (
-                            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>—</Typography>
+                            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>—</Typography>
                           )}
                         </TableCell>
                         <TableCell align="center">
@@ -492,7 +492,7 @@ const TeacherWordSets = () => {
                             sx={{
                               height: 22, fontWeight: 700, fontSize: "0.72rem",
                               bgcolor: s.is_public ? `${colors.greenAccent}1a` : "rgba(0,0,0,0.07)",
-                              color: s.is_public ? colors.greenAccent : colors.textBlackSoft,
+                              color: s.is_public ? colors.greenAccent : "text.secondary",
                             }}
                           />
                         </TableCell>
@@ -508,7 +508,7 @@ const TeacherWordSets = () => {
                             <Tooltip title="Sửa bộ từ" arrow>
                               <IconButton size="small"
                                 onClick={() => setEditDlg({ open: true, set: s })}
-                                sx={{ color: colors.textBlackSoft }}>
+                                sx={{ color: "text.secondary" }}>
                                 <EditRoundedIcon sx={{ fontSize: 18 }} />
                               </IconButton>
                             </Tooltip>

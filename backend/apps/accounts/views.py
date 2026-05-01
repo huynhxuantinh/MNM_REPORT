@@ -63,10 +63,6 @@ class RegisterView(APIView):
 
 
     def post(self, request):
-        print("\n" + "="*50)
-        print("--- DEBUG: NHẬN ĐƯỢC YÊU CẦU ĐĂNG KÝ ---")
-        print(f"--- Email: {request.data.get('email')} ---")
-        print("="*50 + "\n")
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -373,15 +369,14 @@ class AdminUserListView(generics.ListAPIView):
     serializer_class = AdminUserSerializer
 
     def get_queryset(self):
+        from django.db.models import Q
         qs = User.objects.all().order_by("-created_at")
         role = self.request.query_params.get("role")
         if role:
             qs = qs.filter(role=role)
-        search = self.request.query_params.get("search")
+        search = self.request.query_params.get("search", "").strip()
         if search:
-            qs = qs.filter(email__icontains=search) | User.objects.filter(
-                full_name__icontains=search
-            ).order_by("-created_at")
+            qs = qs.filter(Q(email__icontains=search) | Q(full_name__icontains=search))
         return qs
 
 

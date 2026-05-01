@@ -135,8 +135,8 @@ const AdminHeader = ({ onMenuClick }) => {
       position="fixed"
       elevation={0}
       sx={{
-        bgcolor: "#fff",
-        color: colors.textBlack,
+        bgcolor: "background.paper",
+        color: "text.primary",
         width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
         ml: { md: `${SIDEBAR_WIDTH}px` },
         boxShadow: "0 1px 0 rgba(0,0,0,0.08)",
@@ -186,11 +186,11 @@ const AdminHeader = ({ onMenuClick }) => {
             <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: ADMIN_BG }}>
               {user?.full_name || user?.username}
             </Typography>
-            <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>{user?.email}</Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{user?.email}</Typography>
           </Box>
           <Divider />
           <MenuItem onClick={() => { navigate("/profile"); setAnchorEl(null); }} sx={{ py: 1, gap: 1.5, fontSize: "0.875rem" }}>
-            <PersonRoundedIcon fontSize="small" sx={{ color: colors.textBlackSoft }} />
+            <PersonRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
             Hồ sơ
           </MenuItem>
           <Divider />

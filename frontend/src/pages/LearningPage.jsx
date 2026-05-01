@@ -77,18 +77,18 @@ const LessonCard = ({ lesson, assignment }) => {
         </Box>
 
         {/* Title */}
-        <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.textBlack, lineHeight: 1.4, flex: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary", lineHeight: 1.4, flex: 1 }}>
           {lesson.title}
         </Typography>
 
         {/* Meta */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-          <Typography sx={{ fontSize: "0.8125rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary" }}>
             📚 {lesson.word_count ?? "?"} từ
             {lesson.created_by_name ? ` · ${lesson.created_by_name}` : ""}
           </Typography>
           {dueDate && (
-            <Typography sx={{ fontSize: "0.8125rem", color: isOverdue ? colors.red : colors.textBlackSoft, fontWeight: isOverdue ? 700 : 400 }}>
+            <Typography sx={{ fontSize: "0.8125rem", color: isOverdue ? colors.red : "text.secondary", fontWeight: isOverdue ? 700 : 400 }}>
               🗓 Hạn: {fmtDate(dueDate)}{isOverdue ? " — Quá hạn!" : ""}
             </Typography>
           )}
@@ -132,10 +132,10 @@ const EmptyState = ({ tab }) => (
     {tab === 0
       ? <MenuBookRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 1 }} />
       : <AssignmentRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 1 }} />}
-    <Typography sx={{ fontWeight: 700, color: colors.textBlack, mb: 0.5 }}>
+    <Typography sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}>
       {tab === 0 ? "Chưa có bài học nào" : "Chưa có bài được giao"}
     </Typography>
-    <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.875rem" }}>
+    <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
       {tab === 0
         ? "Hãy khám phá thư viện hoặc hỏi giáo viên để được giao bài."
         : "Giáo viên của bạn chưa giao bài học nào."}
@@ -187,7 +187,7 @@ const LearningPage = () => {
           <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
             Bài học
           </Typography>
-          <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
             {lessons.length} bài học · {assignments.length} bài được giao
           </Typography>
         </Box>
@@ -201,7 +201,7 @@ const LearningPage = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />
+                <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
@@ -209,7 +209,7 @@ const LearningPage = () => {
             width: { xs: "100%", sm: 240 },
             "& .MuiOutlinedInput-root": {
               borderRadius: "50px",
-              bgcolor: "#fff",
+              bgcolor: "background.paper",
               fontSize: "0.875rem",
             },
           }}

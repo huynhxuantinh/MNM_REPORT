@@ -163,7 +163,7 @@ export const ManageClassDialog = ({ open, onClose, classId, showToast }) => {
           <Skeleton height={60} sx={{ borderRadius: "8px", mb: 2 }} />
         ) : klass?.students?.length === 0 ? (
           <Box sx={{ py: 2, textAlign: "center", mb: 1.5 }}>
-            <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
               Lớp chưa có học sinh.
             </Typography>
           </Box>
@@ -186,7 +186,7 @@ export const ManageClassDialog = ({ open, onClose, classId, showToast }) => {
                   <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }} noWrap>
                     {s.full_name || s.username}
                   </Typography>
-                  <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }} noWrap>
+                  <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }} noWrap>
                     {s.email}
                   </Typography>
                 </Box>
@@ -220,7 +220,7 @@ export const ManageClassDialog = ({ open, onClose, classId, showToast }) => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 17, color: colors.textBlackSoft }} />
+                <SearchRoundedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
@@ -238,7 +238,7 @@ export const ManageClassDialog = ({ open, onClose, classId, showToast }) => {
             : allStudents.length === 0
               ? (
                 <Box sx={{ py: 2.5, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: "0.82rem", color: colors.textBlackSoft }}>
+                  <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
                     {studentSearch ? "Không tìm thấy." : "Tất cả học sinh đã trong lớp."}
                   </Typography>
                 </Box>
@@ -263,7 +263,7 @@ export const ManageClassDialog = ({ open, onClose, classId, showToast }) => {
                         <Typography sx={{ fontWeight: 600, fontSize: "0.85rem" }} noWrap>
                           {s.full_name || s.username}
                         </Typography>
-                        <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }} noWrap>
+                        <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }} noWrap>
                           {s.email}
                         </Typography>
                       </Box>

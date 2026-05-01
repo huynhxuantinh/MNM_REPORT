@@ -5,7 +5,7 @@ import { colors } from "@/styles/theme";
 const variantStyles = {
   default: {},
   dark:  { bgcolor: colors.greenHouse,   color: colors.textWhite },
-  gold:  { bgcolor: colors.goldLightest, color: colors.textBlack },
+  gold:  { bgcolor: colors.goldLightest, color: "text.primary" },
   cream: { bgcolor: "action.hover",      color: "text.primary" },
 };
 

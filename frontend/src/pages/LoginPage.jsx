@@ -105,7 +105,7 @@ const LoginPage = () => {
         >
           Đăng nhập
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, mb: 3 }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", mb: 3 }}>
           Chưa có tài khoản?{" "}
           <Box component={Link} to="/register" sx={{ color: colors.greenAccent, fontWeight: 700, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
             Đăng ký ngay
@@ -131,7 +131,7 @@ const LoginPage = () => {
             helperText={errors.email}
             autoComplete="email"
             autoFocus
-            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
           {/* Password */}
@@ -144,7 +144,7 @@ const LoginPage = () => {
             error={!!errors.password}
             helperText={errors.password}
             autoComplete="current-password"
-            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
             endAdornment={
               <IconButton
                 onClick={() => setShowPassword((v) => !v)}
@@ -184,7 +184,7 @@ const LoginPage = () => {
         </Box>
 
         <Divider sx={{ my: 3 }}>
-          <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft, px: 1 }}>
+          <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", px: 1 }}>
             hoặc
           </Typography>
         </Divider>

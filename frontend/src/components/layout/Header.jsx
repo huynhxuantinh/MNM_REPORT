@@ -142,7 +142,7 @@ const Header = ({ onMenuClick }) => {
           </Box>
           <Divider />
           <Box sx={{ p: 2, textAlign: "center" }}>
-            <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
               Không có thông báo mới
             </Typography>
           </Box>
@@ -163,7 +163,7 @@ const Header = ({ onMenuClick }) => {
             <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.greenHouse }}>
               {user?.full_name || user?.username}
             </Typography>
-            <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
               {user?.email}
             </Typography>
           </Box>
@@ -172,7 +172,7 @@ const Header = ({ onMenuClick }) => {
             onClick={() => { navigate("/profile"); handleUserMenuClose(); }}
             sx={{ py: 1, gap: 1.5, fontSize: "0.875rem" }}
           >
-            <PersonRoundedIcon fontSize="small" sx={{ color: colors.textBlackSoft }} />
+            <PersonRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
             Hồ sơ của tôi
           </MenuItem>
           <Divider />

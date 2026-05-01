@@ -4,7 +4,7 @@
 **MNM Learn English** - Ứng dụng học từ vựng tiếng Anh với hệ thống Spaced Repetition (SRS) dựa trên thuật toán SM-2.
 
 ### Tech Stack
-- **Backend**: Django 5.0 + Django REST Framework + PostgreSQL + Redis
+- **Backend**: Django 4.2 + Django REST Framework 3.15 + PostgreSQL 14 + Redis 7
 - **Frontend**: React 18 + Vite + Redux Toolkit + TanStack Query + Material UI 5
 - **Auth**: JWT (SimpleJWT) + HTTP-only cookies + Token blacklist
 - **Email**: Mailtrap (development)
@@ -64,10 +64,11 @@
 ### 👨‍💼 Admin Features
 | Feature | Status | Notes |
 |---------|--------|-------|
-| User management | ✅ | View, ban/unban, change role |
-| Vocabulary management | ✅ | CRUD words |
-| Lesson management | ✅ | View all lessons |
-| System statistics | ✅ | Users, lessons, reviews, quizzes |
+| User management | ✅ | Search by name/email, change role, ban/unban |
+| Vocabulary management | ✅ | CRUD words, import CSV |
+| Lesson management | ✅ | CRUD, toggle publish |
+| Quiz results view | ✅ | All students, search, paginate |
+| System statistics dashboard | ✅ | Users, lessons, reviews, quizzes, assignments |
 
 ---
 
@@ -99,7 +100,12 @@
    - Removed: Duplicate dialog code in `TeacherClasses` & `TeacherStudents`
    - Improved: `AvatarGroup` shows "+N" when more than 3 students
 
-3. **API Client**
+3. **Admin Module Completion**
+   - Added: `AdminQuizResults` page (`/admin/quizzes`) with score visualization
+   - Fixed: TanStack Query v5 compatibility (`placeholderData`, `isPending`, `invalidateQueries` object form)
+   - Added: `adminApi.getQuizResults()` method
+
+4. **API Client**
    - Fixed: Concurrent 401 requests now queue and wait for single refresh
 
 ---
@@ -120,13 +126,13 @@ MNM_REPORT/
 │   │   ├── api/               # API clients
 │   │   ├── components/ui/     # Shared UI components
 │   │   ├── features/          # Feature-based modules
-│   │   │   ├── auth/          # Auth slice
-│   │   │   ├── teacher/       # Teacher pages + dialogs/
-│   │   │   ├── learning/      # Learning slice
-│   │   │   └── quiz/          # Quiz slice
-│   │   ├── hooks/             # Custom React Query hooks
+│   │   │   ├── auth/          # Auth slice (Redux)
+│   │   │   ├── teacher/       # Teacher pages
+│   │   │   │   └── dialogs/   # Shared ClassFormDialog, ManageClassDialog, DeleteClassDialog
+│   │   │   └── admin/         # AdminDashboard, AdminUsers, AdminWords,
+│   │   │                      # AdminLessons, AdminQuizResults, AdminContent
 │   │   ├── pages/             # Route pages
-│   │   └── utils/             # Helpers (dates, XP calc)
+│   │   └── styles/            # theme.js (Starbucks color tokens)
 │   └── cypress/               # E2E tests
 ├── .github/workflows/          # CI/CD
 └── data/                      # Seed data (words.csv)
@@ -184,8 +190,10 @@ MNM_REPORT/
 - `backend/apps/accounts/views_resend_email.py` - Resend verification (NEW)
 
 ### Frontend  
-- `frontend/src/features/teacher/dialogs/ClassDialogs.jsx` - Shared dialogs (NEW)
+- `frontend/src/features/teacher/dialogs/ClassDialogs.jsx` - Shared dialogs
+- `frontend/src/features/admin/AdminQuizResults.jsx` - Quiz results management
 - `frontend/src/api/axiosClient.js` - API client with token refresh queue
+- `frontend/src/api/adminApi.js` - Admin API (stats, users, words, lessons, quiz results)
 - `frontend/src/pages/RegisterPage.jsx` - With resend email button
 
 ---
@@ -199,5 +207,5 @@ MNM_REPORT/
 ---
 
 **Last Updated**: May 1, 2026
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Status**: ✅ Production Ready (with email service switch)

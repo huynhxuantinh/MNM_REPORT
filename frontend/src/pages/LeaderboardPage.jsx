@@ -21,7 +21,7 @@ const PodiumItem = ({ user, rank }) => {
         src={user.avatar_url}
         sx={{
           width: isFirst ? 80 : 64, height: isFirst ? 80 : 64,
-          border: `4px solid ${rankColor}`, mb: 1, bgcolor: "#fff",
+          border: `4px solid ${rankColor}`, mb: 1, bgcolor: "background.paper",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
         }}
       >
@@ -77,7 +77,7 @@ const LeaderboardPage = () => {
         <Typography sx={{ fontWeight: 900, fontSize: { xs: "1.8rem", sm: "2.2rem" }, color: colors.greenStarbucks }}>
           Bảng Vàng Thành Tích
         </Typography>
-        <Typography sx={{ color: colors.textBlackSoft, mt: 0.5 }}>
+        <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
           Top học viên xuất sắc nhất hệ thống
         </Typography>
       </Box>
@@ -97,31 +97,31 @@ const LeaderboardPage = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: "#fafafa" }}>
-                <TableCell sx={{ fontWeight: 800, color: colors.textBlackSoft, width: 60, borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Hạng</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: colors.textBlackSoft, borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Học viên</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, color: colors.textBlackSoft, borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Level</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: colors.textBlackSoft, borderBottom: "2px solid rgba(0,0,0,0.06)" }}>XP</TableCell>
+                <TableCell sx={{ fontWeight: 800, color: "text.secondary", width: 60, borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Hạng</TableCell>
+                <TableCell sx={{ fontWeight: 800, color: "text.secondary", borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Học viên</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800, color: "text.secondary", borderBottom: "2px solid rgba(0,0,0,0.06)" }}>Level</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: "text.secondary", borderBottom: "2px solid rgba(0,0,0,0.06)" }}>XP</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {others.map((user, idx) => (
                 <TableRow key={user.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
-                  <TableCell sx={{ fontWeight: 800, color: colors.textBlackSoft, fontSize: "1.1rem" }}>#{idx + 4}</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: "text.secondary", fontSize: "1.1rem" }}>#{idx + 4}</TableCell>
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                       <Avatar src={user.avatar_url} sx={{ width: 38, height: 38, bgcolor: `${colors.greenAccent}22`, color: colors.greenStarbucks, fontWeight: 700 }}>
                         {user.full_name?.charAt(0)}
                       </Avatar>
-                      <Typography sx={{ fontWeight: 700, color: colors.textBlack }}>{user.full_name}</Typography>
+                      <Typography sx={{ fontWeight: 700, color: "text.primary" }}>{user.full_name}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell align="center">
-                    <Typography sx={{ fontWeight: 700, color: colors.textBlackSoft, bgcolor: "rgba(0,0,0,0.04)", py: 0.5, px: 1, borderRadius: "6px", display: "inline-block", minWidth: 24 }}>
+                    <Typography sx={{ fontWeight: 700, color: "text.secondary", bgcolor: "rgba(0,0,0,0.04)", py: 0.5, px: 1, borderRadius: "6px", display: "inline-block", minWidth: 24 }}>
                       {user.level}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>{user.xp} <Typography component="span" sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>XP</Typography></Typography>
+                    <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>{user.xp} <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>XP</Typography></Typography>
                   </TableCell>
                 </TableRow>
               ))}

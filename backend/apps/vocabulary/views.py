@@ -41,6 +41,7 @@ from .serializers import (
     WordListSerializer,
     WordSerializer,
     WordSetDetailSerializer,
+    WordSetImportSerializer,
     WordSetSerializer,
 )
 
@@ -286,6 +287,86 @@ class WordSetViewSet(viewsets.ModelViewSet):
             {"detail": "Đã thêm từ vào bộ từ."},
             status=status.HTTP_201_CREATED,
         )
+
+    # ── CSV Import → tạo bộ từ mới ────────────────────────────────
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="import",
+        parser_classes=[MultiPartParser],
+        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+    )
+    def import_csv(self, request):
+        """
+        POST /sets/import/ – Upload CSV để tạo bộ từ mới.
+        Form fields: name (bắt buộc), description, level, is_public
+        File field:  file (CSV, header: text + tuỳ chọn giống /words/import/)
+        """
+        serializer = WordSetImportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        raw = data["file"].read().decode("utf-8-sig").lstrip("\ufeff")
+        reader = csv.DictReader(io.StringIO(raw))
+
+        wordset = WordSet.objects.create(
+            name=data["name"],
+            description=data.get("description", ""),
+            level=data.get("level", ""),
+            is_public=data.get("is_public", True),
+            created_by=request.user,
+        )
+
+        to_create_words = []
+        errors = []
+        rows = []
+
+        for row_num, raw_row in enumerate(reader, start=2):
+            row = {k.strip().lower(): (v or "").strip() for k, v in raw_row.items() if k}
+            if not row.get("text"):
+                errors.append({"row": row_num, "error": "Trường 'text' bắt buộc."})
+                continue
+            level = row.get("level", "").upper()
+            if level and level not in _VALID_LEVELS:
+                errors.append({"row": row_num, "error": f"Level '{level}' không hợp lệ."})
+                continue
+            rows.append(row)
+            to_create_words.append(Word(
+                text=row["text"],
+                phonetic=row.get("phonetic", ""),
+                part_of_speech=row.get("part_of_speech", ""),
+                definition_en=row.get("definition_en", ""),
+                definition_vi=row.get("definition_vi", ""),
+                example_en=row.get("example_en", ""),
+                example_vi=row.get("example_vi", ""),
+                level=level,
+                image_url=row.get("image_url", ""),
+                created_by=request.user,
+            ))
+
+        # Upsert words (bỏ qua nếu đã tồn tại)
+        Word.objects.bulk_create(to_create_words, ignore_conflicts=True)
+
+        # Lấy lại word objects (kể cả đã tồn tại trước)
+        texts = [r["text"] for r in rows]
+        word_map = {w.text: w for w in Word.objects.filter(text__in=texts)}
+
+        set_words = [
+            WordSetWord(wordset=wordset, word=word_map[r["text"]], order_index=idx)
+            for idx, r in enumerate(rows)
+            if r["text"] in word_map
+        ]
+        WordSetWord.objects.bulk_create(set_words, ignore_conflicts=True)
+        _invalidate_wordset_cache()
+
+        return Response({
+            "id": wordset.id,
+            "name": wordset.name,
+            "imported": len(set_words),
+            "skipped": len(to_create_words) - len(set_words),
+            "errors": errors,
+        }, status=status.HTTP_201_CREATED)
 
     # ── Gỡ từ khỏi bộ ─────────────────────────────────────────────
 

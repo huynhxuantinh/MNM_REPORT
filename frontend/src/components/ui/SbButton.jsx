@@ -31,7 +31,7 @@ const variantStyles = {
   inverted: {
     variant: "contained",
     sx: {
-      bgcolor: "#fff",
+      bgcolor: "background.paper",
       color: colors.greenAccent,
       "&:hover": { bgcolor: colors.ceramic },
     },

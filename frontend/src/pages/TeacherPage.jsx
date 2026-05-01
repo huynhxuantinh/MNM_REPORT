@@ -48,14 +48,14 @@ const TeacherPage = () => {
           <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color: colors.greenStarbucks, lineHeight: 1.2 }}>
             Quản lý giáo viên
           </Typography>
-          <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
             Xin chào, {user?.full_name || user?.username}
           </Typography>
         </Box>
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ bgcolor: "#fff", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", overflow: "hidden" }}>
+      <Box sx={{ bgcolor: "background.paper", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", overflow: "hidden" }}>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
@@ -65,7 +65,7 @@ const TeacherPage = () => {
               fontWeight: 600,
               fontSize: "0.875rem",
               textTransform: "none",
-              color: colors.textBlackSoft,
+              color: "text.secondary",
               minHeight: 52,
               gap: 0.75,
             },

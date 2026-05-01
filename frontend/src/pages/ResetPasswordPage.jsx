@@ -71,7 +71,7 @@ const InvalidToken = () => (
     <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color: colors.red, mb: 1.5 }}>
       Link không hợp lệ
     </Typography>
-    <Typography sx={{ color: colors.textBlackSoft, mb: 4, lineHeight: 1.7 }}>
+    <Typography sx={{ color: "text.secondary", mb: 4, lineHeight: 1.7 }}>
       Link đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới.
     </Typography>
     <SbButton variant="primary" component={Link} to="/forgot-password" fullWidth>
@@ -95,7 +95,7 @@ const ResetSuccess = () => (
     <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1.5 }}>
       Đặt lại mật khẩu thành công!
     </Typography>
-    <Typography sx={{ color: colors.textBlackSoft, mb: 4, lineHeight: 1.7 }}>
+    <Typography sx={{ color: "text.secondary", mb: 4, lineHeight: 1.7 }}>
       Mật khẩu của bạn đã được cập nhật. Hãy đăng nhập bằng mật khẩu mới.
     </Typography>
     <SbButton variant="primary" component={Link} to="/login" fullWidth startIcon={<ArrowBackRoundedIcon />}>
@@ -199,7 +199,7 @@ const ResetPasswordPage = () => {
         >
           Đặt lại mật khẩu
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, mb: 3 }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", mb: 3 }}>
           Nhập mật khẩu mới cho tài khoản của bạn.
         </Typography>
 
@@ -236,7 +236,7 @@ const ResetPasswordPage = () => {
               helperText={errors.password}
               autoComplete="new-password"
               autoFocus
-              startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+              startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
               endAdornment={
                 <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1}>
                   {showPassword
@@ -259,7 +259,7 @@ const ResetPasswordPage = () => {
             helperText={errors.confirmPassword}
             success={!!(form.confirmPassword && form.confirmPassword === form.password)}
             autoComplete="new-password"
-            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: colors.textBlackSoft }} />}
+            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
             endAdornment={
               form.confirmPassword && form.confirmPassword === form.password ? (
                 <CheckCircleRoundedIcon sx={{ fontSize: 20, color: colors.greenAccent }} />

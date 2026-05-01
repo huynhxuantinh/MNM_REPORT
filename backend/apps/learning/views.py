@@ -680,16 +680,20 @@ class LeaderboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from apps.users.models import User
-        users = User.objects.filter(role="user").order_by("-xp")[:50]
-        data = []
-        for u in users:
-            data.append({
+        users = list(User.objects.filter(role="user").order_by("-xp")[:50])
+        streak_map = {
+            s.user_id: s.current_streak
+            for s in UserStreak.objects.filter(user__in=users)
+        }
+        data = [
+            {
                 "id": u.id,
-                "full_name": u.get_full_name(),
-                "avatar_url": request.build_absolute_uri(u.avatar.url) if u.avatar else None,
+                "full_name": u.full_name,
+                "avatar_url": u.avatar_url or None,
                 "level": u.level,
                 "xp": u.xp,
-                "streak": u.streak,
-            })
+                "streak": streak_map.get(u.id, 0),
+            }
+            for u in users
+        ]
         return Response(data)

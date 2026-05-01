@@ -147,7 +147,7 @@ const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => 
                     <MenuItem key={l.id} value={l.id}>
                       <Box>
                         <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{l.title}</Typography>
-                        <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+                        <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                           {l.level} · {l.word_count ?? 0} từ
                         </Typography>
                       </Box>
@@ -174,7 +174,7 @@ const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => 
                       <MenuItem key={c.id} value={c.id}>
                         <Box>
                           <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{c.name}</Typography>
-                          <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>
+                          <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                             {c.student_count ?? 0} học sinh
                           </Typography>
                         </Box>
@@ -197,7 +197,7 @@ const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => 
                   <InputAdornment position="start">
                     {fetchingStudents
                       ? <CircularProgress size={14} sx={{ color: colors.greenAccent }} />
-                      : <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />}
+                      : <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />}
                   </InputAdornment>
                 ),
               }}
@@ -212,7 +212,7 @@ const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => 
                 : students.length === 0
                   ? (
                     <Box sx={{ py: 3, textAlign: "center" }}>
-                      <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft }}>
+                      <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
                         {studentSearch ? "Không tìm thấy học sinh." : "Chưa có học sinh nào."}
                       </Typography>
                     </Box>
@@ -238,10 +238,10 @@ const AssignDialog = ({ open, onClose, onSave, onSaveClass, saving, error }) => 
                           <Checkbox size="small" checked={checked} onChange={() => {}}
                             sx={{ p: 0.25, "&.Mui-checked": { color: colors.greenAccent } }} />
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontWeight: 600, fontSize: "0.85rem", color: colors.textBlack }}>
+                            <Typography sx={{ fontWeight: 600, fontSize: "0.85rem", color: "text.primary" }}>
                               {s.full_name || s.username}
                             </Typography>
-                            <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }}>
+                            <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }}>
                               {s.email}
                             </Typography>
                           </Box>
@@ -382,7 +382,7 @@ const TeacherAssignments = () => {
             Giao bài cho học sinh
           </Typography>
           {!isLoading && (
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {assignments.length} bài đang giao
             </Typography>
           )}
@@ -437,7 +437,7 @@ const TeacherAssignments = () => {
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 7 }}>
                       <AssignmentRoundedIcon sx={{ fontSize: 48, color: colors.greenAccent, opacity: 0.25, mb: 1 }} />
-                      <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.875rem" }}>
+                      <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
                         Chưa giao bài cho học sinh nào.
                       </Typography>
                     </TableCell>
@@ -456,7 +456,7 @@ const TeacherAssignments = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Typography sx={{ fontSize: "0.82rem", color: colors.textBlackSoft }}>
+                        <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
                           {fmtDate(a.created_at)}
                         </Typography>
                       </TableCell>
@@ -465,7 +465,7 @@ const TeacherAssignments = () => {
                           fontSize: "0.82rem",
                           color: a.due_date && new Date(a.due_date) < new Date() && !a.is_completed
                             ? "#c82014"
-                            : colors.textBlackSoft,
+                            : "text.secondary",
                           fontWeight: a.due_date && new Date(a.due_date) < new Date() && !a.is_completed ? 700 : 400,
                         }}>
                           {a.due_date ? fmtDate(a.due_date) : "Không hạn"}
@@ -478,7 +478,7 @@ const TeacherAssignments = () => {
                           sx={{
                             height: 22, fontWeight: 700, fontSize: "0.74rem",
                             bgcolor: a.is_completed ? `${colors.greenAccent}1a` : "rgba(0,0,0,0.07)",
-                            color: a.is_completed ? colors.greenAccent : colors.textBlackSoft,
+                            color: a.is_completed ? colors.greenAccent : "text.secondary",
                           }}
                         />
                       </TableCell>

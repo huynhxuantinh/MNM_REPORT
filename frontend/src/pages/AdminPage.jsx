@@ -37,7 +37,7 @@ const StatCard = ({ icon, value, label, color }) => (
       </Box>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color, lineHeight: 1 }}>{value ?? "—"}</Typography>
-        <Typography sx={{ fontSize: "0.78rem", color: colors.textBlackSoft, mt: 0.25 }}>{label}</Typography>
+        <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mt: 0.25 }}>{label}</Typography>
       </Box>
     </Box>
   </SbCard>
@@ -58,7 +58,7 @@ const AdminPage = () => {
     return (
       <Box sx={{ textAlign: "center", py: 8 }}>
         <AdminPanelSettingsRoundedIcon sx={{ fontSize: 64, color: colors.greenLight, mb: 1 }} />
-        <Typography sx={{ fontWeight: 700, color: colors.textBlack, mb: 1 }}>Không có quyền truy cập</Typography>
+        <Typography sx={{ fontWeight: 700, color: "text.primary", mb: 1 }}>Không có quyền truy cập</Typography>
         <SbButton variant="outlined" onClick={() => navigate("/")}>Về trang chủ</SbButton>
       </Box>
     );
@@ -96,7 +96,7 @@ const AdminPage = () => {
         <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
           Bảng quản trị
         </Typography>
-        <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
           Quản lý người dùng và thống kê hệ thống
         </Typography>
       </Box>
@@ -119,7 +119,7 @@ const AdminPage = () => {
       {/* Users table */}
       <SbCard>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.textBlack, mr: "auto" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary", mr: "auto" }}>
             Người dùng
           </Typography>
           <TextField size="small" placeholder="Tìm email / tên..." value={search}
@@ -145,7 +145,7 @@ const AdminPage = () => {
           <TableContainer component={Paper} sx={{ borderRadius: "10px", boxShadow: "none", border: "1px solid rgba(0,0,0,0.07)" }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ "& th": { fontWeight: 700, color: colors.textBlackSoft, fontSize: "0.8rem", bgcolor: "#fafaf9" } }}>
+                <TableRow sx={{ "& th": { fontWeight: 700, color: "text.secondary", fontSize: "0.8rem", bgcolor: "#fafaf9" } }}>
                   <TableCell>Email</TableCell>
                   <TableCell>Tên</TableCell>
                   <TableCell>Vai trò</TableCell>
@@ -160,7 +160,7 @@ const AdminPage = () => {
                   const rcfg = ROLE_CFG[u.role] ?? ROLE_CFG.user;
                   return (
                     <TableRow key={u.id} sx={{ "&:hover": { bgcolor: "#f9f9f8" } }}>
-                      <TableCell sx={{ fontSize: "0.8375rem", color: colors.textBlack }}>{u.email}</TableCell>
+                      <TableCell sx={{ fontSize: "0.8375rem", color: "text.primary" }}>{u.email}</TableCell>
                       <TableCell sx={{ fontSize: "0.8375rem" }}>{u.full_name || u.username}</TableCell>
                       <TableCell>
                         <Select
@@ -188,12 +188,12 @@ const AdminPage = () => {
                           size="small"
                           sx={{
                             bgcolor: u.is_active ? `${colors.greenAccent}18` : "#f5f5f5",
-                            color: u.is_active ? colors.greenAccent : colors.textBlackSoft,
+                            color: u.is_active ? colors.greenAccent : "text.secondary",
                             fontWeight: 600, fontSize: "0.68rem", height: 20,
                           }}
                         />
                       </TableCell>
-                      <TableCell sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>{fmtDate(u.created_at)}</TableCell>
+                      <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{fmtDate(u.created_at)}</TableCell>
                     </TableRow>
                   );
                 })}

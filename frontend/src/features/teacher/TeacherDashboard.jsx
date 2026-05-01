@@ -29,7 +29,7 @@ const fmtDate = (dt) =>
 const StatCard = ({ icon, label, value, color, loading }) => (
   <Box
     sx={{
-      bgcolor: "#fff",
+      bgcolor: "background.paper",
       border: "1px solid rgba(0,0,0,0.07)",
       borderRadius: "14px",
       p: 2.5,
@@ -54,7 +54,7 @@ const StatCard = ({ icon, label, value, color, loading }) => (
       >
         {loading ? <Skeleton width={48} height={36} /> : (value ?? 0)}
       </Typography>
-      <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mt: 0.25 }}>
+      <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mt: 0.25 }}>
         {label}
       </Typography>
     </Box>
@@ -90,7 +90,7 @@ const RecentLessonsTable = ({ lessons, loading }) => (
             : lessons.length === 0
               ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: colors.textBlackSoft, fontSize: "0.85rem" }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: "0.85rem" }}>
                     Chưa có bài học nào.
                   </TableCell>
                 </TableRow>
@@ -121,7 +121,7 @@ const RecentLessonsTable = ({ lessons, loading }) => (
                           sx={{
                             height: 20, fontSize: "0.72rem", fontWeight: 700,
                             bgcolor: l.is_published ? `${colors.greenAccent}1a` : "rgba(0,0,0,0.07)",
-                            color: l.is_published ? colors.greenAccent : colors.textBlackSoft,
+                            color: l.is_published ? colors.greenAccent : "text.secondary",
                           }}
                         />
                       </TableCell>
@@ -163,7 +163,7 @@ const RecentAssignmentsTable = ({ assignments, loading }) => (
             : assignments.length === 0
               ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: colors.textBlackSoft, fontSize: "0.85rem" }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: "0.85rem" }}>
                     Chưa giao bài cho ai.
                   </TableCell>
                 </TableRow>
@@ -181,7 +181,7 @@ const RecentAssignmentsTable = ({ assignments, loading }) => (
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Typography sx={{ fontSize: "0.82rem", color: colors.textBlackSoft }}>
+                      <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
                         {a.due_date ? fmtDate(a.due_date) : "Không hạn"}
                       </Typography>
                     </TableCell>
@@ -192,7 +192,7 @@ const RecentAssignmentsTable = ({ assignments, loading }) => (
                         sx={{
                           height: 20, fontSize: "0.72rem", fontWeight: 700,
                           bgcolor: a.is_completed ? `${colors.greenAccent}1a` : "rgba(0,0,0,0.07)",
-                          color: a.is_completed ? colors.greenAccent : colors.textBlackSoft,
+                          color: a.is_completed ? colors.greenAccent : "text.secondary",
                         }}
                       />
                     </TableCell>

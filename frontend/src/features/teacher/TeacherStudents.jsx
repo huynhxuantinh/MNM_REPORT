@@ -79,7 +79,7 @@ const StudentDetailDialog = ({ open, onClose, student, assignments }) => {
             <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: colors.greenStarbucks, lineHeight: 1.2 }}>
               {student?.full_name || student?.username}
             </Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {student?.email}
             </Typography>
           </Box>
@@ -111,7 +111,7 @@ const StudentDetailDialog = ({ open, onClose, student, assignments }) => {
         </Typography>
 
         {studentAssignments.length === 0 ? (
-          <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, textAlign: "center", py: 3 }}>
+          <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", textAlign: "center", py: 3 }}>
             Chưa có bài học nào.
           </Typography>
         ) : (
@@ -125,12 +125,12 @@ const StudentDetailDialog = ({ open, onClose, student, assignments }) => {
               }}>
                 {a.is_completed
                   ? <CheckCircleRoundedIcon sx={{ color: colors.greenAccent, fontSize: 20, flexShrink: 0 }} />
-                  : <ScheduleRoundedIcon sx={{ color: colors.textBlackSoft, fontSize: 20, flexShrink: 0 }} />}
+                  : <ScheduleRoundedIcon sx={{ color: "text.secondary", fontSize: 20, flexShrink: 0 }} />}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: "0.875rem" }} noWrap>
                     {a.lesson_title}
                   </Typography>
-                  <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }}>
+                  <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }}>
                     Hạn: {a.due_date ? fmtDate(a.due_date) : "Không hạn"}
                   </Typography>
                 </Box>
@@ -140,7 +140,7 @@ const StudentDetailDialog = ({ open, onClose, student, assignments }) => {
                   sx={{
                     height: 20, fontWeight: 700, fontSize: "0.72rem", flexShrink: 0,
                     bgcolor: a.is_completed ? `${colors.greenAccent}1a` : "rgba(0,0,0,0.07)",
-                    color: a.is_completed ? colors.greenAccent : colors.textBlackSoft,
+                    color: a.is_completed ? colors.greenAccent : "text.secondary",
                   }}
                 />
               </Box>
@@ -212,7 +212,7 @@ const ClassList = ({ show }) => {
             Lớp học
           </Typography>
           {!isLoading && (
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {classes.length} lớp
             </Typography>
           )}
@@ -239,7 +239,7 @@ const ClassList = ({ show }) => {
       ) : classes.length === 0 ? (
         <Box sx={{ py: 8, textAlign: "center" }}>
           <GroupsRoundedIcon sx={{ fontSize: 56, color: colors.greenAccent, opacity: 0.2, mb: 1 }} />
-          <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.9rem" }}>
+          <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
             Chưa có lớp học nào. Tạo lớp đầu tiên!
           </Typography>
         </Box>
@@ -260,7 +260,7 @@ const ClassList = ({ show }) => {
                     <Box sx={{ display: "flex", gap: 0.5 }}>
                       <Tooltip title="Đổi tên" arrow>
                         <IconButton size="small" onClick={() => setEditDlg({ open: true, klass })}
-                          sx={{ color: colors.textBlackSoft }}>
+                          sx={{ color: "text.secondary" }}>
                           <EditRoundedIcon sx={{ fontSize: 17 }} />
                         </IconButton>
                       </Tooltip>
@@ -275,7 +275,7 @@ const ClassList = ({ show }) => {
                   <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: colors.greenStarbucks, mb: 0.5 }}>
                     {klass.name}
                   </Typography>
-                  <Typography sx={{ fontSize: "0.82rem", color: colors.textBlackSoft }}>
+                  <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
                     {klass.student_count ?? 0} học sinh
                   </Typography>
                 </CardContent>
@@ -364,7 +364,7 @@ const StudentList = () => {
             Danh sách học sinh
           </Typography>
           {!loadingStudents && (
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               {students.length} học sinh
             </Typography>
           )}
@@ -377,7 +377,7 @@ const StudentList = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 18, color: colors.textBlackSoft }} />
+                <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
@@ -423,7 +423,7 @@ const StudentList = () => {
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 7 }}>
                       <PeopleRoundedIcon sx={{ fontSize: 48, color: colors.greenAccent, opacity: 0.25, mb: 1 }} />
-                      <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.875rem" }}>
+                      <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
                         {search ? "Không tìm thấy học sinh phù hợp." : "Chưa có học sinh nào."}
                       </Typography>
                     </TableCell>
@@ -446,10 +446,10 @@ const StudentList = () => {
                               {avatarLetter(s)}
                             </Avatar>
                             <Box sx={{ minWidth: 0 }}>
-                              <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.textBlack }}>
+                              <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary" }}>
                                 {s.full_name || s.username}
                               </Typography>
-                              <Typography sx={{ fontSize: "0.76rem", color: colors.textBlackSoft }}>
+                              <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }}>
                                 {s.email}
                               </Typography>
                             </Box>
@@ -463,7 +463,7 @@ const StudentList = () => {
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <LinearProgress variant="determinate" value={prog}
                               sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: "rgba(0,0,0,0.08)", "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent } }} />
-                            <Typography sx={{ fontSize: "0.74rem", color: colors.textBlackSoft, minWidth: 32, textAlign: "right" }}>
+                            <Typography sx={{ fontSize: "0.74rem", color: "text.secondary", minWidth: 32, textAlign: "right" }}>
                               {xp} XP
                             </Typography>
                           </Box>

@@ -54,6 +54,26 @@ POST /auth/verify-email/
 
 ---
 
+### Gửi lại email xác thực
+
+```
+POST /auth/resend-verification/
+```
+
+**Rate limit:** 1 lần/phút (cooldown 60 giây)
+
+**Body:**
+```json
+{ "email": "user@example.com" }
+```
+
+**Response 200:**
+```json
+{ "message": "Đã gửi lại email xác thực." }
+```
+
+---
+
 ### Đăng nhập
 
 ```
@@ -218,9 +238,20 @@ GET /auth/admin/stats/
 ```json
 {
   "total_users": 150,
+  "students": 120,
+  "teachers": 8,
+  "admins": 2,
+  "active_users": 145,
+  "inactive_users": 5,
+  "new_users_this_week": 12,
   "total_words": 500,
   "total_lessons": 12,
-  "active_today": 23
+  "published_lessons": 10,
+  "total_wordsets": 25,
+  "total_assignments": 80,
+  "reviews_today": 34,
+  "total_reviews": 2400,
+  "total_quiz_results": 310
 }
 ```
 
@@ -518,12 +549,182 @@ PATCH /learning/notifications/{id}/    # Đánh dấu đã đọc: {"is_read": t
 
 ---
 
-## Quiz
+## Lớp học (Teacher Classes)
+
+*(Tất cả yêu cầu role: teacher hoặc admin)*
+
+### CRUD lớp học
 
 ```
-GET  /quiz/sessions/          # Lịch sử quiz
-POST /quiz/sessions/          # Tạo phiên quiz mới
-GET  /quiz/sessions/{id}/     # Chi tiết kết quả
+GET    /learning/classes/          # Danh sách lớp của tôi
+POST   /learning/classes/          # Tạo lớp mới
+GET    /learning/classes/{id}/     # Chi tiết lớp (kèm danh sách học sinh)
+PATCH  /learning/classes/{id}/     # Sửa tên lớp
+DELETE /learning/classes/{id}/     # Xóa lớp
+```
+
+**POST Body:**
+```json
+{ "name": "Lớp A1 - Sáng" }
+```
+
+---
+
+### Thêm học sinh vào lớp
+
+```
+POST /learning/classes/{id}/add_students/
+```
+
+**Body:**
+```json
+{ "student_ids": [3, 5, 7] }
+```
+
+**Response 200:**
+```json
+{ "added": 3 }
+```
+
+---
+
+### Xóa học sinh khỏi lớp
+
+```
+POST /learning/classes/{id}/remove_student/
+```
+
+**Body:**
+```json
+{ "student_id": 5 }
+```
+
+---
+
+### Giao bài cho cả lớp
+
+```
+POST /learning/classes/{id}/assign_lesson/
+```
+
+**Body:**
+```json
+{
+  "lesson_id": 2,
+  "due_date": "2026-05-15"
+}
+```
+
+**Response 201:**
+```json
+{
+  "assigned": 18,
+  "skipped": 2,
+  "class_name": "Lớp A1 - Sáng"
+}
+```
+
+---
+
+### Thống kê giáo viên
+
+```
+GET /learning/teacher/stats/
+```
+*(Yêu cầu role: teacher hoặc admin)*
+
+**Response 200:**
+```json
+{
+  "my_lessons": 8,
+  "my_assignments": 45,
+  "my_students": 32
+}
+```
+
+---
+
+### Danh sách học sinh (teacher)
+
+```
+GET /auth/teacher/students/
+```
+*(Yêu cầu role: teacher hoặc admin)*
+
+Trả về danh sách học sinh: id, email, full_name, level, xp, số bài được giao.
+
+---
+
+## Quiz
+
+### Tạo câu hỏi trắc nghiệm
+
+```
+GET /quiz/generate/?lesson_id=X
+```
+*(Yêu cầu xác thực)*
+
+Trả về `quiz_id` và danh sách 10 câu MC sinh ngẫu nhiên từ bài học.
+
+---
+
+### Nộp kết quả quiz
+
+```
+POST /quiz/submit/
+```
+
+**Body:**
+```json
+{
+  "quiz_id": 3,
+  "score": 80.0,
+  "total_questions": 10,
+  "correct_answers": 8
+}
+```
+
+**Response 201:** `QuizResult` object
+
+---
+
+### Lịch sử quiz cá nhân
+
+```
+GET /quiz/sessions/
+GET /quiz/sessions/{id}/
+```
+
+---
+
+### Admin — Kết quả quiz toàn hệ thống
+
+```
+GET /quiz/admin/results/
+```
+*(Yêu cầu role: admin)*
+
+**Query params:** `?search=email_hoặc_ten&quiz=id&page=N`
+
+**Response 200:**
+```json
+{
+  "count": 310,
+  "results": [
+    {
+      "id": 1,
+      "user": 5,
+      "user_email": "student@mnm.com",
+      "user_name": "Nguyễn Văn A",
+      "quiz": 3,
+      "quiz_title": "Chào hỏi cơ bản",
+      "score": 80.0,
+      "total_questions": 10,
+      "correct_answers": 8,
+      "completed_at": "2026-05-01T14:30:00Z"
+    }
+  ]
+}
 ```
 
 ---

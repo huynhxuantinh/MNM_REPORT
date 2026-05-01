@@ -49,7 +49,7 @@ const StatBox = ({ icon, value, label, color }) => (
       {icon}
       <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color }}>{value}</Typography>
     </Box>
-    <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>{label}</Typography>
+    <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{label}</Typography>
   </Box>
 );
 
@@ -131,17 +131,17 @@ const ActivityHeatmap = () => {
           <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
             Hoạt động ôn tập
           </Typography>
-          <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
             {WEEKS} tuần qua · {totalReviewed} lượt ôn
           </Typography>
         </Box>
         {/* Legend */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography sx={{ fontSize: "0.7rem", color: colors.textBlackSoft, mr: 0.5 }}>Ít</Typography>
+          <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", mr: 0.5 }}>Ít</Typography>
           {HEAT_COLORS.map((c) => (
             <Box key={c} sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: c }} />
           ))}
-          <Typography sx={{ fontSize: "0.7rem", color: colors.textBlackSoft, ml: 0.5 }}>Nhiều</Typography>
+          <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", ml: 0.5 }}>Nhiều</Typography>
         </Box>
       </Box>
 
@@ -152,7 +152,7 @@ const ActivityHeatmap = () => {
             {monthLabels.map((label, wi) => (
               <Box key={wi} sx={{ width: 14, mr: "2px", flexShrink: 0 }}>
                 {label && (
-                  <Typography sx={{ fontSize: "0.62rem", color: colors.textBlackSoft, whiteSpace: "nowrap" }}>
+                  <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", whiteSpace: "nowrap" }}>
                     {label.label}
                   </Typography>
                 )}
@@ -166,7 +166,7 @@ const ActivityHeatmap = () => {
               {/* Day label */}
               <Box sx={{ width: 22, flexShrink: 0 }}>
                 {dayIdx % 2 === 1 && (
-                  <Typography sx={{ fontSize: "0.62rem", color: colors.textBlackSoft }}>{DAYS_VI[dayIdx]}</Typography>
+                  <Typography sx={{ fontSize: "0.62rem", color: "text.secondary" }}>{DAYS_VI[dayIdx]}</Typography>
                 )}
               </Box>
               {/* Cells */}
@@ -209,10 +209,10 @@ const StatItem = ({ icon, color, value, label, loading }) => (
       <Box sx={{ color, display: "flex" }}>{icon}</Box>
     </Box>
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>{label}</Typography>
+      <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{label}</Typography>
       {loading
         ? <Skeleton width={60} height={24} />
-        : <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: colors.textBlack, lineHeight: 1 }}>{value}</Typography>
+        : <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "text.primary", lineHeight: 1 }}>{value}</Typography>
       }
     </Box>
   </Box>
@@ -249,7 +249,7 @@ const LearningStatsCard = () => {
       {!isLoading && s.total_review_sessions > 0 && (
         <Box sx={{ mt: 1.5 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft }}>Độ chính xác tổng thể</Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Độ chính xác tổng thể</Typography>
             <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: s.accuracy_pct >= 70 ? "#43a047" : s.accuracy_pct >= 40 ? colors.gold : "#ef5350" }}>
               {s.correct_answers?.toLocaleString()} / {s.total_review_sessions?.toLocaleString()} đúng
             </Typography>
@@ -330,7 +330,7 @@ const BadgesSection = () => {
         <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
           Huy hiệu thành tích
         </Typography>
-        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, fontWeight: 700 }}>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 700 }}>
           {unlockedCount} / {BADGES.length} huy hiệu
         </Typography>
       </Box>
@@ -355,10 +355,10 @@ const BadgesSection = () => {
               <Box sx={{ color: badge.color, mb: 1, filter: badge.unlocked ? `drop-shadow(0 4px 8px ${badge.color}40)` : "none" }}>
                 {badge.icon}
               </Box>
-              <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: colors.textBlack, mb: 0.5, lineHeight: 1.2 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: "text.primary", mb: 0.5, lineHeight: 1.2 }}>
                 {badge.title}
               </Typography>
-              <Typography sx={{ fontSize: "0.75rem", color: colors.textBlackSoft, lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", lineHeight: 1.2 }}>
                 {badge.desc}
               </Typography>
             </Box>
@@ -470,7 +470,7 @@ const ProfilePage = () => {
 
           <Box sx={{ flex: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: "1.25rem", color: colors.textBlack }}>
+              <Typography sx={{ fontWeight: 800, fontSize: "1.25rem", color: "text.primary" }}>
                 {user?.full_name || user?.username}
               </Typography>
               <Chip
@@ -479,10 +479,10 @@ const ProfilePage = () => {
                 sx={{ bgcolor: `${ROLE_COLOR[user?.role]}18`, color: ROLE_COLOR[user?.role], fontWeight: 700, fontSize: "0.72rem" }}
               />
             </Box>
-            <Typography sx={{ fontSize: "0.875rem", color: colors.textBlackSoft, mb: 0.25 }}>
+            <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", mb: 0.25 }}>
               {user?.email}
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: colors.textBlackSoft }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary" }}>
               <CalendarTodayRoundedIcon sx={{ fontSize: 14 }} />
               <Typography sx={{ fontSize: "0.8125rem" }}>Tham gia {fmtDate(user?.created_at)}</Typography>
             </Box>
@@ -494,10 +494,10 @@ const ProfilePage = () => {
         {/* XP progress */}
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.textBlack }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary" }}>
               Level {level}
             </Typography>
-            <Typography sx={{ fontSize: "0.8125rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary" }}>
               {xp} / {nextXp} XP
             </Typography>
           </Box>
@@ -536,7 +536,7 @@ const ProfilePage = () => {
       <SbCard>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <PersonRoundedIcon sx={{ color: colors.greenAccent }} />
-          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.textBlack }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary" }}>
             Thông tin cá nhân
           </Typography>
         </Box>
@@ -593,12 +593,12 @@ const ProfilePage = () => {
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LockRoundedIcon sx={{ color: colors.greenAccent }} />
-            <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.textBlack }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary" }}>
               Đổi mật khẩu
             </Typography>
           </Box>
           <ExpandMoreRoundedIcon sx={{
-            color: colors.textBlackSoft,
+            color: "text.secondary",
             transform: pwOpen ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s",
           }} />

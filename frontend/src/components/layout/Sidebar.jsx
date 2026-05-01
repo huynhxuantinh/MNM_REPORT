@@ -147,7 +147,7 @@ const SidebarContent = () => {
                 <Box
                   sx={{
                     width: 6, height: 6, borderRadius: "50%",
-                    bgcolor: "#fff", opacity: 0.8, flexShrink: 0,
+                    bgcolor: "background.paper", opacity: 0.8, flexShrink: 0,
                   }}
                 />
               )}

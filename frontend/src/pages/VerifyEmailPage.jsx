@@ -38,7 +38,7 @@ const VerifyEmailPage = () => {
         {status === "loading" && (
           <>
             <CircularProgress sx={{ color: colors.greenAccent, mb: 2 }} />
-            <Typography sx={{ color: colors.textBlackSoft }}>
+            <Typography sx={{ color: "text.secondary" }}>
               Đang xác thực tài khoản...
             </Typography>
           </>
@@ -52,7 +52,7 @@ const VerifyEmailPage = () => {
             <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
               Xác thực thành công!
             </Typography>
-            <Typography sx={{ color: colors.textBlackSoft, mb: 3, lineHeight: 1.7 }}>
+            <Typography sx={{ color: "text.secondary", mb: 3, lineHeight: 1.7 }}>
               Tài khoản của bạn đã được kích hoạt. Đăng nhập ngay để bắt đầu học.
             </Typography>
             <SbButton variant="primary" size="large" component={Link} to="/login" fullWidth>
@@ -69,7 +69,7 @@ const VerifyEmailPage = () => {
             <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: "#c82014", mb: 1 }}>
               Xác thực thất bại
             </Typography>
-            <Typography sx={{ color: colors.textBlackSoft, mb: 3, lineHeight: 1.7 }}>
+            <Typography sx={{ color: "text.secondary", mb: 3, lineHeight: 1.7 }}>
               {message}
             </Typography>
             <SbButton variant="outlined" component={Link} to="/register" fullWidth>

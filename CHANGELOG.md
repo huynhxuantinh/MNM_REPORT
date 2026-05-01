@@ -5,6 +5,53 @@ Format theo [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.0] — 2026-05-01
+
+### Backend — Xác thực & Tài khoản
+
+- **Thêm:** `POST /auth/resend-verification/` — gửi lại email xác thực với cooldown 60 giây
+- **Fix:** `AdminUserListView` search dùng `Q` objects đúng cách (trước đây bị duplicate queryset + mất `order_by`)
+- **Cải thiện:** `LoginSerializer` phân biệt rõ lỗi "email chưa xác thực" và "tài khoản bị khoá"
+- **Cải thiện:** `ForgotPasswordView` chỉ gửi email cho tài khoản đã xác thực
+- **Cải thiện:** `ChangePasswordView` blacklist tất cả outstanding tokens sau khi đổi mật khẩu (đăng xuất tất cả thiết bị)
+- **Cải thiện:** `VerifyEmailView` trả thông báo lỗi rõ hơn khi token đã dùng hoặc hết hạn
+- **Performance:** Thêm `db_index=True` cho `EmailVerificationToken.token` và `PasswordResetToken.token`
+- **Bật lại:** `RegisterRateThrottle` (trước đây bị comment out)
+
+### Backend — Quiz
+
+- **Thêm:** `GET /quiz/admin/results/` — danh sách tất cả kết quả quiz (admin only), hỗ trợ `?search=` và `?quiz=`
+- **Thêm:** `AdminQuizResultSerializer` với thông tin user (email, full_name)
+- **Thêm:** `AdminQuizResultListView` (ReadOnlyModelViewSet, phân trang)
+
+### Frontend — Xác thực
+
+- **Thêm:** Nút "Gửi lại email xác thực" trên trang đăng ký thành công với loading/success/error states
+- **Cải thiện:** `LoginPage` hiển thị thông báo rõ hơn khi email chưa xác thực kèm hướng dẫn
+- **Fix:** Race condition trong token refresh — các request 401 đồng thời giờ được queue và chờ một lần refresh duy nhất
+
+### Frontend — Teacher
+
+- **Thêm:** Shared dialogs module `features/teacher/dialogs/ClassDialogs.jsx`
+  - `ClassFormDialog` — form tạo/sửa lớp học
+  - `DeleteClassDialog` — xác nhận xóa lớp
+  - `ManageClassDialog` — quản lý học sinh trong lớp (3 tab: danh sách, thêm học sinh, giao bài)
+- **Refactor:** `TeacherClasses.jsx` và `TeacherStudents.jsx` dùng shared dialogs, xóa code trùng lặp
+- **Cải thiện:** `AvatarGroup` hiển thị "+N" khi lớp có nhiều hơn 3 học sinh
+
+### Frontend — Admin
+
+- **Thêm:** Trang `AdminQuizResults` (`/admin/quizzes`) — xem kết quả quiz toàn hệ thống
+  - Bảng: học sinh, bài kiểm tra, điểm (màu theo mức), đúng/tổng, thời gian
+  - Search theo tên/email, phân trang
+- **Thêm:** Nav item "Kết quả quiz" trong `AdminLayout` sidebar
+- **Fix:** `AdminUsers`, `AdminWords`, `AdminLessons` — `keepPreviousData` → `placeholderData` (TanStack Query v5)
+- **Fix:** `AdminWords`, `AdminLessons` — `isLoading` → `isPending` trên mutations (TanStack Query v5)
+- **Fix:** Tất cả `qc.invalidateQueries([...])` → `qc.invalidateQueries({ queryKey: [...] })` (TanStack Query v5)
+- **Thêm:** `adminApi.getQuizResults()` method
+
+---
+
 ## [1.0.0] — 2026-04-27
 
 Phiên bản đầu tiên hoàn chỉnh. Bao gồm toàn bộ tính năng core từ thiết kế ban đầu.

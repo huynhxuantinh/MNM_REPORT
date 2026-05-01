@@ -75,7 +75,7 @@ const SelectPhase = ({ onStartQuiz }) => {
         <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color: colors.greenStarbucks }}>
           Kiểm tra từ vựng
         </Typography>
-        <Typography sx={{ fontSize: "0.9rem", color: colors.textBlackSoft, mt: 0.5 }}>
+        <Typography sx={{ fontSize: "0.9rem", color: "text.secondary", mt: 0.5 }}>
           Chọn một bài học hoặc bộ từ để kiểm tra trí nhớ của bạn
         </Typography>
       </Box>
@@ -97,7 +97,7 @@ const SelectPhase = ({ onStartQuiz }) => {
               <Grid item xs={12}>
                 <Box sx={{ textAlign: "center", py: 8 }}>
                   <MenuBookRoundedIcon sx={{ fontSize: 56, color: colors.greenAccent, opacity: 0.3, mb: 1 }} />
-                  <Typography sx={{ color: colors.textBlackSoft }}>
+                  <Typography sx={{ color: "text.secondary" }}>
                     Chưa có {tabIndex === 0 ? "bài học" : "bộ từ"} nào.
                   </Typography>
                 </Box>
@@ -122,9 +122,9 @@ const SelectPhase = ({ onStartQuiz }) => {
                       <CardActionArea disabled={!canStart} onClick={() => setSelectedItem(item)} sx={{ p: 2.5, minHeight: 120 }}>
                         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
                           {item.level && <Chip label={item.level} size="small" sx={{ bgcolor: lc.bg, color: lc.color, fontWeight: 700, fontSize: "0.72rem", height: 22 }} />}
-                          <Typography sx={{ fontSize: "0.78rem", color: colors.textBlackSoft }}>{wordCount} từ</Typography>
+                          <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>{wordCount} từ</Typography>
                         </Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: colors.textBlack, mb: 0.5 }} noWrap>{title}</Typography>
+                        <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: "text.primary", mb: 0.5 }} noWrap>{title}</Typography>
                         {!canStart && <Typography sx={{ fontSize: "0.76rem", color: colors.red }}>Cần ít nhất 4 từ</Typography>}
                       </CardActionArea>
                     </Card>
@@ -137,7 +137,7 @@ const SelectPhase = ({ onStartQuiz }) => {
       <Dialog open={Boolean(selectedItem)} onClose={() => setSelectedItem(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, textAlign: "center" }}>Chọn chế độ kiểm tra</DialogTitle>
         <DialogContent sx={{ p: 3, pt: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography sx={{ textAlign: "center", color: colors.textBlackSoft, mb: 1 }}>
+          <Typography sx={{ textAlign: "center", color: "text.secondary", mb: 1 }}>
             {tabIndex === 0 ? selectedItem?.title : selectedItem?.name}
           </Typography>
           
@@ -146,7 +146,7 @@ const SelectPhase = ({ onStartQuiz }) => {
             sx={{ p: 2, borderRadius: "12px", border: `2px solid ${colors.greenAccent}`, textAlign: "center", bgcolor: `${colors.greenAccent}08` }}
           >
             <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: colors.greenStarbucks }}>Trắc nghiệm</Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>Chọn đáp án đúng từ 4 lựa chọn</Typography>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>Chọn đáp án đúng từ 4 lựa chọn</Typography>
           </CardActionArea>
 
           <CardActionArea 
@@ -154,7 +154,7 @@ const SelectPhase = ({ onStartQuiz }) => {
             sx={{ p: 2, borderRadius: "12px", border: `2px solid #2196f3`, textAlign: "center", bgcolor: `#2196f308` }}
           >
             <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#1565c0" }}>Nối từ</Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>Ghép nối từ tiếng Anh và nghĩa tiếng Việt</Typography>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>Ghép nối từ tiếng Anh và nghĩa tiếng Việt</Typography>
           </CardActionArea>
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: "center" }}>
@@ -221,22 +221,22 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
     <Box sx={{ maxWidth: 680, mx: "auto" }}>
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
-          <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>Câu {current + 1} / {total}</Typography>
+          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>Câu {current + 1} / {total}</Typography>
           <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: colors.greenStarbucks }}>{data.source_title}</Typography>
         </Box>
         <LinearProgress variant="determinate" value={((current + 1) / total) * 100} sx={{ height: 6, borderRadius: 3, bgcolor: "rgba(0,0,0,0.08)", "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent } }} />
       </Box>
 
-      <Box sx={{ bgcolor: "#fff", borderRadius: "16px", p: { xs: 2.5, sm: 4 }, boxShadow: "0 2px 16px rgba(0,0,0,0.08)", mb: 2.5 }}>
-        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft, mb: 1 }}>Nghĩa của từ này là gì?</Typography>
+      <Box sx={{ bgcolor: "background.paper", borderRadius: "16px", p: { xs: 2.5, sm: 4 }, boxShadow: "0 2px 16px rgba(0,0,0,0.08)", mb: 2.5 }}>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 1 }}>Nghĩa của từ này là gì?</Typography>
         <Typography sx={{ fontWeight: 800, fontSize: "2rem", color: colors.greenStarbucks, lineHeight: 1.2 }}>{q.word_text}</Typography>
-        {q.phonetic && <Typography sx={{ fontSize: "0.9rem", color: colors.textBlackSoft, mt: 0.5, mb: 2.5 }}>{q.phonetic}</Typography>}
+        {q.phonetic && <Typography sx={{ fontSize: "0.9rem", color: "text.secondary", mt: 0.5, mb: 2.5 }}>{q.phonetic}</Typography>}
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 2 }}>
           {q.options.map((opt, idx) => {
             const isCorrect = idx === q.correct_index;
             const isSelected = idx === selectedIdx;
-            let bgColor = "#fafafa", borderColor = "rgba(0,0,0,0.10)", textColor = colors.textBlack;
+            let bgColor = "#fafafa", borderColor = "rgba(0,0,0,0.10)", textColor = "text.primary";
 
             if (isRevealed) {
               if (isCorrect) { bgColor = `${colors.greenAccent}14`; borderColor = colors.greenAccent; textColor = colors.greenStarbucks; }
@@ -245,7 +245,7 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
 
             return (
               <Box key={idx} onClick={() => handleSelect(idx)} sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.75, borderRadius: "12px", border: `1.5px solid ${borderColor}`, bgcolor: bgColor, cursor: isRevealed ? "default" : "pointer", "&:hover": !isRevealed ? { borderColor: colors.greenAccent, bgcolor: `${colors.greenAccent}08` } : {} }}>
-                <Box sx={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.8rem", flexShrink: 0, bgcolor: isRevealed && isCorrect ? colors.greenAccent : isRevealed && isSelected && !isCorrect ? colors.red : "rgba(0,0,0,0.08)", color: isRevealed && (isCorrect || isSelected) ? "#fff" : colors.textBlackSoft }}>
+                <Box sx={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.8rem", flexShrink: 0, bgcolor: isRevealed && isCorrect ? colors.greenAccent : isRevealed && isSelected && !isCorrect ? colors.red : "rgba(0,0,0,0.08)", color: isRevealed && (isCorrect || isSelected) ? "#fff" : "text.secondary" }}>
                   {OPTION_LABELS[idx]}
                 </Box>
                 <Typography sx={{ fontSize: "0.9rem", fontWeight: isRevealed && isCorrect ? 700 : 400, color: textColor, flex: 1 }}>{opt}</Typography>
@@ -398,7 +398,7 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
                     textAlign: "center"
                   }}
                 >
-                  <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: isMatched ? colors.greenStarbucks : colors.textBlack }}>{item.text}</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: isMatched ? colors.greenStarbucks : "text.primary" }}>{item.text}</Typography>
                 </CardActionArea>
               );
             })}
@@ -424,7 +424,7 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
                     textAlign: "center"
                   }}
                 >
-                  <Typography sx={{ fontSize: "0.95rem", color: isMatched ? colors.greenStarbucks : colors.textBlackSoft }}>{item.definition_vi}</Typography>
+                  <Typography sx={{ fontSize: "0.95rem", color: isMatched ? colors.greenStarbucks : "text.secondary" }}>{item.definition_vi}</Typography>
                 </CardActionArea>
               );
             })}
@@ -443,7 +443,7 @@ const ResultPhase = ({ result, onRetry, onBack }) => {
 
   return (
     <Box sx={{ maxWidth: 640, mx: "auto" }}>
-      <Box sx={{ bgcolor: "#fff", borderRadius: "20px", p: { xs: 3, sm: 4 }, boxShadow: "0 4px 24px rgba(0,0,0,0.10)", textAlign: "center", mb: 3 }}>
+      <Box sx={{ bgcolor: "background.paper", borderRadius: "20px", p: { xs: 3, sm: 4 }, boxShadow: "0 4px 24px rgba(0,0,0,0.10)", textAlign: "center", mb: 3 }}>
         <EmojiEventsRoundedIcon sx={{ fontSize: 52, color: colors.gold, mb: 1 }} />
         {type === "mc" ? (
           <Typography sx={{ fontWeight: 800, fontSize: "3rem", color: colors.greenStarbucks, lineHeight: 1 }}>{result.correct}/{total}</Typography>
@@ -451,7 +451,7 @@ const ResultPhase = ({ result, onRetry, onBack }) => {
           <Typography sx={{ fontWeight: 800, fontSize: "2.5rem", color: colors.greenStarbucks, lineHeight: 1.2 }}>{score} Điểm</Typography>
         )}
         <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: label.color, mt: 0.5 }}>{label.text}</Typography>
-        <Typography sx={{ fontSize: "0.85rem", color: colors.textBlackSoft, mt: 0.5 }}>{sourceTitle} — {type === "mc" ? "Trắc nghiệm" : "Nối từ"}</Typography>
+        <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", mt: 0.5 }}>{sourceTitle} — {type === "mc" ? "Trắc nghiệm" : "Nối từ"}</Typography>
         
         {type === "match" && (
           <Typography sx={{ mt: 2, fontSize: "0.9rem", color: result.errors > 0 ? colors.red : colors.greenAccent }}>

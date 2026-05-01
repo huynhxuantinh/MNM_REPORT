@@ -144,7 +144,7 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
           startIcon={<PlayArrowRoundedIcon />}
           onClick={onStart}
           sx={{
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             color: colors.greenStarbucks,
             fontWeight: 800,
             px: 3,
@@ -174,7 +174,7 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
             sx={{
               height: 8, borderRadius: 4,
               bgcolor: "rgba(255,255,255,0.2)",
-              "& .MuiLinearProgress-bar": { bgcolor: "#fff", borderRadius: 4 },
+              "& .MuiLinearProgress-bar": { bgcolor: "background.paper", borderRadius: 4 },
             }}
           />
         </Box>
@@ -191,7 +191,7 @@ const StatCard = ({ icon, value, label, color, sub, loading }) => (
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
         {sub && (
-          <Typography sx={{ fontSize: "0.72rem", color: colors.textBlackSoft, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontWeight: 600 }}>
             {sub}
           </Typography>
         )}
@@ -203,7 +203,7 @@ const StatCard = ({ icon, value, label, color, sub, loading }) => (
           {value}
         </Typography>
       )}
-      <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+      <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
         {label}
       </Typography>
     </Box>
@@ -237,7 +237,7 @@ const XpCard = ({ user, loading }) => {
             {xp.toLocaleString()} XP
           </Typography>
         )}
-        <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
           Còn {Math.max(0, next - xp)} XP lên Level {level + 1}
         </Typography>
         <LinearProgress
@@ -271,8 +271,8 @@ const ReviewChart = ({ data, loading }) => {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-        <XAxis dataKey="label" tick={{ fontSize: 10, fill: colors.textBlackSoft }} axisLine={false} tickLine={false} />
-        <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: colors.textBlackSoft }} axisLine={false} tickLine={false} />
+        <XAxis dataKey="label" tick={{ fontSize: 10, fill: "text.secondary" }} axisLine={false} tickLine={false} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "text.secondary" }} axisLine={false} tickLine={false} />
         <ChartTooltip
           contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", fontSize: 12 }}
           formatter={(v) => [v, "Từ đã ôn"]}
@@ -330,7 +330,7 @@ const LessonCard = ({ lesson, assignment }) => {
                   sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
               )}
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: colors.textBlack, lineHeight: 1.3 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: "text.primary", lineHeight: 1.3 }}>
               {lesson.title}
             </Typography>
           </Box>
@@ -339,11 +339,11 @@ const LessonCard = ({ lesson, assignment }) => {
 
         {/* Meta */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
             {lesson.word_count} từ
           </Typography>
           {dueDate && (
-            <Typography sx={{ fontSize: "0.8rem", color: isOverdue ? colors.red : colors.textBlackSoft, fontWeight: isOverdue ? 700 : 400 }}>
+            <Typography sx={{ fontSize: "0.8rem", color: isOverdue ? colors.red : "text.secondary", fontWeight: isOverdue ? 700 : 400 }}>
               · Hạn: {fmtDate(dueDate)}
               {isOverdue ? " (Quá hạn!)" : ""}
             </Typography>
@@ -422,7 +422,7 @@ const HomePage = () => {
         <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.3rem", md: "1.6rem" }, color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
           {greet()}, {user?.full_name || user?.username || "bạn"}! 🌱
         </Typography>
-        <Typography sx={{ color: colors.textBlackSoft, fontSize: "0.9rem", mt: 0.25 }}>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem", mt: 0.25 }}>
           {sumLoading
             ? "Đang tải..."
             : reviewDue > 0
@@ -446,7 +446,7 @@ const HomePage = () => {
         <Grid item xs={6} md={3}>
           <StatCard
             icon={<LocalFireDepartmentRoundedIcon sx={{ fontSize: 24 }} />}
-            color={streak > 0 ? colors.gold : colors.textBlackSoft}
+            color={streak > 0 ? colors.gold : "text.secondary"}
             value={streak}
             label="Ngày học liên tiếp"
             sub={streak >= 7 ? "🏆 Milestone!" : undefined}
@@ -481,7 +481,7 @@ const HomePage = () => {
             <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
               Hoạt động ôn tập
             </Typography>
-            <Typography sx={{ fontSize: "0.8rem", color: colors.textBlackSoft }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               30 ngày qua • {totalWords} từ đã ôn
             </Typography>
           </Box>
@@ -517,7 +517,7 @@ const HomePage = () => {
         ) : lessons.length === 0 ? (
           <SbCard variant="cream" sx={{ textAlign: "center", py: 4 }}>
             <MenuBookRoundedIcon sx={{ fontSize: 40, color: colors.greenLight, mb: 1 }} />
-            <Typography sx={{ color: colors.textBlackSoft }}>
+            <Typography sx={{ color: "text.secondary" }}>
               Chưa có bài học nào. Hãy khám phá thư viện bài học!
             </Typography>
             <SbButton variant="primary" sx={{ mt: 2 }} onClick={() => navigate("/learning")}>
