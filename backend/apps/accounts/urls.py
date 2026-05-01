@@ -16,11 +16,13 @@ from .views import (
     TeacherStudentListView,
     VerifyEmailView,
 )
+from .views_resend_email import ResendVerificationEmailView
 
 urlpatterns = [
     # ── Đăng ký & Xác thực email ──────────────────────────────────
     path("register/", RegisterView.as_view(), name="auth-register"),
     path("verify-email/", VerifyEmailView.as_view(), name="auth-verify-email"),
+    path("resend-verification/", ResendVerificationEmailView.as_view(), name="auth-resend-verification"),
 
     # ── JWT ───────────────────────────────────────────────────────
     path("login/", LoginView.as_view(), name="auth-login"),

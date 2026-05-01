@@ -17,6 +17,7 @@ import CastForEducationRoundedIcon    from "@mui/icons-material/CastForEducation
 import DarkModeRoundedIcon            from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon           from "@mui/icons-material/LightModeRounded";
 import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
+import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import { SbAvatar } from "@/components/ui";
 import { logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Tổng quan",  to: "/teacher",             icon: <DashboardRoundedIcon />,            end: true },
   { label: "Bài học",    to: "/teacher/lessons",      icon: <MenuBookRoundedIcon /> },
   { label: "Bộ từ",      to: "/teacher/wordsets",     icon: <CollectionsBookmarkRoundedIcon /> },
+  { label: "Lớp học",    to: "/teacher/classes",      icon: <SchoolRoundedIcon /> },
   { label: "Giao bài",   to: "/teacher/assignments",  icon: <AssignmentRoundedIcon /> },
   { label: "Học sinh",   to: "/teacher/students",     icon: <PeopleRoundedIcon /> },
 ];

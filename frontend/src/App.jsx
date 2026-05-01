@@ -30,6 +30,7 @@ const TeacherLessons     = lazy(() => import("@/features/teacher/TeacherLessons"
 const TeacherWordSets    = lazy(() => import("@/features/teacher/TeacherWordSets"));
 const TeacherAssignments = lazy(() => import("@/features/teacher/TeacherAssignments"));
 const TeacherStudents    = lazy(() => import("@/features/teacher/TeacherStudents"));
+const TeacherClasses     = lazy(() => import("@/features/teacher/TeacherClasses"));
 // Admin feature pages
 const AdminDashboard = lazy(() => import("@/features/admin/AdminDashboard"));
 const AdminUsers     = lazy(() => import("@/features/admin/AdminUsers"));
@@ -158,6 +159,7 @@ const App = () => {
           <Route path="wordsets"    element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherWordSets /></Suspense></ErrorBoundary>} />
           <Route path="assignments" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherAssignments /></Suspense></ErrorBoundary>} />
           <Route path="students"    element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherStudents /></Suspense></ErrorBoundary>} />
+          <Route path="classes"     element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TeacherClasses /></Suspense></ErrorBoundary>} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

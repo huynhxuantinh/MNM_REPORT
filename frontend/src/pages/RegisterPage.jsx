@@ -118,26 +118,74 @@ const parseFieldErrors = (err) => {
 
 // ── Success state ─────────────────────────────────────────────────────────────
 
-const RegisterSuccess = ({ email }) => (
-  <SbCard sx={{ px: { xs: 3, sm: 4 }, py: 5, textAlign: "center" }}>
-    <Box sx={{ mb: 2, color: colors.greenAccent }}>
-      <MarkEmailReadRoundedIcon sx={{ fontSize: 56 }} />
-    </Box>
-    <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
-      Kiểm tra email của bạn!
-    </Typography>
-    <Typography sx={{ color: colors.textBlackSoft, mb: 3, lineHeight: 1.7 }}>
-      Chúng tôi đã gửi email xác thực đến{" "}
-      <Box component="span" sx={{ fontWeight: 700, color: colors.textBlack }}>
-        {email}
+const RegisterSuccess = ({ email }) => {
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
+  const [resendError, setResendError] = useState("");
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    setResendMsg("");
+    setResendError("");
+    try {
+      await authApi.resendVerification({ email });
+      setResendMsg("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư!");
+    } catch (err) {
+      const msg = err.response?.data?.detail;
+      if (msg?.includes("đợi")) {
+        setResendError(msg);
+      } else {
+        setResendError("Không thể gửi lại email. Vui lòng thử lại sau.");
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  return (
+    <SbCard sx={{ px: { xs: 3, sm: 4 }, py: 5, textAlign: "center" }}>
+      <Box sx={{ mb: 2, color: colors.greenAccent }}>
+        <MarkEmailReadRoundedIcon sx={{ fontSize: 56 }} />
       </Box>
-      . Nhấn vào link trong email để kích hoạt tài khoản.
-    </Typography>
-    <SbButton variant="outlined" component={Link} to="/login" fullWidth>
-      Về trang đăng nhập
-    </SbButton>
-  </SbCard>
-);
+      <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
+        Kiểm tra email của bạn!
+      </Typography>
+      <Typography sx={{ color: colors.textBlackSoft, mb: 2, lineHeight: 1.7 }}>
+        Chúng tôi đã gửi email xác thực đến{" "}
+        <Box component="span" sx={{ fontWeight: 700, color: colors.textBlack }}>
+          {email}
+        </Box>
+        . Nhấn vào link trong email để kích hoạt tài khoản.
+      </Typography>
+
+      {resendMsg && (
+        <Alert severity="success" sx={{ mb: 2, textAlign: "left" }}>
+          {resendMsg}
+        </Alert>
+      )}
+      {resendError && (
+        <Alert severity="error" sx={{ mb: 2, textAlign: "left" }}>
+          {resendError}
+        </Alert>
+      )}
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <SbButton variant="outlined" component={Link} to="/login" fullWidth>
+          Về trang đăng nhập
+        </SbButton>
+        <SbButton
+          variant="text"
+          onClick={handleResend}
+          loading={resendLoading}
+          disabled={resendLoading}
+          fullWidth
+        >
+          Gửi lại email xác thực
+        </SbButton>
+      </Box>
+    </SbCard>
+  );
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 

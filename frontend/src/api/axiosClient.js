@@ -15,29 +15,64 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Queue để xử lý concurrent refresh requests
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(callback) {
+  refreshSubscribers.push(callback);
+}
+
+function onTokenRefreshed(newToken) {
+  refreshSubscribers.forEach((callback) => callback(newToken));
+  refreshSubscribers = [];
+}
+
 // Tự động refresh token khi nhận 401
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
+
+    // Nếu không phải 401 hoặc là request refresh token thì reject
+    if (error.response?.status !== 401 || original.url?.includes("/token/refresh/")) {
+      return Promise.reject(error);
+    }
+
+    if (!isRefreshing) {
+      isRefreshing = true;
+
       try {
-        // Refresh token nằm trong HTTP-only cookie, không cần gửi trong body
+        // Refresh token nằm trong HTTP-only cookie
         const { data } = await axios.post(
           `${axiosClient.defaults.baseURL}/auth/token/refresh/`,
           {},
           { withCredentials: true }
         );
-        setToken(data.access);
-        original.headers.Authorization = `Bearer ${data.access}`;
+        const newToken = data.access;
+        setToken(newToken);
+        onTokenRefreshed(newToken);
+
+        // Retry original request với token mới
+        original.headers.Authorization = `Bearer ${newToken}`;
         return axiosClient(original);
-      } catch {
+      } catch (refreshError) {
+        // Refresh thất bại → logout
         clearToken();
         window.location.href = "/login";
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
-    return Promise.reject(error);
+
+    // Nếu đang refresh, queue request này và đợi token mới
+    return new Promise((resolve) => {
+      subscribeTokenRefresh((newToken) => {
+        original.headers.Authorization = `Bearer ${newToken}`;
+        resolve(axiosClient(original));
+      });
+    });
   }
 );
 

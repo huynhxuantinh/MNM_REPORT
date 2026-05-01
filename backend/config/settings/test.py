@@ -49,5 +49,10 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []           # noqa: F405
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {              # noqa: F405
     "anon": None, "user": None,
+    # Standard auth throttles
     "login": None, "register": None, "password_reset": None,
+    # Strict auth throttles
+    "login_strict": None, "register_strict": None, "password_reset_strict": None,
+    # Other throttles
+    "captcha": None, "burst": None, "sustained": None,
 }

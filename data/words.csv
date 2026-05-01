@@ -1,0 +1,50 @@
+text,phonetic,part_of_speech,definition_en,definition_vi,example_en,example_vi,level
+hello,/həˈloʊ/,exclamation,a greeting used when meeting someone,lời chào khi gặp ai đó,"Hello, nice to meet you!","Xin chào, rất vui được gặp bạn!",A1
+goodbye,/ˌɡʊdˈbaɪ/,exclamation,a word used when leaving someone,lời tạm biệt,"Goodbye, see you tomorrow!","Tạm biệt, hẹn gặp lại ngày mai!",A1
+thank,/θæŋk/,verb,to express gratitude,cảm ơn,Thank you for your help.,Cảm ơn sự giúp đỡ của bạn.,A1
+please,/pliːz/,adverb,used to make a request polite,làm ơn,Could you please help me?,Bạn làm ơn giúp tôi được không?,A1
+sorry,/ˈsɔːri/,adjective,feeling regret,xin lỗi,I'm sorry for being late.,Xin lỗi vì tôi đến muộn.,A1
+yes,/jes/,adverb,used to give agreement,vâng,"Yes, I understand.","Vâng, tôi hiểu rồi.",A1
+no,/noʊ/,adverb,used to give a negative answer,không,"No, I don't want it.","Không, tôi không muốn nó.",A1
+water,/ˈwɔːtər/,noun,a clear liquid that falls as rain,nước,Can I have some water?,Tôi có thể lấy một ít nước được không?,A1
+food,/fuːd/,noun,things people eat,thức ăn,This food is delicious.,Món ăn này rất ngon.,A1
+book,/bʊk/,noun,a set of printed pages,quyển sách,I read a book every night.,Tôi đọc sách mỗi tối.,A1
+friend,/frend/,noun,a person you know well and like,bạn bè,She is my best friend.,Cô ấy là bạn thân nhất của tôi.,A1
+family,/ˈfæməli/,noun,a group of related people,gia đình,My family is very important to me.,Gia đình rất quan trọng với tôi.,A1
+time,/taɪm/,noun,what is measured in minutes and hours,thời gian,What time is it?,Mấy giờ rồi?,A1
+day,/deɪ/,noun,a period of 24 hours,ngày,I work five days a week.,Tôi làm việc năm ngày một tuần.,A1
+night,/naɪt/,noun,the dark time between day and day,đêm,I prefer to study at night.,Tôi thích học vào ban đêm.,A1
+good,/ɡʊd/,adjective,having positive qualities,tốt,This is a good idea.,Đây là một ý kiến hay.,A1
+bad,/bæd/,adjective,having negative qualities,xấu,The weather is bad today.,Thời tiết hôm nay xấu.,A1
+big,/bɪɡ/,adjective,large in size,to,We live in a big house.,Chúng tôi sống trong một ngôi nhà lớn.,A1
+small,/smɔːl/,adjective,little in size,nhỏ,I have a small dog.,Tôi có một chú chó nhỏ.,A1
+new,/nuː/,adjective,recently made or created,mới,This is my new phone.,Đây là điện thoại mới của tôi.,A1
+old,/oʊld/,adjective,having existed for a long time,cũ,This car is very old.,Chiếc xe này rất cũ.,A1
+happy,/ˈhæpi/,adjective,feeling pleasure,vui vẻ,I'm happy to see you.,Tôi vui khi gặp bạn.,A1
+sad,/sæd/,adjective,feeling unhappy,buồn,Why do you look sad?,Tại sao bạn trông buồn vậy?,A1
+beautiful,/ˈbjuːtɪfl/,adjective,pleasing to look at,đẹp,What a beautiful day!,Thật là một ngày đẹp!,A1
+important,/ɪmˈpɔːrtənt/,adjective,having great significance,quan trọng,This is very important.,Điều này rất quan trọng.,A1
+learn,/lɜːrn/,verb,to gain knowledge,học,I want to learn English.,Tôi muốn học tiếng Anh.,A1
+work,/wɜːrk/,verb,to do a job,làm việc,I work in an office.,Tôi làm việc trong văn phòng.,A1
+play,/pleɪ/,verb,to have fun,chơi,The children love to play.,Trẻ em thích chơi.,A1
+help,/help/,verb,to make things easier for someone,giúp đỡ,Can you help me?,Bạn có thể giúp tôi được không?,A1
+love,/lʌv/,verb,to have deep affection,yêu,I love my family.,Tôi yêu gia đình mình.,A1
+need,/niːd/,verb,to require something,cần,I need some water.,Tôi cần một ít nước.,A1
+want,/wɑːnt/,verb,to desire something,muốn,I want to go home.,Tôi muốn về nhà.,A1
+like,/laɪk/,verb,to find pleasant,thích,Do you like chocolate?,Bạn có thích sô cô la không?,A1
+make,/meɪk/,verb,to create something,làm,She makes her own clothes.,Cô ấy tự may quần áo.,A1
+can,/kæn/,modal,to be able to,có thể,I can swim very well.,Tôi bơi rất giỏi.,A1
+think,/θɪŋk/,verb,to have an opinion or idea,nghĩ,What do you think?,Bạn nghĩ sao?,A1
+eat,/iːt/,verb,to put food in the mouth,ăn,Let's eat dinner.,Hãy ăn tối nào.,A1
+drink,/drɪŋk/,verb,to take liquid into the body,uống,I drink coffee every morning.,Tôi uống cà phê mỗi sáng.,A1
+come,/kʌm/,verb,to move towards someone,đến,Please come here.,Làm ơn đến đây.,A1
+go,/ɡoʊ/,verb,to move away from a place,đi,Let's go to school.,Hãy đi học nào.,A1
+give,/ɡɪv/,verb,to hand something to someone,cho,Can you give me that book?,Bạn có thể đưa tôi quyển sách đó được không?,A1
+man,/mæn/,noun,an adult male human,đàn ông,That man is my teacher.,Người đàn ông đó là giáo viên của tôi.,A1
+woman,/ˈwʊmən/,noun,an adult female human,phụ nữ,She is a kind woman.,Cô ấy là một người phụ nữ tốt bụng.,A1
+child,/tʃaɪld/,noun,a young human being,trẻ em,The child is playing.,Đứa trẻ đang chơi.,A1
+people,/ˈpiːpl/,noun,human beings in general,người,Many people live here.,Nhiều người sống ở đây.,A1
+home,/hoʊm/,noun,where someone lives,nhà,Let's go home.,Hãy về nhà nào.,A1
+school,/skuːl/,noun,a place for learning,trường học,I walk to school.,Tôi đi bộ đến trường.,A1
+car,/kɑːr/,noun,a motor vehicle with four wheels,xe hơi,He drives a red car.,Anh ấy lái một chiếc xe đỏ.,A1
+city,/ˈsɪti/,noun,a large town,thành phố,New York is a big city.,New York là một thành phố lớn.,A1

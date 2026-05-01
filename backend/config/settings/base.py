@@ -131,11 +131,21 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/minute",       # Khách (không đăng nhập)
-        "user": "300/minute",      # User đã xác thực
-        "login": "10/minute",      # Brute-force login
-        "register": "5/minute",    # Ngăn tạo tài khoản hàng loạt
-        "password_reset": "5/hour", # Ngăn spam email reset
+        "anon": "60/minute",           # Khách (không đăng nhập)
+        "user": "300/minute",          # User đã xác thực
+        # Auth endpoints - standard
+        "login": "10/minute",          # Brute-force login (normal)
+        "register": "5/minute",        # Ngăn tạo tài khoản hàng loạt
+        "password_reset": "5/hour",   # Ngăn spam email reset
+        # Auth endpoints - strict (after multiple failures)
+        "login_strict": "3/minute",          # After 3 failed attempts
+        "register_strict": "2/minute",       # After 3 failed attempts
+        "password_reset_strict": "2/hour",   # After 2 failed attempts
+        # Captcha endpoint
+        "captcha": "5/minute",         # Captcha verification limit
+        # Burst/Sustained for authenticated users
+        "burst": "100/minute",         # Burst traffic
+        "sustained": "1000/day",       # Daily sustained traffic
     },
 }
 

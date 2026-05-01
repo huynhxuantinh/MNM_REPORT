@@ -69,9 +69,14 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"non_field_errors": "Email hoặc mật khẩu không đúng."}
             )
+        # Phân biệt user chưa verify email vs user bị ban
+        if not user.email_verified:
+            raise serializers.ValidationError(
+                {"non_field_errors": "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để kích hoạt."}
+            )
         if not user.is_active:
             raise serializers.ValidationError(
-                {"non_field_errors": "Tài khoản chưa được kích hoạt. Vui lòng xác thực email."}
+                {"non_field_errors": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."}
             )
         attrs["user"] = user
         return attrs

@@ -31,7 +31,14 @@ const parseServerError = (err) => {
   if (!err) return "";
   if (typeof err === "string") return err;
   if (err.detail) return err.detail;
-  if (err.non_field_errors) return err.non_field_errors.join(" ");
+  if (err.non_field_errors) {
+    const msg = err.non_field_errors.join(" ");
+    // Highlight email verification error
+    if (msg.includes("chưa được xác thực") || msg.includes("kích hoạt")) {
+      return msg + " (Kiểm tra hộp thư và spam folder)";
+    }
+    return msg;
+  }
   return "Đã có lỗi xảy ra. Vui lòng thử lại.";
 };
 

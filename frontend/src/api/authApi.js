@@ -5,6 +5,7 @@ const authApi = {
   logout:         ()     => axiosClient.post("/auth/logout/", {}, { withCredentials: true }),
   register:       (data) => axiosClient.post("/auth/register/", data),
   verifyEmail:    (data) => axiosClient.post("/auth/verify-email/", data),
+  resendVerification: (data) => axiosClient.post("/auth/resend-verification/", data),
   forgotPassword: (data) => axiosClient.post("/auth/forgot-password/", data),
   resetPassword:  (data) => axiosClient.post("/auth/reset-password/", data),
   changePassword: (data) => axiosClient.put("/auth/change-password/", data),

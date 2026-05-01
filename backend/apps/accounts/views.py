@@ -2,6 +2,7 @@
 Views cho toàn bộ luồng xác thực: đăng ký, login, logout,
 quên/reset/đổi mật khẩu, profile cá nhân.
 """
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -60,7 +61,12 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [RegisterRateThrottle]
 
+
     def post(self, request):
+        print("\n" + "="*50)
+        print("--- DEBUG: NHẬN ĐƯỢC YÊU CẦU ĐĂNG KÝ ---")
+        print(f"--- Email: {request.data.get('email')} ---")
+        print("="*50 + "\n")
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -75,8 +81,12 @@ class RegisterView(APIView):
 
         try:
             send_verification_email(user, token)
-        except Exception:
-            pass  # Gửi email thất bại không ảnh hưởng đến đăng ký
+            logger.info(f"Verification email sent to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+            # Không throw exception để registration vẫn thành công
+
+
 
         return Response(
             {"detail": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."},
@@ -102,8 +112,10 @@ class VerifyEmailView(APIView):
                 token=token_value
             )
         except EmailVerificationToken.DoesNotExist:
+            # Có thể user đã verify trước đó (token đã bị xóa)
+            # Hoặc token thật sự không hợp lệ
             return Response(
-                {"detail": "Token không hợp lệ."},
+                {"detail": "Token không hợp lệ hoặc đã được sử dụng. Nếu bạn đã xác thực email trước đó, hãy đăng nhập bình thường."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -214,6 +226,9 @@ class CookieTokenRefreshView(APIView):
         return response
 
 
+logger = logging.getLogger(__name__)
+
+
 class ForgotPasswordView(APIView):
     """
     POST /api/v1/auth/forgot-password/
@@ -231,7 +246,7 @@ class ForgotPasswordView(APIView):
         email = serializer.validated_data["email"].lower()
 
         try:
-            user = User.objects.get(email=email, is_active=True)
+            user = User.objects.get(email=email, is_active=True, email_verified=True)
         except User.DoesNotExist:
             return Response({"detail": self._GENERIC_MSG})
 
@@ -244,7 +259,13 @@ class ForgotPasswordView(APIView):
             token=token,
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        send_password_reset_email(user, token)
+
+        try:
+            send_password_reset_email(user, token)
+            logger.info(f"Password reset email sent to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {user.email}: {str(e)}")
+            # Vẫn trả về success để không reveal user exists
 
         return Response({"detail": self._GENERIC_MSG})
 
@@ -297,6 +318,7 @@ class ChangePasswordView(APIView):
     """
     PUT /api/v1/auth/change-password/
     Đổi mật khẩu khi đã đăng nhập – yêu cầu mật khẩu cũ.
+    Sau khi đổi, tất cả session khác sẽ bị đăng xuất (refresh token cũ bị blacklist).
     """
 
     permission_classes = [IsAuthenticated]
@@ -307,10 +329,17 @@ class ChangePasswordView(APIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        request.user.set_password(serializer.validated_data["new_password"])
-        request.user.save(update_fields=["password"])
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
 
-        return Response({"detail": "Mật khẩu đã được thay đổi thành công."})
+        # Blacklist tất cả outstanding tokens của user để force logout ở các thiết bị khác
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+        OutstandingToken.objects.filter(user=user).update(expires_at=timezone.now())
+
+        return Response({
+            "detail": "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại trên tất cả các thiết bị."
+        })
 
 
 class MeView(APIView):

@@ -73,7 +73,7 @@ class EmailVerificationToken(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="email_verification"
     )
-    token = models.CharField(max_length=64, unique=True)
+    token = models.CharField(max_length=64, unique=True, db_index=True)
     expires_at = models.DateTimeField("Hết hạn lúc")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -92,7 +92,7 @@ class PasswordResetToken(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="password_resets"
     )
-    token = models.CharField(max_length=64, unique=True)
+    token = models.CharField(max_length=64, unique=True, db_index=True)
     expires_at = models.DateTimeField("Hết hạn lúc")
     is_used = models.BooleanField("Đã dùng", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
