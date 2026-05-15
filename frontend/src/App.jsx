@@ -17,6 +17,8 @@ const HomePage          = lazy(() => import("@/pages/HomePage"));
 const VocabularyPage    = lazy(() => import("@/pages/VocabularyPage"));
 const WordSetsPage      = lazy(() => import("@/pages/WordSetsPage"));
 const LearningPage      = lazy(() => import("@/pages/LearningPage"));
+const LearningPlacementPage = lazy(() => import("@/pages/LearningPlacementPage"));
+const LearningSessionPage = lazy(() => import("@/pages/LearningSessionPage"));
 const StudyPage         = lazy(() => import("@/pages/StudyPage"));
 const ReviewPage        = lazy(() => import("@/pages/ReviewPage"));
 const QuizPage          = lazy(() => import("@/pages/QuizPage"));
@@ -96,7 +98,7 @@ const App = () => {
   // Khôi phục phiên từ refresh token cookie khi reload trang
   useEffect(() => {
     dispatch(initAuth());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -122,6 +124,8 @@ const App = () => {
           <Route path="vocabulary/:id"       element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordDetailPage /></Suspense></ErrorBoundary>} />
           <Route path="wordsets"             element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordSetsPage /></Suspense></ErrorBoundary>} />
           <Route path="learning"             element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
+          <Route path="learning/placement"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPlacementPage /></Suspense></ErrorBoundary>} />
+          <Route path="learning/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningSessionPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/:id/study"   element={<ErrorBoundary><Suspense fallback={<PageFallback />}><StudyPage /></Suspense></ErrorBoundary>} />
           <Route path="review"               element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />
           <Route path="quiz"                 element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />

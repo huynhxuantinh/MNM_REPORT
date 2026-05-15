@@ -105,7 +105,6 @@ const ActivityHeatmap = () => {
       grid.push(week);
     }
     return grid;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countMap]);
 
   // Month labels: show month name when month changes across columns

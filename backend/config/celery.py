@@ -36,7 +36,23 @@ app.conf.beat_schedule = {
         "task": "learning.send_assignment_digest",
         "schedule": crontab(hour=8, minute=0),
     },
+    # Every hour: send daily-goal reminders based on user preferred hour
+    "daily-goal-reminders-hourly": {
+        "task": "learning.send_daily_goal_reminders",
+        "schedule": crontab(minute=0),
+    },
+    # Every hour: refill hearts based on each user's refill interval
+    "onboarding-first-lesson-reminders-hourly": {
+        "task": "learning.send_onboarding_first_lesson_reminders",
+        "schedule": crontab(minute=15),
+    },
+    "refill-hearts-hourly": {
+        "task": "learning.refill_hearts",
+        "schedule": crontab(minute=0),
+    },
+    "rebuild-weekly-league-daily": {
+        "task": "learning.rebuild_weekly_league",
+        "schedule": crontab(hour=0, minute=10),
+    },
 }
-
-
 

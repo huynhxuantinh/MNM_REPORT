@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Grid, Skeleton, Chip, Alert,
   Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper,
+  TableHead, TableRow, Paper, Stack,
 } from "@mui/material";
 import MenuBookRoundedIcon    from "@mui/icons-material/MenuBookRounded";
 import AssignmentRoundedIcon  from "@mui/icons-material/AssignmentRounded";
@@ -20,6 +21,26 @@ const LEVEL_COLOR = {
   C1: { bg: "#ede7f6", color: "#4527a0" },
   C2: { bg: "#fafafa", color: "#37474f" },
 };
+const KPI_DAY_OPTIONS = [7, 28, 56];
+const KPI_FIELDS = [
+  { key: "dau", label: "DAU", suffix: "" },
+  { key: "sessions_per_dau", label: "Sessions/DAU", suffix: "" },
+  { key: "session_completion_rate", label: "Session Completion", suffix: "%" },
+  { key: "checkpoint_pass_rate", label: "Checkpoint Pass", suffix: "%" },
+  { key: "d1_retention_rate", label: "D1 Retention", suffix: "%" },
+  { key: "d7_retention_rate", label: "D7 Retention", suffix: "%" },
+  { key: "w4_retention_rate", label: "W4 Retention", suffix: "%" },
+];
+const ONBOARDING_FIELDS = [
+  { key: "placement_enter_users", label: "Placement Enter", suffix: "" },
+  { key: "placement_submit_users", label: "Placement Submit", suffix: "" },
+  { key: "first_lesson_start_users", label: "First Lesson Start", suffix: "" },
+  { key: "placement_abandon_users", label: "Placement Abandon", suffix: "" },
+  { key: "submit_conversion_rate", label: "Enter -> Submit", suffix: "%" },
+  { key: "first_lesson_conversion_rate", label: "Submit -> First Lesson", suffix: "%" },
+  { key: "full_conversion_rate", label: "Enter -> First Lesson", suffix: "%" },
+  { key: "placement_abandon_rate", label: "Abandon Rate", suffix: "%" },
+];
 
 const fmtDate = (dt) =>
   dt ? new Date(dt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -58,6 +79,25 @@ const StatCard = ({ icon, label, value, color, loading }) => (
         {label}
       </Typography>
     </Box>
+  </Box>
+);
+
+const KpiCard = ({ label, value, suffix = "", loading }) => (
+  <Box
+    sx={{
+      bgcolor: "background.paper",
+      border: "1px solid rgba(0,0,0,0.07)",
+      borderRadius: "12px",
+      p: 1.8,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    }}
+  >
+    <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mb: 0.4 }}>
+      {label}
+    </Typography>
+    <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks, fontSize: "1.15rem" }}>
+      {loading ? <Skeleton width={68} height={30} /> : `${value ?? 0}${suffix}`}
+    </Typography>
   </Box>
 );
 
@@ -207,9 +247,28 @@ const RecentAssignmentsTable = ({ assignments, loading }) => (
 // ── Main TeacherDashboard ─────────────────────────────────────────────────────
 
 const TeacherDashboard = () => {
+  const [kpiDays, setKpiDays] = useState(28);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["teacher-stats"],
     queryFn: () => teacherApi.getTeacherStats().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const {
+    data: kpiData,
+    isLoading: isKpiLoading,
+    isError: isKpiError,
+  } = useQuery({
+    queryKey: ["learning-kpi-baseline", kpiDays],
+    queryFn: () => teacherApi.getLearningKPIBaseline(kpiDays).then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const {
+    data: funnelData,
+    isLoading: isFunnelLoading,
+    isError: isFunnelError,
+  } = useQuery({
+    queryKey: ["learning-onboarding-funnel", kpiDays],
+    queryFn: () => teacherApi.getOnboardingFunnel(kpiDays).then((r) => r.data),
     staleTime: 60_000,
   });
 
@@ -258,7 +317,71 @@ const TeacherDashboard = () => {
         </Grid>
       </Grid>
 
+      <Box sx={{ mb: 3.5 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: colors.greenStarbucks }}>
+            Learning KPI Baseline
+          </Typography>
+          {KPI_DAY_OPTIONS.map((day) => (
+            <Chip
+              key={day}
+              size="small"
+              label={`${day}d`}
+              clickable
+              onClick={() => setKpiDays(day)}
+              sx={{
+                fontWeight: 700,
+                bgcolor: kpiDays === day ? `${colors.greenAccent}22` : "rgba(0,0,0,0.06)",
+                color: kpiDays === day ? colors.greenAccent : "text.secondary",
+              }}
+            />
+          ))}
+        </Stack>
+        {isKpiError ? (
+          <Alert severity="warning" sx={{ borderRadius: "10px" }}>
+            Khong the tai KPI baseline.
+          </Alert>
+        ) : (
+          <Grid container spacing={1.5}>
+            {KPI_FIELDS.map((item) => (
+              <Grid key={item.key} item xs={6} sm={4} lg={3}>
+                <KpiCard
+                  label={item.label}
+                  value={kpiData?.kpis?.[item.key]}
+                  suffix={item.suffix}
+                  loading={isKpiLoading}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+
       {/* Bảng chi tiết */}
+      <Box sx={{ mb: 3.5 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: colors.greenStarbucks, mb: 1.25 }}>
+          Onboarding Funnel
+        </Typography>
+        {isFunnelError ? (
+          <Alert severity="warning" sx={{ borderRadius: "10px" }}>
+            Khong the tai onboarding funnel.
+          </Alert>
+        ) : (
+          <Grid container spacing={1.5}>
+            {ONBOARDING_FIELDS.map((item) => (
+              <Grid key={item.key} item xs={6} sm={4} lg={3}>
+                <KpiCard
+                  label={item.label}
+                  value={funnelData?.funnel?.[item.key]}
+                  suffix={item.suffix}
+                  loading={isFunnelLoading}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+
       <Grid container spacing={3}>
         <Grid item xs={12} lg={6}>
           <RecentLessonsTable

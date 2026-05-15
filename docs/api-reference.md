@@ -460,8 +460,8 @@ POST /learning/lessons/
 ### Thêm/xóa từ trong bài học
 
 ```
-POST /learning/lessons/{id}/add_word/     # Body: {"word_id": 5}
-POST /learning/lessons/{id}/remove_word/  # Body: {"word_id": 5}
+POST   /learning/lessons/{id}/words/            # Body: {"word_id": 5, "order_index": 1}
+DELETE /learning/lessons/{id}/words/{word_id}/
 ```
 *(Yêu cầu role: teacher hoặc admin)*
 
@@ -472,6 +472,26 @@ POST /learning/lessons/{id}/remove_word/  # Body: {"word_id": 5}
 ```
 POST /learning/lessons/{id}/start/     # Ghi nhận bắt đầu học
 POST /learning/lessons/{id}/complete/  # Ghi nhận hoàn thành, tạo ReviewLog
+```
+
+---
+### Learning flow phase 1-4 (current)
+
+```
+GET  /learning/path/
+POST /learning/session/start/
+GET  /learning/session/{id}/
+POST /learning/session/{id}/answer/
+POST /learning/session/{id}/finish/
+POST /learning/session/{id}/quit/
+POST /learning/checkpoint/start/
+POST /learning/checkpoint/{id}/submit/
+GET  /learning/daily-goal/
+POST /learning/daily-goal/claim/
+POST /learning/streak-freeze/claim/
+GET  /learning/placement/status/
+GET  /learning/placement/questions/
+POST /learning/placement/submit/
 ```
 
 ---

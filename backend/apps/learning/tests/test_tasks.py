@@ -6,6 +6,7 @@ Tests cho Celery tasks:
 import pytest
 from datetime import date, timedelta
 from django.core import mail
+from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
 
@@ -137,7 +138,6 @@ class TestSendAssignmentDigest:
         assert student.email in mail.outbox[0].to
 
     def test_skips_completed_assignments(self, student, teacher, lesson):
-        from django.utils import timezone
         from apps.learning.models import Assignment, Notification
         from apps.learning.tasks import send_assignment_digest
 
@@ -211,3 +211,75 @@ class TestSendAssignmentDigest:
         send_assignment_digest()
 
         assert len(mail.outbox) == 1
+
+
+class TestSendOnboardingFirstLessonReminders:
+    def test_reminds_after_24h_without_first_lesson(self, student):
+        from apps.learning.models import LearningEvent, Notification
+        from apps.learning.tasks import send_onboarding_first_lesson_reminders
+
+        submit = LearningEvent.objects.create(
+            user=student,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta={"step": "placement_submit"},
+        )
+        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=25))
+
+        result = send_onboarding_first_lesson_reminders()
+
+        assert result["users_notified"] == 1
+        assert Notification.objects.filter(
+            user=student,
+            type=Notification.Type.REMINDER,
+        ).exists()
+        assert LearningEvent.objects.filter(
+            user=student,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta__step="first_lesson_reminder_sent",
+            meta__submit_event_id=submit.id,
+        ).exists()
+
+    def test_skip_if_first_lesson_already_started(self, student):
+        from apps.learning.models import LearningEvent, Notification
+        from apps.learning.tasks import send_onboarding_first_lesson_reminders
+
+        submit = LearningEvent.objects.create(
+            user=student,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta={"step": "placement_submit"},
+        )
+        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=25))
+        LearningEvent.objects.create(
+            user=student,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta={"step": "first_lesson_start"},
+        )
+
+        result = send_onboarding_first_lesson_reminders()
+
+        assert result["users_notified"] == 0
+        assert not Notification.objects.filter(
+            user=student,
+            type=Notification.Type.REMINDER,
+        ).exists()
+
+    def test_idempotent_per_submit_event(self, student):
+        from apps.learning.models import LearningEvent, Notification
+        from apps.learning.tasks import send_onboarding_first_lesson_reminders
+
+        submit = LearningEvent.objects.create(
+            user=student,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta={"step": "placement_submit"},
+        )
+        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=26))
+
+        first = send_onboarding_first_lesson_reminders()
+        second = send_onboarding_first_lesson_reminders()
+
+        assert first["users_notified"] == 1
+        assert second["users_notified"] == 0
+        assert Notification.objects.filter(
+            user=student,
+            type=Notification.Type.REMINDER,
+        ).count() == 1

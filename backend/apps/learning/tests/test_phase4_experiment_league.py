@@ -1,0 +1,131 @@
+import pytest
+from django.utils import timezone
+
+from apps.accounts.models import User
+from apps.learning.models import (
+    Course,
+    ExperimentAssignment,
+    ExperimentConfig,
+    LeagueSeason,
+    LeagueStanding,
+    LearningSession,
+    Unit,
+)
+from apps.learning.tasks import rebuild_weekly_league
+
+pytestmark = pytest.mark.django_db
+
+
+DAILY_GOAL_URL = "/api/v1/learning/daily-goal/"
+LEAGUE_CURRENT_URL = "/api/v1/learning/league/current/"
+
+
+@pytest.fixture
+def unit_for_session():
+    course = Course.objects.create(name="League Course", slug="league-course", is_active=True)
+    return Unit.objects.create(
+        course=course,
+        title="League Unit",
+        order_index=1,
+        required_lessons_to_unlock=1,
+        is_published=True,
+    )
+
+
+def test_daily_goal_experiment_assignment(sc, student):
+    ExperimentConfig.objects.create(
+        key="daily_goal_v1",
+        is_active=True,
+        variants=[
+            {"name": "control", "weight": 1, "payload": {"target_minutes": 10, "reward_xp": 15}},
+            {"name": "stretch", "weight": 1, "payload": {"target_minutes": 15, "reward_xp": 22}},
+        ],
+    )
+
+    response = sc.get(DAILY_GOAL_URL)
+    assert response.status_code == 200
+
+    assignment = ExperimentAssignment.objects.filter(
+        user=student, experiment_key="daily_goal_v1"
+    ).first()
+    assert assignment is not None
+    assert response.data["experiments"]["daily_goal"] == assignment.variant_name
+    assert response.data["target_minutes"] == assignment.variant_payload["target_minutes"]
+    assert response.data["reward_xp"] == assignment.variant_payload["reward_xp"]
+
+
+def test_hearts_experiment_applies_payload(sc):
+    ExperimentConfig.objects.create(
+        key="hearts_balance_v1",
+        is_active=True,
+        variants=[
+            {
+                "name": "fast_refill",
+                "weight": 1,
+                "payload": {"max_hearts": 3, "refill_interval_minutes": 120},
+            }
+        ],
+    )
+
+    response = sc.get(DAILY_GOAL_URL)
+    assert response.status_code == 200
+    assert response.data["experiments"]["hearts"] == "fast_refill"
+    assert response.data["hearts"]["max"] == 3
+    assert response.data["hearts"]["refill_interval_minutes"] == 120
+
+
+def test_rebuild_weekly_league_creates_standings(student, lesson, unit_for_session):
+    other = User.objects.create_user(
+        username="league_other",
+        email="league_other@test.com",
+        password="Pass123!",
+        is_active=True,
+        email_verified=True,
+        role=User.Role.USER,
+    )
+    now = timezone.now()
+    LearningSession.objects.create(
+        user=student,
+        unit=unit_for_session,
+        lesson=lesson,
+        status=LearningSession.Status.COMPLETED,
+        xp_earned=40,
+        completed_at=now,
+    )
+    LearningSession.objects.create(
+        user=other,
+        unit=unit_for_session,
+        lesson=lesson,
+        status=LearningSession.Status.COMPLETED,
+        xp_earned=20,
+        completed_at=now,
+    )
+
+    result = rebuild_weekly_league()
+
+    assert result["participants"] == 2
+    season = LeagueSeason.objects.get(code=result["season_code"])
+    top = list(LeagueStanding.objects.filter(season=season).order_by("rank"))
+    assert top[0].user_id == student.id
+    assert top[0].rank == 1
+    assert top[1].user_id == other.id
+    assert top[1].rank == 2
+
+
+def test_league_current_endpoint_returns_payload(sc, student, lesson, unit_for_session):
+    now = timezone.now()
+    LearningSession.objects.create(
+        user=student,
+        unit=unit_for_session,
+        lesson=lesson,
+        status=LearningSession.Status.COMPLETED,
+        xp_earned=30,
+        completed_at=now,
+    )
+    rebuild_weekly_league()
+
+    response = sc.get(LEAGUE_CURRENT_URL)
+    assert response.status_code == 200
+    assert response.data["season"] is not None
+    assert isinstance(response.data["leaderboard"], list)
+    assert response.data["me"] is not None

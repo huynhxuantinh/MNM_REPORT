@@ -4,6 +4,10 @@ const teacherApi = {
   // ── Stats ─────────────────────────────────────────────────────────────────
   getTeacherStats: () =>
     axiosClient.get("/learning/teacher/stats/"),
+  getLearningKPIBaseline: (days = 28) =>
+    axiosClient.get("/learning/kpi/baseline/", { params: { days } }),
+  getOnboardingFunnel: (days = 28) =>
+    axiosClient.get("/learning/kpi/onboarding-funnel/", { params: { days } }),
 
   // ── Lessons ───────────────────────────────────────────────────────────────
   getLessons:   (params) => axiosClient.get("/learning/lessons/", { params }),

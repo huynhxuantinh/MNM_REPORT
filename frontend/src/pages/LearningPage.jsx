@@ -1,281 +1,360 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  Box, Typography, Grid, Tabs, Tab, Skeleton,
-  Chip, InputAdornment, TextField,
+  Alert,
+  Box,
+  Chip,
+  CircularProgress,
+  LinearProgress,
+  Stack,
+  Typography,
 } from "@mui/material";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { SbCard, SbButton } from "@/components/ui";
-import { colors } from "@/styles/theme";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import learningApi from "@/api/learningApi";
+import { SbButton, SbCard } from "@/components/ui";
+import { colors } from "@/styles/theme";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const fmtDate = (iso) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-};
-
-const LEVEL_CHIP = {
-  A1: { bg: "#e8f5e9", color: "#2e7d32" },
-  A2: { bg: "#e3f2fd", color: "#1565c0" },
-  B1: { bg: "#fff3e0", color: "#e65100" },
-  B2: { bg: "#fce4ec", color: "#c62828" },
-  C1: { bg: "#ede7f6", color: "#4527a0" },
-  C2: { bg: "#fafafa", color: "#212121" },
-};
-
-// ── Lesson card ───────────────────────────────────────────────────────────────
-
-const LessonCard = ({ lesson, assignment }) => {
-  const navigate = useNavigate();
-  const isCompleted = !!lesson.user_progress?.completed_at;
-  const isStarted   = !!lesson.user_progress?.started_at;
-  const dueDate     = assignment?.due_date;
-  const isOverdue   = dueDate && new Date(dueDate) < new Date();
-  const lvl = LEVEL_CHIP[lesson.level] ?? { bg: colors.greenLight, color: colors.greenHouse };
+const UnitCard = ({
+  unit,
+  onStart,
+  onStartCheckpoint,
+  startingLessonId,
+  startingCheckpointUnitId,
+  disabled,
+}) => {
+  const completedLessons = unit.progress?.completed_lessons ?? 0;
+  const totalLessons = unit.lesson_count ?? unit.lessons?.length ?? 0;
+  const progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0;
+  const isCompleted = !!unit.progress?.completed_at;
+  const checkpointPassed = !!unit.progress?.checkpoint_passed;
+  const canStartCheckpoint = unit.unlocked && totalLessons > 0 && completedLessons >= totalLessons && !checkpointPassed;
 
   return (
     <SbCard
       sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        border: `1px solid ${isOverdue ? colors.red + "44" : "transparent"}`,
-        transition: "box-shadow 0.2s, transform 0.15s",
-        "&:hover": { boxShadow: "0 6px 20px rgba(0,0,0,0.12)", transform: "translateY(-2px)" },
+        border: `1px solid ${unit.unlocked ? `${colors.greenAccent}33` : "rgba(0,0,0,0.08)"}`,
+        opacity: unit.unlocked ? 1 : 0.7,
       }}
-      noPadding
     >
-      {/* Colored header strip */}
-      <Box sx={{ height: 5, bgcolor: isCompleted ? colors.greenAccent : isStarted ? colors.gold : colors.greenLight, borderRadius: "12px 12px 0 0" }} />
+      <Stack spacing={1.5}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+          <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: colors.greenStarbucks }}>
+            Unit {unit.order_index}: {unit.title}
+          </Typography>
+          {unit.unlocked ? (
+            isCompleted ? (
+              <Chip
+                icon={<CheckCircleRoundedIcon sx={{ fontSize: "14px !important" }} />}
+                label="Done"
+                size="small"
+                sx={{ bgcolor: `${colors.greenAccent}20`, color: colors.greenAccent, fontWeight: 700 }}
+              />
+            ) : (
+              <Chip label="Unlocked" size="small" sx={{ bgcolor: `${colors.gold}20`, color: colors.gold, fontWeight: 700 }} />
+            )
+          ) : (
+            <Chip icon={<LockRoundedIcon sx={{ fontSize: "14px !important" }} />} label="Locked" size="small" />
+          )}
+        </Stack>
 
-      <Box sx={{ p: "16px 20px 20px", display: "flex", flexDirection: "column", gap: 1.25, flex: 1 }}>
-        {/* Badges */}
-        <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-          {lesson.level && (
-            <Chip label={lesson.level} size="small"
-              sx={{ bgcolor: lvl.bg, color: lvl.color, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
-          )}
-          {isCompleted && (
-            <Chip icon={<CheckCircleRoundedIcon sx={{ fontSize: "12px !important" }} />}
-              label="Đã hoàn thành" size="small"
-              sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
-          )}
-          {assignment && !isCompleted && (
-            <Chip icon={<AssignmentRoundedIcon sx={{ fontSize: "12px !important" }} />}
-              label="Được giao" size="small"
-              sx={{ bgcolor: `${colors.gold}22`, color: colors.gold, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
-          )}
-        </Box>
-
-        {/* Title */}
-        <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary", lineHeight: 1.4, flex: 1 }}>
-          {lesson.title}
+        <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
+          {unit.description || "No description."}
         </Typography>
 
-        {/* Meta */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-          <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary" }}>
-            📚 {lesson.word_count ?? "?"} từ
-            {lesson.created_by_name ? ` · ${lesson.created_by_name}` : ""}
-          </Typography>
-          {dueDate && (
-            <Typography sx={{ fontSize: "0.8125rem", color: isOverdue ? colors.red : "text.secondary", fontWeight: isOverdue ? 700 : 400 }}>
-              🗓 Hạn: {fmtDate(dueDate)}{isOverdue ? " — Quá hạn!" : ""}
+        <Box>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+              Progress
             </Typography>
-          )}
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 700 }}>
+              {completedLessons}/{totalLessons}
+            </Typography>
+          </Stack>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              height: 7,
+              borderRadius: 3,
+              bgcolor: "rgba(0,0,0,0.1)",
+              "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent },
+            }}
+          />
         </Box>
 
-        {/* Action button */}
-        <SbButton
-          variant={isCompleted ? "outlined" : "primary"}
-          size="small"
-          fullWidth
-          startIcon={<PlayArrowRoundedIcon />}
-          endIcon={!isCompleted && <ArrowForwardRoundedIcon />}
-          onClick={() => navigate(`/learning/${lesson.id}/study`)}
-          sx={{ mt: 0.5 }}
-        >
-          {isCompleted ? "Học lại" : isStarted ? "Tiếp tục học" : "Bắt đầu học"}
-        </SbButton>
-      </Box>
+        <Stack spacing={1}>
+          {(unit.lessons || []).map((item) => (
+            <Stack
+              key={`${unit.id}-${item.order_index}-${item.lesson?.id}`}
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={1}
+              sx={{ p: 1.25, borderRadius: 2, bgcolor: "background.default" }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700 }}>
+                  Lesson {item.order_index}: {item.lesson?.title}
+                </Typography>
+                <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                  {item.lesson?.level || "A1"}
+                </Typography>
+              </Box>
+              <SbButton
+                size="small"
+                variant="primary"
+                startIcon={<PlayArrowRoundedIcon />}
+                disabled={!unit.unlocked || disabled}
+                loading={startingLessonId === item.lesson?.id}
+                onClick={() => onStart(item.lesson?.id)}
+              >
+                Start
+              </SbButton>
+            </Stack>
+          ))}
+        </Stack>
+
+        {canStartCheckpoint && (
+          <SbButton
+            variant="outlined"
+            startIcon={<FactCheckRoundedIcon />}
+            disabled={disabled}
+            loading={startingCheckpointUnitId === unit.id}
+            onClick={() => onStartCheckpoint(unit.id)}
+          >
+            Start Checkpoint
+          </SbButton>
+        )}
+        {checkpointPassed && (
+          <Alert severity="success" sx={{ py: 0 }}>
+            Checkpoint passed
+          </Alert>
+        )}
+      </Stack>
     </SbCard>
   );
 };
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-
-const CardSkeleton = () => (
-  <SbCard sx={{ height: 200 }} noPadding>
-    <Box sx={{ height: 5, bgcolor: colors.greenLight, borderRadius: "12px 12px 0 0" }} />
-    <Box sx={{ p: "16px 20px" }}>
-      <Skeleton variant="text" width="30%" height={20} sx={{ mb: 1 }} />
-      <Skeleton variant="text" width="80%" height={24} sx={{ mb: 0.5 }} />
-      <Skeleton variant="text" width="50%" height={18} sx={{ mb: 2 }} />
-      <Skeleton variant="rectangular" height={36} sx={{ borderRadius: 6 }} />
-    </Box>
-  </SbCard>
-);
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-const EmptyState = ({ tab }) => (
-  <Box sx={{ textAlign: "center", py: 6 }}>
-    {tab === 0
-      ? <MenuBookRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 1 }} />
-      : <AssignmentRoundedIcon sx={{ fontSize: 56, color: colors.greenLight, mb: 1 }} />}
-    <Typography sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}>
-      {tab === 0 ? "Chưa có bài học nào" : "Chưa có bài được giao"}
-    </Typography>
-    <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
-      {tab === 0
-        ? "Hãy khám phá thư viện hoặc hỏi giáo viên để được giao bài."
-        : "Giáo viên của bạn chưa giao bài học nào."}
-    </Typography>
-  </Box>
-);
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-
 const LearningPage = () => {
-  const [tab, setTab] = useState(0);
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  const { data: lessonsData, isLoading: lessLoading } = useQuery({
-    queryKey: ["lessons"],
-    queryFn: () => learningApi.getLessons().then((r) => r.data),
-    staleTime: 120_000,
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["learning-path"],
+    queryFn: () => learningApi.getLearningPath().then((response) => response.data),
+  });
+  const { data: placementStatus } = useQuery({
+    queryKey: ["placement-status"],
+    queryFn: () => learningApi.getPlacementStatus().then((response) => response.data),
+  });
+  const { data: recoverData, refetch: refetchRecover } = useQuery({
+    queryKey: ["learning-recover-session"],
+    queryFn: () => learningApi.getRecoverableSession().then((response) => response.data),
   });
 
-  const { data: assignmentsData, isLoading: assignLoading } = useQuery({
-    queryKey: ["assignments"],
-    queryFn: () => learningApi.getAssignments().then((r) => r.data),
-    staleTime: 120_000,
+  const startMutation = useMutation({
+    mutationFn: (lessonId) => learningApi.startLearningSession(lessonId).then((response) => response.data),
+    onSuccess: (session) => {
+      navigate(`/learning/session/${session.id}`);
+    },
+  });
+  const checkpointStartMutation = useMutation({
+    mutationFn: (unitId) => learningApi.startCheckpoint(unitId).then((response) => response.data),
+    onSuccess: (session) => {
+      navigate(`/learning/session/${session.id}`);
+    },
+  });
+  const resumeMutation = useMutation({
+    mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId).then((response) => response.data),
+    onSuccess: (payload) => {
+      navigate(`/learning/session/${payload.session?.id}`);
+    },
+  });
+  const { data: dailyGoalData, refetch: refetchDailyGoal } = useQuery({
+    queryKey: ["daily-goal"],
+    queryFn: () => learningApi.getDailyGoal().then((response) => response.data),
+  });
+  const claimDailyGoalMutation = useMutation({
+    mutationFn: () => learningApi.claimDailyGoal().then((response) => response.data),
+    onSuccess: () => {
+      refetchDailyGoal();
+    },
+  });
+  const claimFreezeMutation = useMutation({
+    mutationFn: () => learningApi.claimStreakFreeze().then((response) => response.data),
+    onSuccess: () => {
+      refetchDailyGoal();
+    },
   });
 
-  const lessons     = lessonsData?.results ?? [];
-  const assignments = assignmentsData?.results ?? [];
+  const units = useMemo(() => data?.units || [], [data]);
+  const startingLessonId = startMutation.variables;
+  const startingCheckpointUnitId = checkpointStartMutation.variables;
 
-  // Map lesson id → assignment
-  const assignMap = {};
-  assignments.forEach((a) => { assignMap[a.lesson] = a; });
+  const handleStartSession = (lessonId) => {
+    if (!lessonId) return;
+    startMutation.mutate(lessonId);
+  };
+  const handleStartCheckpoint = (unitId) => {
+    if (!unitId) return;
+    checkpointStartMutation.mutate(unitId);
+  };
+  const recoverSession = recoverData?.session;
 
-  // Filter by search
-  const filterFn = (l) =>
-    !search || l.title.toLowerCase().includes(search.toLowerCase());
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  const shownLessons     = lessons.filter(filterFn);
-  const shownAssignments = assignments.filter((a) =>
-    !search || a.lesson_title?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const isLoading = tab === 0 ? lessLoading : assignLoading;
+  if (isError) {
+    const message = error?.response?.data?.detail || "Cannot load learning path.";
+    return (
+      <Stack spacing={2}>
+        <Alert severity="error">{message}</Alert>
+        <SbButton variant="outlined" onClick={() => refetch()}>
+          Retry
+        </SbButton>
+      </Stack>
+    );
+  }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1.5 }}>
-        <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
-            Bài học
-          </Typography>
-          <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
-            {lessons.length} bài học · {assignments.length} bài được giao
-          </Typography>
-        </Box>
-
-        {/* Search */}
-        <TextField
-          size="small"
-          placeholder="Tìm kiếm bài học..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            width: { xs: "100%", sm: 240 },
-            "& .MuiOutlinedInput-root": {
-              borderRadius: "50px",
-              bgcolor: "background.paper",
-              fontSize: "0.875rem",
-            },
-          }}
-        />
+    <Stack spacing={2.5}>
+      <Box>
+        <Typography sx={{ fontWeight: 800, fontSize: "1.35rem", color: colors.greenStarbucks }}>
+          Learning Path
+        </Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
+          {data?.name || "Course"} · {units.length} units
+        </Typography>
       </Box>
 
-      {/* Tabs */}
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        sx={{
-          borderBottom: `1px solid rgba(0,0,0,0.08)`,
-          "& .MuiTab-root": { fontWeight: 700, fontSize: "0.875rem", textTransform: "none", minWidth: 100 },
-          "& .Mui-selected": { color: `${colors.greenAccent} !important` },
-          "& .MuiTabs-indicator": { bgcolor: colors.greenAccent },
-        }}
-      >
-        <Tab label={`Tất cả bài học (${lessons.length})`} />
-        <Tab label={`Bài được giao (${assignments.length})`} />
-      </Tabs>
-
-      {/* Content */}
-      {isLoading ? (
-        <Grid container spacing={2}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <CardSkeleton />
-            </Grid>
-          ))}
-        </Grid>
-      ) : tab === 0 ? (
-        shownLessons.length === 0 ? (
-          <EmptyState tab={0} />
-        ) : (
-          <Grid container spacing={2}>
-            {shownLessons.map((lesson) => (
-              <Grid item xs={12} sm={6} md={4} key={lesson.id}>
-                <LessonCard lesson={lesson} assignment={assignMap[lesson.id]} />
-              </Grid>
-            ))}
-          </Grid>
-        )
-      ) : (
-        shownAssignments.length === 0 ? (
-          <EmptyState tab={1} />
-        ) : (
-          <Grid container spacing={2}>
-            {shownAssignments.map((a) => {
-              const lessonObj = {
-                id: a.lesson,
-                title: a.lesson_title,
-                word_count: 0,
-                level: "",
-                created_by_name: a.teacher_email,
-                user_progress: a.completed_at ? { completed_at: a.completed_at } : null,
-              };
-              return (
-                <Grid item xs={12} sm={6} md={4} key={a.id}>
-                  <LessonCard lesson={lessonObj} assignment={a} />
-                </Grid>
-              );
-            })}
-          </Grid>
-        )
+      {!!dailyGoalData && (
+        <SbCard>
+          <Stack spacing={1}>
+            <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
+              Daily Goal
+            </Typography>
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              {dailyGoalData.today?.studied_minutes ?? 0}/{dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes} minutes
+            </Typography>
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 5}
+            </Typography>
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
+            </Typography>
+            <SbButton
+              size="small"
+              variant="outlined"
+              disabled={!dailyGoalData.today?.is_achieved || !!dailyGoalData.today?.claimed_at}
+              loading={claimDailyGoalMutation.isPending}
+              onClick={() => claimDailyGoalMutation.mutate()}
+            >
+              {dailyGoalData.today?.claimed_at ? "Claimed" : `Claim +${dailyGoalData.reward_xp ?? 0} XP`}
+            </SbButton>
+            <SbButton
+              size="small"
+              variant="outlined"
+              loading={claimFreezeMutation.isPending}
+              onClick={() => claimFreezeMutation.mutate()}
+            >
+              Buy Freeze (-50 XP)
+            </SbButton>
+            {!!claimDailyGoalMutation.error && (
+              <Alert severity="error">
+                {claimDailyGoalMutation.error?.response?.data?.detail || "Cannot claim daily goal."}
+              </Alert>
+            )}
+            {!!claimFreezeMutation.error && (
+              <Alert severity="error">
+                {claimFreezeMutation.error?.response?.data?.detail || "Cannot buy streak freeze."}
+              </Alert>
+            )}
+          </Stack>
+        </SbCard>
       )}
-    </Box>
+
+      {!!placementStatus && !placementStatus.has_completed_placement && (
+        <Alert
+          severity="info"
+          action={
+            <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/placement")}>
+              Start Placement
+            </SbButton>
+          }
+        >
+          Ban chua hoan thanh placement. Nen lam placement de he thong xep do kho phu hop.
+        </Alert>
+      )}
+
+      {!!recoverData?.has_recoverable_session && !!recoverSession && (
+        <Alert
+          severity="warning"
+          action={(
+            <Stack direction="row" spacing={1}>
+              <SbButton
+                size="small"
+                variant="outlined"
+                loading={resumeMutation.isPending}
+                onClick={() => resumeMutation.mutate(recoverSession.id)}
+              >
+                Continue Session
+              </SbButton>
+              <SbButton
+                size="small"
+                variant="text"
+                onClick={() => refetchRecover()}
+              >
+                Refresh
+              </SbButton>
+            </Stack>
+          )}
+        >
+          Ban dang co phien hoc dang do: {recoverSession.lesson_title} (step {recoverData.next_step_index || 1}).
+        </Alert>
+      )}
+
+      {!!startMutation.error && (
+        <Alert severity="error">
+          {startMutation.error?.response?.data?.detail || "Cannot start session."}
+        </Alert>
+      )}
+      {!!checkpointStartMutation.error && (
+        <Alert severity="error">
+          {checkpointStartMutation.error?.response?.data?.detail || "Cannot start checkpoint."}
+        </Alert>
+      )}
+      {!!resumeMutation.error && (
+        <Alert severity="error">
+          {resumeMutation.error?.response?.data?.detail || "Cannot resume session."}
+        </Alert>
+      )}
+
+      {units.length === 0 && (
+        <Alert severity="info">
+          Chưa có learning path. Chạy lệnh seed: <strong>python manage.py seed_learning_path</strong>
+        </Alert>
+      )}
+
+      {units.map((unit) => (
+        <UnitCard
+          key={unit.id}
+          unit={unit}
+          onStart={handleStartSession}
+          onStartCheckpoint={handleStartCheckpoint}
+          startingLessonId={startingLessonId}
+          startingCheckpointUnitId={startingCheckpointUnitId}
+          disabled={startMutation.isPending || checkpointStartMutation.isPending}
+        />
+      ))}
+    </Stack>
   );
 };
 

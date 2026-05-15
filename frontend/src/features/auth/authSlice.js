@@ -88,8 +88,9 @@ const authSlice = createSlice({
       localStorage.removeItem("user");
     },
     setUser(state, { payload }) {
-      state.user = payload;
-      localStorage.setItem("user", JSON.stringify(payload));
+      const nextUser = state.user ? { ...state.user, ...payload } : payload;
+      state.user = nextUser;
+      localStorage.setItem("user", JSON.stringify(nextUser));
     },
     clearError(state) {
       state.error = null;

@@ -1,0 +1,60 @@
+"""URL patterns for learner flow endpoints."""
+
+from django.urls import path
+
+from .flow_views import (
+    DailyGoalClaimView,
+    DailyGoalView,
+    LearningCheckpointStartView,
+    LearningCheckpointSubmitView,
+    LearningPathView,
+    LearningPlacementQuestionsView,
+    LearningPlacementStatusView,
+    LearningPlacementSubmitView,
+    LearningSessionAnswerView,
+    LearningSessionDetailView,
+    LearningSessionFinishView,
+    LearningSessionQuitView,
+    LearningSessionRecoverView,
+    LearningSessionResumeView,
+    LearningSessionStartView,
+    LearningSessionSwitchEasyView,
+    ReviewAnswerView,
+    ReviewHistoryView,
+    ReviewListView,
+    ReviewSummaryView,
+    StreakFreezeClaimView,
+)
+
+
+urlpatterns = [
+    path("path/", LearningPathView.as_view(), name="learning-path"),
+    path("placement/status/", LearningPlacementStatusView.as_view(), name="learning-placement-status"),
+    path("placement/questions/", LearningPlacementQuestionsView.as_view(), name="learning-placement-questions"),
+    path("placement/submit/", LearningPlacementSubmitView.as_view(), name="learning-placement-submit"),
+    path("session/start/", LearningSessionStartView.as_view(), name="learning-session-start"),
+    path("session/recover/", LearningSessionRecoverView.as_view(), name="learning-session-recover"),
+    path("session/<int:session_id>/resume/", LearningSessionResumeView.as_view(), name="learning-session-resume"),
+    path(
+        "session/<int:session_id>/switch-easy/",
+        LearningSessionSwitchEasyView.as_view(),
+        name="learning-session-switch-easy",
+    ),
+    path("session/<int:session_id>/", LearningSessionDetailView.as_view(), name="learning-session-detail"),
+    path("session/<int:session_id>/answer/", LearningSessionAnswerView.as_view(), name="learning-session-answer"),
+    path("session/<int:session_id>/finish/", LearningSessionFinishView.as_view(), name="learning-session-finish"),
+    path("session/<int:session_id>/quit/", LearningSessionQuitView.as_view(), name="learning-session-quit"),
+    path("checkpoint/start/", LearningCheckpointStartView.as_view(), name="learning-checkpoint-start"),
+    path(
+        "checkpoint/<int:session_id>/submit/",
+        LearningCheckpointSubmitView.as_view(),
+        name="learning-checkpoint-submit",
+    ),
+    path("daily-goal/", DailyGoalView.as_view(), name="learning-daily-goal"),
+    path("daily-goal/claim/", DailyGoalClaimView.as_view(), name="learning-daily-goal-claim"),
+    path("streak-freeze/claim/", StreakFreezeClaimView.as_view(), name="learning-streak-freeze-claim"),
+    path("review/", ReviewListView.as_view(), name="review-list"),
+    path("review/summary/", ReviewSummaryView.as_view(), name="review-summary"),
+    path("review/history/", ReviewHistoryView.as_view(), name="review-history"),
+    path("review/<int:word_id>/answer/", ReviewAnswerView.as_view(), name="review-answer"),
+]

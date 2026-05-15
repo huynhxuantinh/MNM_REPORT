@@ -394,3 +394,9 @@ python manage.py spectacular --file schema.yml  # Export OpenAPI schema
 celery -A celery inspect active      # Xem task đang chạy
 celery -A celery purge               # Xoá toàn bộ task khỏi queue
 ```
+
+## Learning Module Status (2026-05-15)
+
+- Learning test suite: `204/204` pass (`backend/apps/learning/tests`).
+- Timezone handling cho daily-goal/review/streak đã được chuẩn hóa theo timezone-aware date.
+- Lesson complete endpoint đã fix message/caching để ổn định test và tránh lỗi encoding text.

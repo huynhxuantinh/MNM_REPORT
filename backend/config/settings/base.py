@@ -146,6 +146,14 @@ REST_FRAMEWORK = {
         # Burst/Sustained for authenticated users
         "burst": "100/minute",         # Burst traffic
         "sustained": "1000/day",       # Daily sustained traffic
+        # Learning flow
+        "learning_session_start": "30/minute",
+        "learning_session_answer_burst": "180/minute",
+        "learning_session_answer_sustained": "3000/day",
+        "learning_session_finish": "60/minute",
+        "learning_session_quit": "60/minute",
+        "learning_checkpoint_start": "20/minute",
+        "learning_checkpoint_submit": "20/minute",
     },
 }
 
@@ -215,6 +223,23 @@ CELERY_BEAT_SCHEDULE = {
         "task": "learning.send_assignment_digest",
         "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
     },
+    "daily-goal-reminders-hourly": {
+        "task": "learning.send_daily_goal_reminders",
+        "schedule": timedelta(hours=1),
+    },
+    "onboarding-first-lesson-reminders-hourly": {
+        "task": "learning.send_onboarding_first_lesson_reminders",
+        "schedule": timedelta(hours=1),
+    },
+    "refill-hearts-hourly": {
+        "task": "learning.refill_hearts",
+        "schedule": timedelta(hours=1),
+    },
+    "rebuild-weekly-league-daily": {
+        "task": "learning.rebuild_weekly_league",
+        "schedule": timedelta(hours=24),
+    },
+
 }
 
 # ── API Docs (drf-spectacular) ────────────────────────────────────

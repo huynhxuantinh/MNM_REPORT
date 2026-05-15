@@ -113,7 +113,7 @@ jobs:
 
       - name: Run linter
         working-directory: ./frontend
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Run unit tests with coverage
         working-directory: ./frontend

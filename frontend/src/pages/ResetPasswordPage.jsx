@@ -169,14 +169,24 @@ const ResetPasswordPage = () => {
     setLoading(true);
     setServerError("");
     try {
-      await authApi.resetPassword({ token, new_password: form.password });
+      await authApi.resetPassword({
+        token,
+        password: form.password,
+        password_confirm: form.confirmPassword,
+      });
       setSuccess(true);
     } catch (err) {
       const data = err.response?.data;
       if (data?.token) {
         setServerError("Link đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu link mới.");
-      } else if (data?.new_password) {
-        setServerError(Array.isArray(data.new_password) ? data.new_password[0] : data.new_password);
+      } else if (data?.password) {
+        setServerError(Array.isArray(data.password) ? data.password[0] : data.password);
+      } else if (data?.password_confirm) {
+        setServerError(
+          Array.isArray(data.password_confirm)
+            ? data.password_confirm[0]
+            : data.password_confirm
+        );
       } else if (data?.detail) {
         setServerError(data.detail);
       } else {
