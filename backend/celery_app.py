@@ -31,9 +31,4 @@ app.conf.beat_schedule = {
         "task": "learning.send_review_reminders",
         "schedule": crontab(hour=20, minute=0),
     },
-    # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn (≤ 2 ngày)
-    "assignment-digest-daily": {
-        "task": "learning.send_assignment_digest",
-        "schedule": crontab(hour=8, minute=0),
-    },
 }

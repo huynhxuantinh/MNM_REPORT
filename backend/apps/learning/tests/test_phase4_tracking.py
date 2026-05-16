@@ -1,4 +1,6 @@
 import pytest
+from datetime import timedelta
+from django.utils import timezone
 
 from apps.learning.models import Course, LearningEvent, LearningSession, Unit, UnitLesson
 
@@ -10,7 +12,6 @@ FINISH_URL = lambda sid: f"/api/v1/learning/session/{sid}/finish/"
 QUIT_URL = lambda sid: f"/api/v1/learning/session/{sid}/quit/"
 RESUME_URL = lambda sid: f"/api/v1/learning/session/{sid}/resume/"
 RECOVER_URL = "/api/v1/learning/session/recover/"
-KPI_URL = "/api/v1/learning/kpi/baseline/"
 
 
 @pytest.fixture
@@ -82,40 +83,47 @@ def test_quit_session_tracks_event(sc, lesson, course_with_units):
     ).exists()
 
 
-def test_kpi_baseline_teacher_access(tc, sc, lesson, course_with_units):
+def test_recover_returns_started_session_and_resume_works(sc, lesson, course_with_units):
     start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
     assert start.status_code == 201
     session_id = start.data["id"]
-    sc.post(QUIT_URL(session_id), {"reason": "drop"}, format="json")
-
-    response = tc.get(KPI_URL)
-    assert response.status_code == 200
-    assert "range" in response.data
-    assert "kpis" in response.data
-    assert "dau" in response.data["kpis"]
-    assert "sessions_per_dau" in response.data["kpis"]
-    assert "d1_retention_rate" in response.data["kpis"]
-    assert "w4_retention_rate" in response.data["kpis"]
-
-
-def test_recover_and_resume_abandoned_session(sc, lesson, course_with_units):
-    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
-    assert start.status_code == 201
-    session_id = start.data["id"]
-
-    quit_resp = sc.post(QUIT_URL(session_id), {"reason": "need_break"}, format="json")
-    assert quit_resp.status_code == 200
 
     recover = sc.get(RECOVER_URL)
     assert recover.status_code == 200
     assert recover.data["has_recoverable_session"] is True
     assert recover.data["session"]["id"] == session_id
+    assert recover.data["session"]["status"] == "started"
 
-    resume = sc.post(RESUME_URL(session_id), format="json")
+    resume = sc.post(f"{RESUME_URL(session_id)}?source=home_page", format="json")
     assert resume.status_code == 200
     assert resume.data["resumed"] is True
+    assert resume.data["already_started"] is True
     assert resume.data["session"]["status"] == "started"
+    assert LearningEvent.objects.filter(
+        session_id=session_id,
+        event_type=LearningEvent.EventType.SESSION_START,
+        meta__resume_source="home_page",
+    ).exists()
 
     session = LearningSession.objects.get(id=session_id)
     assert session.status == LearningSession.Status.STARTED
     assert session.completed_at is None
+
+
+def test_recover_auto_abandons_stale_started_session(sc, lesson, course_with_units):
+    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+    assert start.status_code == 201
+    session_id = start.data["id"]
+
+    LearningSession.objects.filter(id=session_id).update(
+        started_at=timezone.now() - timedelta(hours=25)
+    )
+
+    recover = sc.get(RECOVER_URL)
+    assert recover.status_code == 200
+    assert recover.data["has_recoverable_session"] is False
+    assert recover.data["recover_context"]["stale_sessions_auto_abandoned"] >= 1
+
+    session = LearningSession.objects.get(id=session_id)
+    assert session.status == LearningSession.Status.ABANDONED
+    assert session.completed_at is not None

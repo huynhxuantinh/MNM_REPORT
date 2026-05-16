@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Box, Typography, Grid, Card, CardContent, Skeleton, LinearProgress,
 } from "@mui/material";
-import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
-import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
-import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
-import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
+import { LibraryBooksRounded as LibraryBooksRoundedIcon } from "@mui/icons-material";
+import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
+import { CollectionsBookmarkRounded as CollectionsBookmarkRoundedIcon } from "@mui/icons-material";
+import { RepeatRounded as RepeatRoundedIcon } from "@mui/icons-material";
+import { QuizRounded as QuizRoundedIcon } from "@mui/icons-material";
 import adminApi from "@/api/adminApi";
 
 const ADMIN_BG = "#1a1f3a";
@@ -99,7 +98,7 @@ const AdminContent = () => {
             icon={<CollectionsBookmarkRoundedIcon />}
             label="Bộ từ vựng"
             value={s.total_wordsets}
-            sub="WordSet do giáo viên / admin tạo"
+            sub="WordSet created by system"
             color="#6d4c41"
             loading={isLoading}
           />
@@ -118,16 +117,6 @@ const AdminContent = () => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
-          <InfoCard
-            icon={<AssignmentRoundedIcon />}
-            label="Bài giao"
-            value={s.total_assignments}
-            sub="Tổng assignment giáo viên đã giao"
-            color="#f4511e"
-            loading={isLoading}
-          />
-        </Grid>
 
         <Grid item xs={12} sm={6} md={4}>
           <InfoCard
@@ -156,3 +145,5 @@ const AdminContent = () => {
 };
 
 export default AdminContent;
+
+

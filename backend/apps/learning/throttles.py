@@ -28,3 +28,7 @@ class LearningCheckpointStartRateThrottle(UserRateThrottle):
 
 class LearningCheckpointSubmitRateThrottle(UserRateThrottle):
     scope = "learning_checkpoint_submit"
+
+
+class LearningAnalyticsReadRateThrottle(UserRateThrottle):
+    scope = "learning_analytics_read"

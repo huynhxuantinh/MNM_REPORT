@@ -7,10 +7,10 @@ import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
   Snackbar, Alert, Chip, Switch
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
+import { EditRounded as EditRoundedIcon } from "@mui/icons-material";
+import { DeleteRounded as DeleteRoundedIcon } from "@mui/icons-material";
+import { AddRounded as AddRoundedIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
 
 const ADMIN_BG = "#1a1f3a";

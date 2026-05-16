@@ -2,13 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Box, Typography, Chip, CircularProgress, Divider, IconButton, Tooltip,
 } from "@mui/material";
-import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import AssignmentRoundedIcon    from "@mui/icons-material/AssignmentRounded";
-import EmojiEventsRoundedIcon   from "@mui/icons-material/EmojiEventsRounded";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import InfoRoundedIcon          from "@mui/icons-material/InfoRounded";
-import DoneAllRoundedIcon       from "@mui/icons-material/DoneAllRounded";
-import FiberManualRecordRoundedIcon from "@mui/icons-material/FiberManualRecordRounded";
+import { NotificationsRounded as NotificationsRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { InfoRounded as InfoRoundedIcon } from "@mui/icons-material";
+import { DoneAllRounded as DoneAllRoundedIcon } from "@mui/icons-material";
+import { FiberManualRecordRounded as FiberManualRecordRoundedIcon } from "@mui/icons-material";
 import { SbCard, SbButton } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
@@ -16,9 +15,9 @@ import learningApi from "@/api/learningApi";
 // ── Type config ───────────────────────────────────────────────────────────────
 
 const TYPE_CFG = {
-  assignment: { icon: <AssignmentRoundedIcon />, color: colors.gold, label: "Bài được giao" },
   level_up:   { icon: <EmojiEventsRoundedIcon />, color: colors.greenAccent, label: "Lên cấp" },
   streak:     { icon: <LocalFireDepartmentRoundedIcon />, color: "#f57c00", label: "Streak" },
+  reminder:   { icon: <InfoRoundedIcon />, color: colors.greenStarbucks, label: "Nhắc nhở" },
   system:     { icon: <InfoRoundedIcon />, color: colors.greenStarbucks, label: "Hệ thống" },
 };
 

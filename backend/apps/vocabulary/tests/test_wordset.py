@@ -231,3 +231,63 @@ class TestRemoveWordFromSet:
         count_before = WordSetWord.objects.filter(wordset=wordset).count()
         teacher_client.delete(f"{SETS_URL}{wordset.id}/words/{word.id}/")
         assert WordSetWord.objects.filter(wordset=wordset).count() == count_before - 1
+
+
+@pytest.mark.django_db
+class TestWordSetImportCsv:
+    IMPORT_URL = f"{SETS_URL}import/"
+
+    def test_teacher_can_import_wordset_csv(self, teacher_client):
+        from .conftest import make_csv
+
+        csv_file = make_csv(
+            [
+                {"text": "zeal", "definition_vi": "Nhiệt huyết", "level": "B2"},
+                {"text": "calm", "definition_vi": "Bình tĩnh", "level": "A2"},
+            ]
+        )
+        response = teacher_client.post(
+            self.IMPORT_URL,
+            {
+                "name": "Imported Set",
+                "description": "from csv",
+                "level": "B1",
+                "is_public": True,
+                "file": csv_file,
+            },
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["imported"] == 2
+        ws = WordSet.objects.get(id=response.data["id"])
+        assert ws.wordset_words.count() == 2
+
+    def test_import_csv_collects_row_errors(self, teacher_client):
+        from .conftest import make_csv
+
+        csv_file = make_csv(
+            [
+                {"text": "valid", "definition_vi": "Hợp lệ", "level": "A1"},
+                {"text": "", "definition_vi": "Thiếu text", "level": "A1"},
+                {"text": "wrong-level", "definition_vi": "Sai level", "level": "ZZ"},
+            ]
+        )
+        response = teacher_client.post(
+            self.IMPORT_URL,
+            {"name": "Set with errors", "file": csv_file},
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["imported"] == 1
+        assert len(response.data["errors"]) == 2
+
+    def test_student_cannot_import_wordset_csv(self, student_client):
+        from .conftest import make_csv
+
+        csv_file = make_csv([{"text": "apple", "level": "A1"}])
+        response = student_client.post(
+            self.IMPORT_URL,
+            {"name": "Denied", "file": csv_file},
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN

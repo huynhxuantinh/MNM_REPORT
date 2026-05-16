@@ -12,6 +12,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 
 from apps.vocabulary.models import Word
 from .exercise_engine import evaluate_exercise_answer, generate_exercises_from_words, to_client_exercise
@@ -50,6 +52,7 @@ from .shared_flow import (
     PLACEMENT_CACHE_TTL_SECONDS,
     PLACEMENT_DEFAULT_QUESTION_COUNT,
     PLACEMENT_MIN_SUBMIT_QUESTIONS,
+    SESSION_RECOVER_STALE_HOURS,
     REVIEW_SESSION_LIMIT,
     STREAK_FREEZE_XP_COST,
     XP_REVIEW_CORRECT,
@@ -64,6 +67,7 @@ from .shared_flow import (
     _create_level_up_notification,
     _consume_heart,
     _detect_difficulty,
+    _detect_difficulty_with_context,
     _compute_recommended_level,
     _count_wrong_attempts_for_word,
     _detect_suspicious_answer,
@@ -94,12 +98,72 @@ from .throttles import (
     LearningSessionStartRateThrottle,
 )
 
+ALLOWED_FLOW_SOURCES = {
+    "unknown",
+    "home_page",
+    "learning_page",
+    "learning_path",
+    "placement_page",
+    "placement_result_cta",
+    "notification",
+    "deep_link",
+}
 
+
+def _resolve_client_source(request, default: str = "unknown") -> str:
+    source = request.query_params.get("source")
+    if not source and hasattr(request, "data"):
+        source = request.data.get("source")
+    source = str(source or default).strip().lower()
+    return source if source in ALLOWED_FLOW_SOURCES else default
+
+
+def _session_last_activity_at(session: LearningSession):
+    latest_attempt = (
+        session.attempts.order_by("-created_at").only("created_at").first()
+        if session.id
+        else None
+    )
+    return latest_attempt.created_at if latest_attempt else session.started_at
+
+
+def _expire_stale_started_sessions(user) -> int:
+    now = timezone.now()
+    cutoff = now - timedelta(hours=SESSION_RECOVER_STALE_HOURS)
+    stale_count = 0
+    started_sessions = (
+        LearningSession.objects
+        .filter(user=user, status=LearningSession.Status.STARTED)
+        .order_by("-started_at", "-id")
+    )
+    for session in started_sessions:
+        last_activity_at = _session_last_activity_at(session)
+        if not last_activity_at or last_activity_at > cutoff:
+            continue
+        session.status = LearningSession.Status.ABANDONED
+        session.completed_at = now
+        session.save(update_fields=["status", "completed_at"])
+        _track_learning_event(
+            user,
+            LearningEvent.EventType.SESSION_QUIT,
+            session=session,
+            meta={
+                "reason": "auto_expire_stale_started_session",
+                "last_activity_at": last_activity_at.isoformat(),
+                "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
+            },
+        )
+        stale_count += 1
+    return stale_count
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningPathView(APIView):
     """GET /learning/path/ - Return unit path with lock/unlock state."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         course = (
             Course.objects
@@ -153,13 +217,16 @@ class LearningPathView(APIView):
         return Response(payload)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionStartView(APIView):
     """POST /learning/session/start/ - Start a short lesson session."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionStartRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
+        start_source = _resolve_client_source(request, default="learning_page")
         serializer = LearningSessionStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         lesson = serializer.validated_data["lesson"]
@@ -200,7 +267,7 @@ class LearningSessionStartView(APIView):
             .filter(lessons=lesson)
             .distinct()
         )
-        difficulty = _detect_difficulty(request.user)
+        difficulty, difficulty_context = _detect_difficulty_with_context(request.user)
         max_questions = 6 if difficulty == "easy" else 8
         exercises = _build_exercises_from_bank(lesson, max_questions=max_questions)
         if not exercises:
@@ -237,6 +304,7 @@ class LearningSessionStartView(APIView):
                     "lesson_id": lesson.id,
                     "unit_id": unit_link.unit_id,
                     "session_id": session.id,
+                    "onboarding_source": start_source,
                 },
             )
         _track_learning_event(
@@ -249,6 +317,18 @@ class LearningSessionStartView(APIView):
                 "exercise_count": len(exercises),
                 "unit_id": session.unit_id,
                 "lesson_id": session.lesson_id,
+                "start_source": start_source,
+            },
+        )
+        _track_learning_event(
+            request.user,
+            LearningEvent.EventType.EXPERIMENT_METRIC,
+            session=session,
+            meta={
+                "metric_key": "difficulty_auto_adjust",
+                "difficulty": difficulty,
+                "context": difficulty_context,
+                "start_source": start_source,
             },
         )
 
@@ -263,18 +343,42 @@ class LearningSessionStartView(APIView):
         payload = LearningSessionSerializer(session).data
         payload["exercise_count"] = len(exercises)
         payload["difficulty"] = difficulty
+        payload["difficulty_context"] = difficulty_context
         payload["hearts"] = hearts.current_hearts
         payload["hearts_info"] = _build_hearts_payload(hearts)
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningPlacementStatusView(APIView):
     """GET /learning/placement/status/ - Placement status for onboarding."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
+        stale_auto_abandoned = _expire_stale_started_sessions(request.user)
+        recoverable_session = (
+            LearningSession.objects
+            .filter(user=request.user, status=LearningSession.Status.STARTED)
+            .order_by("-started_at", "-id")
+            .first()
+        )
         latest = PlacementResult.objects.filter(user=request.user).first()
+        has_started_first_lesson = LearningEvent.objects.filter(
+            user=request.user,
+            event_type=LearningEvent.EventType.ONBOARDING_STEP,
+            meta__step="first_lesson_start",
+        ).exists()
+        has_pending_draft = bool(cache.get(_placement_cache_key(request.user.id)))
+        if recoverable_session:
+            next_action = "continue_session"
+        elif latest is None:
+            next_action = "resume_placement" if has_pending_draft else "start_placement"
+        elif not has_started_first_lesson:
+            next_action = "start_first_lesson"
+        else:
+            next_action = "continue_learning_path"
         return Response(
             {
                 "has_completed_placement": latest is not None,
@@ -282,16 +386,33 @@ class LearningPlacementStatusView(APIView):
                 "last_taken_at": latest.created_at if latest else None,
                 "score_pct": latest.score_pct if latest else None,
                 "should_show_onboarding": latest is None,
+                "placement": {
+                    "completed": latest is not None,
+                    "recommended_level": latest.recommended_level if latest else None,
+                    "last_taken_at": latest.created_at if latest else None,
+                    "score_pct": latest.score_pct if latest else None,
+                },
+                "onboarding": {
+                    "next_action": next_action,
+                    "has_recoverable_session": bool(recoverable_session),
+                    "recoverable_session_id": recoverable_session.id if recoverable_session else None,
+                    "has_pending_placement_draft": has_pending_draft,
+                    "has_started_first_lesson": has_started_first_lesson,
+                    "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                },
             }
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningPlacementQuestionsView(APIView):
     """GET /learning/placement/questions/ - Generate placement questions."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
+        source = _resolve_client_source(request, default="placement_page")
         count = request.query_params.get("count", PLACEMENT_DEFAULT_QUESTION_COUNT)
         existing_questions = cache.get(_placement_cache_key(request.user.id))
         if existing_questions:
@@ -301,6 +422,7 @@ class LearningPlacementQuestionsView(APIView):
                 meta={
                     "reason": "refresh_before_submit",
                     "pending_questions": len(existing_questions),
+                    "source": source,
                 },
             )
         questions = _build_placement_questions(count=count)
@@ -320,7 +442,7 @@ class LearningPlacementQuestionsView(APIView):
         _track_onboarding_step(
             request.user,
             "placement_enter",
-            meta={"question_count": len(safe_questions)},
+            meta={"question_count": len(safe_questions), "source": source},
         )
         return Response(
             {
@@ -331,12 +453,15 @@ class LearningPlacementQuestionsView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningPlacementSubmitView(APIView):
     """POST /learning/placement/submit/ - Submit placement answers."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
+        source = _resolve_client_source(request, default="placement_page")
         serializer = PlacementSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         answers = serializer.validated_data["answers"]
@@ -406,6 +531,7 @@ class LearningPlacementSubmitView(APIView):
                 "score_pct": score_pct,
                 "recommended_level": recommended_level,
                 "total_questions": total,
+                "source": source,
             },
         )
 
@@ -422,15 +548,21 @@ class LearningPlacementSubmitView(APIView):
                     }
                     for level, stats in level_stats.items()
                 },
+                "onboarding": {
+                    "next_action": "start_first_lesson",
+                    "source": source,
+                },
             },
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionDetailView(APIView):
     """GET /learning/session/{id}/ - Session detail for current learner."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request, session_id):
         session = (
             LearningSession.objects
@@ -452,6 +584,17 @@ class LearningSessionDetailView(APIView):
         else:
             if safe_exercises:
                 next_step = safe_exercises[-1]["step_index"]
+        difficulty_hint_event = (
+            LearningEvent.objects
+            .filter(
+                user=request.user,
+                session=session,
+                event_type=LearningEvent.EventType.EXPERIMENT_METRIC,
+                meta__metric_key="difficulty_auto_adjust",
+            )
+            .order_by("-created_at")
+            .first()
+        )
         return Response(
             {
                 "session": LearningSessionSerializer(session).data,
@@ -459,16 +602,26 @@ class LearningSessionDetailView(APIView):
                 "exercises": safe_exercises,
                 "next_step": next_step,
                 "hearts": _build_hearts_payload(hearts),
+                "difficulty_hint": (
+                    {
+                        "difficulty": (difficulty_hint_event.meta or {}).get("difficulty"),
+                        "context": (difficulty_hint_event.meta or {}).get("context"),
+                    }
+                    if difficulty_hint_event
+                    else None
+                ),
             }
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionAnswerView(APIView):
     """POST /learning/session/{id}/answer/ - Submit one exercise answer."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionAnswerBurstThrottle, LearningSessionAnswerSustainedThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
         session = (
             LearningSession.objects
@@ -610,12 +763,14 @@ class LearningSessionAnswerView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionFinishView(APIView):
     """POST /learning/session/{id}/finish/ - End session and persist progress."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionFinishRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
         session = (
             LearningSession.objects
@@ -744,12 +899,14 @@ class LearningSessionFinishView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionQuitView(APIView):
     """POST /learning/session/{id}/quit/ - Mark started session as abandoned."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionQuitRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
         session = LearningSession.objects.filter(id=session_id, user=request.user).first()
         if not session:
@@ -775,40 +932,64 @@ class LearningSessionQuitView(APIView):
         return Response({"status": session.status, "session_id": session.id})
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionRecoverView(APIView):
-    """GET /learning/session/recover/ - Get latest abandoned session."""
+    """GET /learning/session/recover/ - Get latest active started session."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
+        stale_auto_abandoned = _expire_stale_started_sessions(request.user)
         session = (
             LearningSession.objects
             .select_related("lesson", "unit")
-            .filter(user=request.user, status=LearningSession.Status.ABANDONED)
-            .order_by("-completed_at", "-started_at", "-id")
+            .filter(user=request.user, status=LearningSession.Status.STARTED)
+            .order_by("-started_at", "-id")
             .first()
         )
         if not session:
-            return Response({"has_recoverable_session": False, "session": None})
+            return Response(
+                {
+                    "has_recoverable_session": False,
+                    "session": None,
+                    "next_step_index": None,
+                    "last_activity_at": None,
+                    "recover_context": {
+                        "reason": "no_started_session",
+                        "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                        "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
+                    },
+                }
+            )
 
         next_step = _get_expected_step_index(session) or 1
+        last_activity_at = _session_last_activity_at(session)
         return Response(
             {
                 "has_recoverable_session": True,
                 "session": LearningSessionSerializer(session).data,
                 "next_step_index": next_step,
-                "abandoned_at": session.completed_at,
+                "last_activity_at": last_activity_at,
+                "recover_context": {
+                    "reason": "active_started_session",
+                    "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                    "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
+                },
             }
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionResumeView(APIView):
     """POST /learning/session/{id}/resume/ - Resume an abandoned session."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionStartRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
+        resume_source = _resolve_client_source(request, default="learning_page")
         session = (
             LearningSession.objects
             .filter(id=session_id, user=request.user)
@@ -819,7 +1000,31 @@ class LearningSessionResumeView(APIView):
         if session.status == LearningSession.Status.COMPLETED:
             return Response({"detail": "Phien hoc da hoan thanh."}, status=status.HTTP_400_BAD_REQUEST)
         if session.status == LearningSession.Status.STARTED:
-            return Response({"resumed": False, "session": LearningSessionSerializer(session).data})
+            hearts = _refill_hearts(_get_or_create_hearts(request.user))
+            _track_learning_event(
+                request.user,
+                LearningEvent.EventType.SESSION_START,
+                session=session,
+                meta={
+                    "session_type": session.session_type,
+                    "difficulty": session.difficulty,
+                    "exercise_count": len(session.exercises or []),
+                    "unit_id": session.unit_id,
+                    "lesson_id": session.lesson_id,
+                    "resumed": True,
+                    "resumed_from_status": LearningSession.Status.STARTED,
+                    "resume_source": resume_source,
+                },
+            )
+            return Response(
+                {
+                    "resumed": True,
+                    "already_started": True,
+                    "session": LearningSessionSerializer(session).data,
+                    "next_step_index": _get_expected_step_index(session) or 1,
+                    "hearts": _build_hearts_payload(hearts),
+                }
+            )
 
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         if hearts.current_hearts <= 0:
@@ -830,6 +1035,15 @@ class LearningSessionResumeView(APIView):
                     "max_hearts": hearts.max_hearts,
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
+            )
+
+        if session.completed_at and session.completed_at < timezone.now() - timedelta(hours=SESSION_RECOVER_STALE_HOURS):
+            return Response(
+                {
+                    "detail": "Phien hoc bo do da qua han de tiep tuc.",
+                    "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         session.status = LearningSession.Status.STARTED
@@ -846,11 +1060,14 @@ class LearningSessionResumeView(APIView):
                 "unit_id": session.unit_id,
                 "lesson_id": session.lesson_id,
                 "resumed": True,
+                "resumed_from_status": LearningSession.Status.ABANDONED,
+                "resume_source": resume_source,
             },
         )
         return Response(
             {
                 "resumed": True,
+                "already_started": False,
                 "session": LearningSessionSerializer(session).data,
                 "next_step_index": _get_expected_step_index(session) or 1,
                 "hearts": _build_hearts_payload(hearts),
@@ -858,12 +1075,14 @@ class LearningSessionResumeView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionSwitchEasyView(APIView):
     """POST /learning/session/{id}/switch-easy/ - Switch started lesson session to easy."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningSessionAnswerSustainedThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
         session = (
             LearningSession.objects
@@ -902,12 +1121,14 @@ class LearningSessionSwitchEasyView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningCheckpointStartView(APIView):
     """POST /learning/checkpoint/start/ - Start checkpoint for one unlocked unit."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningCheckpointStartRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = LearningCheckpointStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -989,12 +1210,14 @@ class LearningCheckpointStartView(APIView):
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningCheckpointSubmitView(APIView):
     """POST /learning/checkpoint/{id}/submit/ - Score checkpoint and unlock next unit."""
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [LearningCheckpointSubmitRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, session_id):
         session = (
             LearningSession.objects
@@ -1086,11 +1309,13 @@ class LearningCheckpointSubmitView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class DailyGoalView(APIView):
     """GET /learning/daily-goal/ - Retrieve daily goal progress + hearts."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         goal = _get_or_create_daily_goal(request.user)
         log = _get_today_goal_log(request.user, goal)
@@ -1139,11 +1364,13 @@ class DailyGoalView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class DailyGoalClaimView(APIView):
     """POST /learning/daily-goal/claim/ - Claim XP reward for today's goal."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         goal = _get_or_create_daily_goal(request.user)
         log = _get_today_goal_log(request.user, goal)
@@ -1195,11 +1422,13 @@ class DailyGoalClaimView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class StreakFreezeClaimView(APIView):
     """POST /learning/streak-freeze/claim/ - Exchange XP for one streak freeze."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         streak = _get_or_create_streak(request.user)
         if streak.streak_freezes >= 5:
@@ -1234,11 +1463,13 @@ class StreakFreezeClaimView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ReviewListView(APIView):
     """GET /review/ - List up to REVIEW_SESSION_LIMIT words due today."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         today = timezone.localdate()
         logs = list(
@@ -1255,11 +1486,13 @@ class ReviewListView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ReviewAnswerView(APIView):
     """POST /review/{word_id}/answer/ - Submit review answer and apply SM-2."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request, word_id):
         serializer = ReviewAnswerSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1294,11 +1527,13 @@ class ReviewAnswerView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ReviewSummaryView(APIView):
     """GET /review/summary/ - Today's review summary."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         today = timezone.localdate()
         today_logs = list(
@@ -1331,11 +1566,13 @@ class ReviewSummaryView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ReviewHistoryView(APIView):
     """GET /review/history/?days=30 - Reviewed words count per day."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         days = min(max(int(request.query_params.get("days", 30)), 7), 90)
         today = timezone.localdate()

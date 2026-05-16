@@ -1,5 +1,5 @@
 """
-Models cho module học tập: Lesson, Assignment, ReviewLog (SRS), UserStreak, Notification.
+Models cho module học tập: Lesson, ReviewLog (SRS), UserStreak, Notification.
 """
 from datetime import timedelta
 
@@ -89,49 +89,6 @@ class LessonWord(models.Model):
 
     def __str__(self):
         return f"{self.lesson.title} → {self.word.text}"
-
-
-class Assignment(models.Model):
-    """Bảng Assignment – giáo viên giao bài cho học sinh."""
-
-    teacher = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="assignments_given",
-        verbose_name="Giáo viên",
-    )
-    lesson = models.ForeignKey(
-        Lesson,
-        on_delete=models.CASCADE,
-        related_name="assignments",
-        verbose_name="Bài học",
-    )
-    student = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="assignments_received",
-        verbose_name="Học sinh",
-    )
-    due_date = models.DateField("Hạn hoàn thành", null=True, blank=True)
-    completed_at = models.DateTimeField("Hoàn thành lúc", null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Bài được giao"
-        verbose_name_plural = "Bài được giao"
-        db_table = "assignments"
-        unique_together = [("lesson", "student")]
-
-    def __str__(self):
-        return f"{self.teacher} → {self.student}: {self.lesson}"
-
-    @property
-    def is_completed(self) -> bool:
-        return self.completed_at is not None
-
-    @is_completed.setter
-    def is_completed(self, value: bool) -> None:
-        self.completed_at = timezone.now() if value else None
 
 
 class LessonProgress(models.Model):
@@ -880,34 +837,6 @@ class UserReminderPreference(models.Model):
         verbose_name = "User reminder preference"
         verbose_name_plural = "User reminder preferences"
         db_table = "user_reminder_preferences"
-
-
-class StudentClass(models.Model):
-    """Lớp học do giáo viên tạo ra để nhóm học sinh và giao bài hàng loạt."""
-
-    name = models.CharField("Tên lớp", max_length=200)
-    teacher = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="classes_taught",
-        verbose_name="Giáo viên",
-    )
-    students = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        related_name="classes_enrolled",
-        blank=True,
-        verbose_name="Học sinh",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Lớp học"
-        verbose_name_plural = "Lớp học"
-        db_table = "student_classes"
-        ordering = ["name"]
-
-    def __str__(self):
-        return f"{self.name} ({self.teacher})"
 
 
 class Notification(models.Model):

@@ -3,9 +3,11 @@ Views cho toàn bộ luồng xác thực: đăng ký, login, logout,
 quên/reset/đổi mật khẩu, profile cá nhân.
 """
 import logging
+import smtplib
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.mail import BadHeaderError
 from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
@@ -13,11 +15,13 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .permissions import IsAdmin, IsTeacherOrAdmin
+from .permissions import IsAdmin
 from .throttles import LoginRateThrottle, PasswordResetRateThrottle, RegisterRateThrottle
 
 from .models import EmailVerificationToken, PasswordResetToken, User
@@ -52,6 +56,7 @@ def _get_refresh_token_value(request):
     return request.data.get("refresh") or request.COOKIES.get("refresh_token")
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class RegisterView(APIView):
     """
     POST /api/v1/auth/register/
@@ -62,6 +67,7 @@ class RegisterView(APIView):
     throttle_classes = [RegisterRateThrottle]
 
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -78,7 +84,7 @@ class RegisterView(APIView):
         try:
             send_verification_email(user, token)
             logger.info(f"Verification email sent to {user.email}")
-        except Exception as e:
+        except MAIL_SEND_ERRORS as e:
             logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
             # Không throw exception để registration vẫn thành công
 
@@ -90,6 +96,7 @@ class RegisterView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class VerifyEmailView(APIView):
     """
     POST /api/v1/auth/verify-email/
@@ -98,6 +105,7 @@ class VerifyEmailView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = VerifyEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -131,6 +139,7 @@ class VerifyEmailView(APIView):
         return Response({"detail": "Email đã được xác thực. Bạn có thể đăng nhập."})
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LoginView(APIView):
     """
     POST /api/v1/auth/login/
@@ -140,6 +149,7 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -157,6 +167,7 @@ class LoginView(APIView):
         return response
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LogoutView(APIView):
     """
     POST /api/v1/auth/logout/
@@ -165,6 +176,7 @@ class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         refresh_value = _get_refresh_token_value(request)
         if refresh_value:
@@ -183,6 +195,7 @@ class LogoutView(APIView):
         return response
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class CookieTokenRefreshView(APIView):
     """
     POST /api/v1/auth/token/refresh/
@@ -192,6 +205,7 @@ class CookieTokenRefreshView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         refresh_value = _get_refresh_token_value(request)
         if not refresh_value:
@@ -223,8 +237,10 @@ class CookieTokenRefreshView(APIView):
 
 
 logger = logging.getLogger(__name__)
+MAIL_SEND_ERRORS = (smtplib.SMTPException, BadHeaderError, TimeoutError, OSError)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ForgotPasswordView(APIView):
     """
     POST /api/v1/auth/forgot-password/
@@ -236,6 +252,7 @@ class ForgotPasswordView(APIView):
 
     _GENERIC_MSG = "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn trong vài phút."
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -259,13 +276,14 @@ class ForgotPasswordView(APIView):
         try:
             send_password_reset_email(user, token)
             logger.info(f"Password reset email sent to {user.email}")
-        except Exception as e:
+        except MAIL_SEND_ERRORS as e:
             logger.error(f"Failed to send password reset email to {user.email}: {str(e)}")
             # Vẫn trả về success để không reveal user exists
 
         return Response({"detail": self._GENERIC_MSG})
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ResetPasswordView(APIView):
     """
     POST /api/v1/auth/reset-password/
@@ -275,6 +293,7 @@ class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [PasswordResetRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -310,6 +329,7 @@ class ResetPasswordView(APIView):
         )
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ChangePasswordView(APIView):
     """
     PUT /api/v1/auth/change-password/
@@ -319,6 +339,7 @@ class ChangePasswordView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def put(self, request):
         serializer = ChangePasswordSerializer(
             data=request.data, context={"request": request}
@@ -338,6 +359,7 @@ class ChangePasswordView(APIView):
         })
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class MeView(APIView):
     """
     GET  /api/v1/auth/me/ – Lấy thông tin cá nhân
@@ -346,9 +368,11 @@ class MeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def put(self, request):
         serializer = UserSerializer(
             request.user, data=request.data, partial=True, context={"request": request}
@@ -394,16 +418,18 @@ class AdminUserUpdateView(generics.UpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class AdminStatsView(APIView):
     """GET /api/v1/auth/admin/stats/ – Thống kê hệ thống."""
 
     permission_classes = [IsAdmin]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         from django.utils import timezone
         from datetime import timedelta
         from apps.vocabulary.models import Word, WordSet
-        from apps.learning.models import Lesson, ReviewLog, Assignment
+        from apps.learning.models import Lesson, ReviewLog
         from apps.quiz.models import QuizResult
 
         today = timezone.now().date()
@@ -423,25 +449,7 @@ class AdminStatsView(APIView):
             "published_lessons":   Lesson.objects.filter(is_published=True).count(),
             "total_reviews":       ReviewLog.objects.count(),
             "reviews_today":       ReviewLog.objects.filter(last_reviewed=today).count(),
-            "total_assignments":   Assignment.objects.count(),
             "total_quiz_results":  QuizResult.objects.count(),
         })
 
 
-class TeacherStudentListView(generics.ListAPIView):
-    """
-    GET /api/v1/auth/teacher/students/
-    Danh sách học sinh dành cho giáo viên chọn khi giao bài.
-    Hỗ trợ tìm kiếm theo tên và email qua ?search=.
-    """
-
-    permission_classes = [IsTeacherOrAdmin]
-    serializer_class = AdminUserSerializer
-
-    def get_queryset(self):
-        from django.db.models import Q
-        qs = User.objects.filter(role="user", is_active=True).order_by("full_name", "email")
-        search = self.request.query_params.get("search", "").strip()
-        if search:
-            qs = qs.filter(Q(email__icontains=search) | Q(full_name__icontains=search))
-        return qs

@@ -2,7 +2,17 @@ import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Box, useMediaQuery, useTheme, IconButton, Tooltip } from "@mui/material";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+
+const resolveComponent = (Comp) => {
+  let current = Comp;
+  while (current && typeof current === "object" && "default" in current && !("$$typeof" in current)) {
+    current = current.default;
+  }
+  return current;
+};
+
+const SafeLocalFireDepartmentRoundedIcon = resolveComponent(LocalFireDepartmentRoundedIcon);
 import Sidebar, { SIDEBAR_WIDTH } from "./Sidebar";
 import Header from "./Header";
 import { colors } from "@/styles/theme";
@@ -91,7 +101,7 @@ const MainLayout = () => {
               },
             }}
           >
-            <LocalFireDepartmentRoundedIcon sx={{ fontSize: 28 }} />
+            {SafeLocalFireDepartmentRoundedIcon ? <SafeLocalFireDepartmentRoundedIcon sx={{ fontSize: 28 }} /> : null}
           </IconButton>
         </Tooltip>
       )}

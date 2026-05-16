@@ -6,11 +6,11 @@ import {
   Skeleton, Alert, Divider, IconButton, Tooltip, Snackbar,
   LinearProgress,
 } from "@mui/material";
-import SearchRoundedIcon              from "@mui/icons-material/SearchRounded";
-import BookmarkBorderRoundedIcon      from "@mui/icons-material/BookmarkBorderRounded";
-import BookmarkRoundedIcon            from "@mui/icons-material/BookmarkRounded";
-import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
-import VolumeUpRoundedIcon            from "@mui/icons-material/VolumeUpRounded";
+import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
+import { BookmarkBorderRounded as BookmarkBorderRoundedIcon } from "@mui/icons-material";
+import { BookmarkRounded as BookmarkRoundedIcon } from "@mui/icons-material";
+import { CollectionsBookmarkRounded as CollectionsBookmarkRoundedIcon } from "@mui/icons-material";
+import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import vocabularyApi from "@/api/vocabularyApi";

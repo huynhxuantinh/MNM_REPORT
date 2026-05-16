@@ -5,14 +5,14 @@ import {
   Alert, LinearProgress, Button, Collapse, Tabs, Tab,
   Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
-import QuizRoundedIcon          from "@mui/icons-material/QuizRounded";
-import MenuBookRoundedIcon       from "@mui/icons-material/MenuBookRounded";
-import LibraryBooksRoundedIcon   from "@mui/icons-material/LibraryBooksRounded";
-import CheckCircleRoundedIcon    from "@mui/icons-material/CheckCircleRounded";
-import CancelRoundedIcon         from "@mui/icons-material/CancelRounded";
-import EmojiEventsRoundedIcon    from "@mui/icons-material/EmojiEventsRounded";
-import ArrowForwardRoundedIcon   from "@mui/icons-material/ArrowForwardRounded";
-import RestartAltRoundedIcon     from "@mui/icons-material/RestartAltRounded";
+import { QuizRounded as QuizRoundedIcon } from "@mui/icons-material";
+import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
+import { LibraryBooksRounded as LibraryBooksRoundedIcon } from "@mui/icons-material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { CancelRounded as CancelRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
+import { ArrowForwardRounded as ArrowForwardRoundedIcon } from "@mui/icons-material";
+import { RestartAltRounded as RestartAltRoundedIcon } from "@mui/icons-material";
 import { SbButton } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";

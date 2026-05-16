@@ -101,7 +101,7 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```env
 DB_NAME=mnm_learnenglish
 DB_USER=postgres
-DB_PASSWORD=123321!@
+DB_PASSWORD=change-me-db-password
 DB_HOST=postgres        # Dùng "postgres" cho Docker, "localhost" cho thủ công
 DB_PORT=5432
 ```
@@ -116,15 +116,15 @@ DB_PORT=5432
 ```env
 REDIS_HOST=redis        # "redis" cho Docker, "localhost" cho thủ công
 REDIS_PORT=6379
-REDIS_PASSWORD=redispassword
-REDIS_URL=redis://:redispassword@redis:6379/0
-CELERY_BROKER_URL=redis://:redispassword@redis:6379/1
-CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/2
+REDIS_PASSWORD=change-me-redis-password
+REDIS_URL=redis://:change-me-redis-password@redis:6379/0
+CELERY_BROKER_URL=redis://:change-me-redis-password@redis:6379/1
+CELERY_RESULT_BACKEND=redis://:change-me-redis-password@redis:6379/2
 ```
 
 > **Chạy thủ công:** Thay `redis` trong URL thành `localhost`:
 > ```env
-> REDIS_URL=redis://:redispassword@localhost:6379/0
+> REDIS_URL=redis://:change-me-redis-password@localhost:6379/0
 > ```
 
 ---
@@ -275,7 +275,7 @@ redis-cli ping   # phải trả về PONG
 Chỉnh `.env`:
 ```env
 DB_HOST=localhost
-REDIS_URL=redis://:redispassword@localhost:6379/0
+REDIS_URL=redis://:change-me-redis-password@localhost:6379/0
 ```
 
 ---
@@ -396,19 +396,17 @@ EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 
 ## 7. Celery — Nhắc nhở tự động
 
-Celery xử lý 2 tác vụ nền:
+Celery xử lý tác vụ nhắc ôn tập:
 
 | Task | Lịch | Mô tả |
 |---|---|---|
 | `learning.send_review_reminders` | 20:00 hàng ngày | Nhắc học sinh có từ đến hạn chưa ôn |
-| `learning.send_assignment_digest` | 08:00 hàng ngày | Nhắc bài tập sắp đến hạn (≤ 2 ngày) |
 
 ### Chạy thủ công (không cần đợi lịch)
 
 ```bash
 # Trong container Docker
 docker compose exec backend celery -A celery call learning.send_review_reminders
-docker compose exec backend celery -A celery call learning.send_assignment_digest
 
 # Chạy thủ công (không Docker)
 cd backend && celery -A celery call learning.send_review_reminders
@@ -436,7 +434,6 @@ Sau khi chạy `python manage.py seed_data`:
 | Role | Email | Mật khẩu |
 |---|---|---|
 | **Admin** | admin@mnm.com | Admin@123456 |
-| **Giáo viên** | teacher@mnm.com | Teacher@123456 |
 | **Học sinh** | student@mnm.com | Student@123456 |
 
 ### Reset dữ liệu mẫu
@@ -542,7 +539,7 @@ pytest --cov=apps --cov-report=term-missing
 # Theo module
 pytest apps/accounts/tests/ -v        # Auth
 pytest apps/vocabulary/tests/ -v      # Từ vựng
-pytest apps/learning/tests/ -v        # Learning, SRS, Assignment, Teacher, Tasks
+pytest apps/learning/tests/ -v        # Learning, SRS, Tasks
 pytest apps/quiz/tests/ -v            # Quiz API
 ```
 
@@ -577,13 +574,13 @@ docker compose logs redis
 redis-cli ping   # phải trả về PONG
 
 # Kiểm tra password đúng
-redis-cli -a redispassword ping
+redis-cli -a change-me-redis-password ping
 ```
 
 **Sửa `.env`** — đảm bảo password trong URL khớp với `REDIS_PASSWORD`:
 ```env
-REDIS_PASSWORD=redispassword
-REDIS_URL=redis://:redispassword@redis:6379/0
+REDIS_PASSWORD=change-me-redis-password
+REDIS_URL=redis://:change-me-redis-password@redis:6379/0
 ```
 
 ---
@@ -662,7 +659,7 @@ celery -A celery worker -l info -P solo
 **Kiểm tra task đã đăng ký:**
 ```bash
 celery -A celery inspect registered
-# Phải thấy: learning.send_review_reminders, learning.send_assignment_digest
+# Phải thấy: learning.send_review_reminders
 ```
 
 ---

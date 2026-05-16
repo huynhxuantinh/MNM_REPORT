@@ -2,13 +2,17 @@
 API để gửi lại email xác thực (resend verification email).
 """
 import logging
+import smtplib
 from datetime import timedelta
 
+from django.core.mail import BadHeaderError
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 
 from .models import EmailVerificationToken, User
 from .serializers import ForgotPasswordSerializer
@@ -16,8 +20,10 @@ from .throttles import RegisterRateThrottle
 from .utils import generate_token, send_verification_email
 
 logger = logging.getLogger(__name__)
+MAIL_SEND_ERRORS = (smtplib.SMTPException, BadHeaderError, TimeoutError, OSError)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ResendVerificationEmailView(APIView):
     """
     POST /api/v1/auth/resend-verification/
@@ -28,6 +34,7 @@ class ResendVerificationEmailView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [RegisterRateThrottle]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -67,7 +74,7 @@ class ResendVerificationEmailView(APIView):
         try:
             send_verification_email(user, token)
             logger.info(f"Resent verification email to {user.email}")
-        except Exception as e:
+        except MAIL_SEND_ERRORS as e:
             logger.error(f"Failed to resend verification email to {user.email}: {str(e)}")
             # Vẫn trả về success để không reveal lỗi
 

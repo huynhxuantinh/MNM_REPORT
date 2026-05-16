@@ -1,28 +1,54 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  AppBar, Toolbar, Box, IconButton, Typography,
-  Badge, Menu, MenuItem, Divider, Tooltip, useMediaQuery, useTheme,
+  AppBar,
+  Toolbar,
+  Box,
+  IconButton,
+  Typography,
+  Badge,
+  Menu,
+  MenuItem,
+  Divider,
+  Tooltip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
-import MenuRoundedIcon          from "@mui/icons-material/MenuRounded";
-import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import LogoutRoundedIcon        from "@mui/icons-material/LogoutRounded";
-import PersonRoundedIcon        from "@mui/icons-material/PersonRounded";
-import DarkModeRoundedIcon      from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon     from "@mui/icons-material/LightModeRounded";
+import { MenuRounded as MenuRoundedIcon } from "@mui/icons-material";
+import { NotificationsRounded as NotificationsRoundedIcon } from "@mui/icons-material";
+import { LogoutRounded as LogoutRoundedIcon } from "@mui/icons-material";
+import { PersonRounded as PersonRoundedIcon } from "@mui/icons-material";
+import { DarkModeRounded as DarkModeRoundedIcon } from "@mui/icons-material";
+import { LightModeRounded as LightModeRoundedIcon } from "@mui/icons-material";
 import { logout } from "@/features/auth/authSlice";
 import { SbAvatar } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import { useAppTheme } from "@/contexts/ThemeContext";
 import { SIDEBAR_WIDTH } from "./Sidebar";
 
+const resolveComponent = (Comp) => {
+  let current = Comp;
+  while (current && typeof current === "object" && "default" in current && !("$$typeof" in current)) {
+    current = current.default;
+  }
+  return current;
+};
+
+const SafeMenuRoundedIcon = resolveComponent(MenuRoundedIcon);
+const SafeNotificationsRoundedIcon = resolveComponent(NotificationsRoundedIcon);
+const SafeLogoutRoundedIcon = resolveComponent(LogoutRoundedIcon);
+const SafePersonRoundedIcon = resolveComponent(PersonRoundedIcon);
+const SafeDarkModeRoundedIcon = resolveComponent(DarkModeRoundedIcon);
+const SafeLightModeRoundedIcon = resolveComponent(LightModeRoundedIcon);
+const SafeSbAvatar = resolveComponent(SbAvatar);
+
 const PAGE_TITLES = {
-  "/":           "Trang chủ",
+  "/": "Trang chủ",
   "/vocabulary": "Từ vựng",
-  "/learning":   "Học tập",
-  "/quiz":       "Quiz",
-  "/profile":    "Hồ sơ",
+  "/learning": "Học tập",
+  "/quiz": "Quiz",
+  "/profile": "Hồ sơ",
 };
 
 const Header = ({ onMenuClick }) => {
@@ -38,7 +64,7 @@ const Header = ({ onMenuClick }) => {
   const [notifAnchor, setNotifAnchor] = useState(null);
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? "MNM English";
-  const unreadCount = 0; // TODO: kết nối với notifications state
+  const unreadCount = 0;
 
   const handleUserMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
@@ -64,19 +90,12 @@ const Header = ({ onMenuClick }) => {
       }}
     >
       <Toolbar sx={{ minHeight: "64px !important", px: { xs: 2, md: 3 } }}>
-        {/* Hamburger – chỉ mobile */}
         {isMobile && (
-          <IconButton
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 1, color: colors.greenHouse }}
-            aria-label="menu"
-          >
-            <MenuRoundedIcon />
+          <IconButton edge="start" onClick={onMenuClick} sx={{ mr: 1, color: colors.greenHouse }} aria-label="menu">
+            {SafeMenuRoundedIcon ? <SafeMenuRoundedIcon /> : null}
           </IconButton>
         )}
 
-        {/* Page title */}
         <Typography
           component="h1"
           sx={{
@@ -90,48 +109,35 @@ const Header = ({ onMenuClick }) => {
           {pageTitle}
         </Typography>
 
-        {/* Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          {/* Dark mode toggle */}
           <Tooltip title={mode === "dark" ? "Chế độ sáng" : "Chế độ tối"} arrow>
-            <IconButton
-              onClick={toggleMode}
-              sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}
-            >
+            <IconButton onClick={toggleMode} sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}>
               {mode === "dark"
-                ? <LightModeRoundedIcon fontSize="small" />
-                : <DarkModeRoundedIcon fontSize="small" />}
+                ? (SafeLightModeRoundedIcon ? <SafeLightModeRoundedIcon fontSize="small" /> : null)
+                : (SafeDarkModeRoundedIcon ? <SafeDarkModeRoundedIcon fontSize="small" /> : null)}
             </IconButton>
           </Tooltip>
 
-          {/* Notifications */}
           <Tooltip title="Thông báo" arrow>
-            <IconButton
-              onClick={handleNotifOpen}
-              sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}
-            >
+            <IconButton onClick={handleNotifOpen} sx={{ color: "text.secondary", "&:hover": { color: colors.greenAccent } }}>
               <Badge badgeContent={unreadCount} color="error" max={9}>
-                <NotificationsRoundedIcon />
+                {SafeNotificationsRoundedIcon ? <SafeNotificationsRoundedIcon /> : null}
               </Badge>
             </IconButton>
           </Tooltip>
 
-          {/* User avatar */}
           <Tooltip title={user?.username ?? ""} arrow>
             <IconButton onClick={handleUserMenuOpen} sx={{ p: 0.5 }}>
-              <SbAvatar user={user} size="sm" showRing={false} />
+              {SafeSbAvatar ? <SafeSbAvatar user={user} size="sm" showRing={false} /> : null}
             </IconButton>
           </Tooltip>
         </Box>
 
-        {/* Notification popover (placeholder) */}
         <Menu
           anchorEl={notifAnchor}
           open={Boolean(notifAnchor)}
           onClose={handleNotifClose}
-          PaperProps={{
-            sx: { width: 320, borderRadius: "12px", boxShadow: 4 },
-          }}
+          PaperProps={{ sx: { width: 320, borderRadius: "12px", boxShadow: 4 } }}
           transformOrigin={{ horizontal: "right", vertical: "top" }}
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
@@ -148,14 +154,11 @@ const Header = ({ onMenuClick }) => {
           </Box>
         </Menu>
 
-        {/* User menu */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleUserMenuClose}
-          PaperProps={{
-            sx: { width: 200, borderRadius: "12px", boxShadow: 4, mt: 0.5 },
-          }}
+          PaperProps={{ sx: { width: 200, borderRadius: "12px", boxShadow: 4, mt: 0.5 } }}
           transformOrigin={{ horizontal: "right", vertical: "top" }}
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
@@ -163,24 +166,16 @@ const Header = ({ onMenuClick }) => {
             <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: colors.greenHouse }}>
               {user?.full_name || user?.username}
             </Typography>
-            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-              {user?.email}
-            </Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{user?.email}</Typography>
           </Box>
           <Divider />
-          <MenuItem
-            onClick={() => { navigate("/profile"); handleUserMenuClose(); }}
-            sx={{ py: 1, gap: 1.5, fontSize: "0.875rem" }}
-          >
-            <PersonRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+          <MenuItem onClick={() => { navigate("/profile"); handleUserMenuClose(); }} sx={{ py: 1, gap: 1.5, fontSize: "0.875rem" }}>
+            {SafePersonRoundedIcon ? <SafePersonRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} /> : null}
             Hồ sơ của tôi
           </MenuItem>
           <Divider />
-          <MenuItem
-            onClick={handleLogout}
-            sx={{ py: 1, gap: 1.5, fontSize: "0.875rem", color: colors.red }}
-          >
-            <LogoutRoundedIcon fontSize="small" />
+          <MenuItem onClick={handleLogout} sx={{ py: 1, gap: 1.5, fontSize: "0.875rem", color: colors.red }}>
+            {SafeLogoutRoundedIcon ? <SafeLogoutRoundedIcon fontSize="small" /> : null}
             Đăng xuất
           </MenuItem>
         </Menu>

@@ -259,6 +259,7 @@ class TestForgotPassword:
 # ══════════════════════════════════════════════════════════════════════════════
 
 RESET_URL = "/api/v1/auth/reset-password/"
+RESEND_VERIFY_URL = "/api/v1/auth/resend-verification/"
 
 VALID_RESET_DATA = {
     "token": "valid-reset-token",
@@ -323,6 +324,39 @@ class TestResetPassword:
         client.post(RESET_URL, VALID_RESET_DATA)
         active_user.refresh_from_db()
         assert not active_user.check_password("TestPass123!")
+
+
+@pytest.mark.django_db
+class TestResendVerificationEmail:
+    def test_resend_success_replaces_old_token(self, client, inactive_user, monkeypatch):
+        old_token = EmailVerificationToken.objects.get(user=inactive_user)
+        old_token.created_at = timezone.now() - timedelta(minutes=2)
+        old_token.save(update_fields=["created_at"])
+        old_value = old_token.token
+
+        def _noop_send(user, token):
+            return None
+
+        monkeypatch.setattr(
+            "apps.accounts.views_resend_email.send_verification_email",
+            _noop_send,
+        )
+
+        response = client.post(RESEND_VERIFY_URL, {"email": inactive_user.email})
+        assert response.status_code == status.HTTP_200_OK
+        new_token = EmailVerificationToken.objects.get(user=inactive_user)
+        assert new_token.token != old_value
+
+    def test_resend_cooldown_returns_429(self, client, inactive_user):
+        response = client.post(RESEND_VERIFY_URL, {"email": inactive_user.email})
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    def test_resend_nonexistent_email_returns_200(self, client):
+        response = client.post(RESEND_VERIFY_URL, {"email": "nobody-nope@example.com"})
+        assert response.status_code == status.HTTP_200_OK
+        assert not EmailVerificationToken.objects.filter(
+            user__email="nobody-nope@example.com"
+        ).exists()
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -1,402 +1,214 @@
 # MNM Learn English
 
-Ứng dụng web học từ vựng tiếng Anh theo phương pháp lặp lại ngắt quãng (Spaced Repetition System — SM-2). Người dùng học theo bài học được giáo viên thiết kế, ôn tập từ theo lịch SRS tự động, kiểm tra trắc nghiệm, và theo dõi tiến trình qua bảng điều khiển cá nhân.
+Ứng dụng web học tiếng Anh theo mô hình self-learning (không giáo viên, không mua gói), tập trung vào:
+- Học theo bài
+- Ôn tập SRS (SM-2)
+- Quiz luyện tập
+- Theo dõi tiến trình cá nhân
 
 ## Mục lục
-
 - [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-- [Tính năng](#tính-năng)
+- [Tính năng chính](#tính-năng-chính)
 - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
 - [Cài đặt và chạy local](#cài-đặt-và-chạy-local)
-  - [Cách 1: Docker Compose (khuyến nghị)](#cách-1-docker-compose-khuyến-nghị)
-  - [Cách 2: Chạy thủ công](#cách-2-chạy-thủ-công)
-- [Celery (email reminders)](#celery-email-reminders)
+- [Celery](#celery)
 - [Biến môi trường](#biến-môi-trường)
 - [Tài khoản mẫu](#tài-khoản-mẫu)
-- [API Documentation](#api-documentation)
+- [API docs](#api-docs)
 - [Chạy test](#chạy-test)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Lệnh hữu ích](#lệnh-hữu-ích)
+- [Trạng thái verify](#trạng-thái-verify)
 
 ---
 
 ## Công nghệ sử dụng
+- Backend: Django + Django REST Framework
+- Frontend: React + Vite
+- State: Redux Toolkit + TanStack Query
+- UI: Material UI (MUI)
+- Database: PostgreSQL
+- Cache/Queue: Redis + Celery
+- Auth: JWT
+- API schema: drf-spectacular (OpenAPI)
 
-| Lớp | Công nghệ | Phiên bản |
-|---|---|---|
-| Backend | Django + Django REST Framework | 4.2 / 3.15 |
-| Frontend | React + Vite | 18 / 5 |
-| State Management | Redux Toolkit + TanStack Query | 2.x / 5.x |
-| UI Library | Material UI (MUI) | 5.x |
-| Database | PostgreSQL | 14 |
-| Cache | Redis | 7 |
-| Task queue | Celery + django-celery-beat | 5.4 / 2.6 |
-| Auth | JWT (djangorestframework-simplejwt) | 5.3 |
-| API Docs | drf-spectacular (OpenAPI 3) | 0.27 |
-| Container | Docker + Docker Compose | — |
+## Tính năng chính
 
----
+### Người học
+- Đăng ký, đăng nhập, xác thực email, quên mật khẩu
+- Xem danh sách từ vựng theo cấp độ/chủ đề
+- Học bài theo lesson session
+- Ôn tập theo lịch SRS (SM-2)
+- Làm quiz và xem kết quả
+- Theo dõi XP, level, streak, tiến trình
+- Nhận thông báo in-app
 
-## Tính năng
-
-### Học sinh
-- Đăng ký / đăng nhập / quên mật khẩu / xác thực email
-- Duyệt từ vựng theo cấp độ (A1 → C1, TOEIC), bookmark, tìm kiếm, lọc
-- **Học bài:** slideshow từ vựng + phát âm tự động (Web Speech API)
-- **Ôn tập SRS:** flashcard đánh giá 6 mức chất lượng (thuật toán SM-2), lịch ôn tự động
-- **Kiểm tra trắc nghiệm:** chọn bài → 10 câu MC → highlight đúng/sai → xem kết quả chi tiết
-- Theo dõi XP, level, streak học hàng ngày, biểu đồ lịch sử ôn tập
-- Thông báo in-app: lên cấp, streak milestone, bài được giao, nhắc ôn tập
-- **Dark mode:** giao diện tối với chữ trắng, lưu tùy chọn vào `localStorage`
-- **Từ vựng:** phân trang 20 từ/trang, hỗ trợ cấp độ TOEIC và IELTS
-
-### Giáo viên (portal riêng)
-- Dashboard thống kê: số bài học, số bài giao, số học sinh
-- Quản lý bài học: tạo / sửa / xóa / publish, thêm-xóa từ vựng trong bài
-- **Quản lý lớp học:** tạo / sửa / xóa lớp, thêm/xóa học sinh, giao bài cho cả lớp kèm deadline
-- Giao bài cho từng học sinh cụ thể, đặt hạn nộp, thu hồi bài
-- Danh sách học sinh: level, XP progress, số bài được giao, chi tiết tiến độ
-
-### Admin
-- Quản lý người dùng: tìm kiếm, đổi role, vô hiệu hoá tài khoản
-- Quản lý từ vựng: CRUD, import CSV hàng loạt
-- Quản lý bài học: CRUD, toggle publish
-- Xem kết quả quiz: tất cả học sinh, lọc theo tên/email, phân trang
-- Dashboard thống kê toàn hệ thống (users, lessons, reviews, quiz, assignments)
-- **Import CSV bộ từ:** upload CSV để tạo bộ từ mới kèm danh sách từ (`POST /vocabulary/sets/import/`)
-
-### Hệ thống (Celery)
-- Nhắc ôn từ đến hạn lúc 20:00 mỗi ngày (in-app notification + email)
-- Nhắc bài tập sắp đến hạn lúc 08:00 mỗi ngày
-
----
+### Quản trị (admin)
+- Quản lý người dùng
+- Quản lý từ vựng
+- Quản lý bài học
+- Xem thống kê và lịch sử quiz
 
 ## Yêu cầu hệ thống
 
-**Cách Docker (khuyến nghị):**
+### Cách Docker (khuyến nghị)
 - Docker Desktop >= 24
 - Docker Compose >= 2.20
 
-**Cách thủ công:**
+### Cách chạy thủ công
 - Python 3.11+
 - Node.js 20+
 - PostgreSQL 14+
 - Redis 7+
 
----
-
 ## Cài đặt và chạy local
 
-### Bước 1 — Lấy source code
-
+### 1) Clone source
 ```bash
 git clone <repository-url>
 cd MNM_REPORT
 ```
 
-### Bước 2 — Chuẩn bị file môi trường
-
+### 2) Chuẩn bị môi trường
 ```bash
 cp .env.example .env
-# Mở .env và điền SECRET_KEY, DB_PASSWORD…
+# Sau đó điền các biến cần thiết trong .env
 ```
 
----
+### Cách 1: Docker Compose
 
-### Cách 1: Docker Compose (khuyến nghị)
-
-#### ⚡ Lần sau (đã setup rồi) — chỉ cần 1 lệnh:
-
+Chạy nhanh:
 ```bash
 docker compose up -d
 ```
 
-Sau đó mở: **http://localhost:5173**
+Lần đầu setup:
+```bash
+docker compose up -d
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_data
+```
 
-Tắt dự án:
+URL mặc định:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000/api/v1/
+- Swagger: http://localhost:8000/api/docs/
+- Django Admin: http://localhost:8000/admin/
+
+Dừng dịch vụ:
 ```bash
 docker compose down
 ```
 
----
-
-#### 🔧 Lần đầu tiên setup:
-
+Reset toàn bộ dữ liệu local:
 ```bash
-# Bước 1: Khởi động tất cả services
-docker compose up -d
-
-# Bước 2: Chạy migration (chỉ cần lần đầu hoặc khi có migration mới)
-docker compose exec backend python manage.py migrate
-
-# Bước 3: Seed dữ liệu mẫu (chỉ cần lần đầu)
-docker compose exec backend python manage.py seed_data
+docker compose down -v
 ```
-
-Ứng dụng chạy tại:
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8000/api/v1/
-- **Swagger UI:** http://localhost:8000/api/docs/
-- **Django Admin:** http://localhost:8000/admin/
-
-```bash
-docker compose down      # dừng service
-docker compose down -v   # dừng + xoá volumes (reset hoàn toàn)
-```
-
----
 
 ### Cách 2: Chạy thủ công
 
-#### Backend
-
+Backend:
 ```bash
 cd backend
-
-# Tạo và kích hoạt virtualenv
 python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux/macOS
-
-# Cài đặt dependencies
+.venv\Scripts\activate
 pip install -r requirements/development.txt
-
-# Chạy migration
 python manage.py migrate
-
-# Seed dữ liệu mẫu
 python manage.py seed_data
-
-# Khởi động dev server
 python manage.py runserver
 ```
 
-#### Frontend
-
+Frontend:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
----
+## Celery
 
-## Celery (email reminders)
+Chạy trong thư mục `backend/`:
 
-Celery cần Redis đang chạy. Mở 2 terminal riêng trong thư mục `backend/`:
-
+Terminal 1:
 ```bash
-# Terminal 1 — Worker xử lý task
 celery -A celery worker -l info
+```
 
-# Terminal 2 — Beat gửi task theo lịch
+Terminal 2:
+```bash
 celery -A celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 ```
 
-| Task | Lịch | Mô tả |
-|------|------|-------|
-| `learning.send_review_reminders` | 20:00 hàng ngày | Nhắc học sinh có từ đến hạn chưa ôn |
-| `learning.send_assignment_digest` | 08:00 hàng ngày | Nhắc bài tập sắp đến hạn (≤ 2 ngày) |
-
-Chạy thủ công một lần (không cần beat):
-
+Chạy task thủ công:
 ```bash
 celery -A celery call learning.send_review_reminders
-celery -A celery call learning.send_assignment_digest
 ```
-
----
 
 ## Biến môi trường
 
-| Biến | Mô tả | Mặc định |
-|---|---|---|
-| `SECRET_KEY` | Django secret key (**bắt buộc thay trên production**) | _(trống)_ |
-| `DEBUG` | Chế độ debug | `True` |
-| `DB_NAME` | Tên database PostgreSQL | `mnm_learnenglish` |
-| `DB_USER` | User PostgreSQL | `postgres` |
-| `DB_PASSWORD` | Mật khẩu PostgreSQL | _(cần điền)_ |
-| `DB_HOST` | Host PostgreSQL | `postgres` (Docker) / `localhost` (thủ công) |
-| `REDIS_URL` | URL kết nối Redis | `redis://redis:6379/0` |
-| `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | Thời hạn access token | `60` |
-| `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | Thời hạn refresh token | `7` |
-| `EMAIL_HOST` | SMTP server | `sandbox.smtp.mailtrap.io` |
-| `EMAIL_HOST_USER` | SMTP user | _(trống)_ |
-| `EMAIL_HOST_PASSWORD` | SMTP password | _(trống)_ |
-| `CORS_ALLOWED_ORIGINS` | Domain frontend được phép | `http://localhost:5173` |
-| `FRONTEND_URL` | URL frontend (dùng trong email) | `http://localhost:5173` |
+Các biến quan trọng trong `.env`:
+- `SECRET_KEY`
+- `DEBUG`
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
+- `REDIS_URL`
+- `JWT_ACCESS_TOKEN_LIFETIME_MINUTES`
+- `JWT_REFRESH_TOKEN_LIFETIME_DAYS`
+- `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_PORT`, `EMAIL_USE_TLS`
+- `CORS_ALLOWED_ORIGINS`
+- `FRONTEND_URL`
 
-> **Bảo mật:** Không commit `.env` lên git. File đã có trong `.gitignore`.
-
----
+Lưu ý bảo mật:
+- Không commit `.env` lên git
 
 ## Tài khoản mẫu
+Sau khi chạy `seed_data`:
+- Admin: `admin@mnm.com` / `Admin@123456`
+- Student: `student@mnm.com` / `Student@123456`
 
-Sau khi chạy `python manage.py seed_data`:
-
-| Role | Email | Mật khẩu |
-|---|---|---|
-| Admin | admin@mnm.com | Admin@123456 |
-| Giáo viên | teacher@mnm.com | Teacher@123456 |
-| Học sinh | student@mnm.com | Student@123456 |
-
-Seed lại từ đầu (xoá dữ liệu cũ):
-
-```bash
-python manage.py seed_data --clear
-```
-
----
-
-## API Documentation
-
-Swagger UI tự động sinh từ code, truy cập khi `DEBUG=True`:
-
-- **Swagger UI:** http://localhost:8000/api/docs/
-- **ReDoc:** http://localhost:8000/api/redoc/
-- **OpenAPI schema:** http://localhost:8000/api/schema/
-
-Trên production, docs bị ẩn mặc định. Bật lại: `ENABLE_API_DOCS=True` trong `.env`.
-
-### Các endpoint chính
-
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| POST | `/api/v1/auth/register/` | Đăng ký tài khoản |
-| POST | `/api/v1/auth/verify-email/` | Xác thực email bằng token |
-| POST | `/api/v1/auth/resend-verification/` | Gửi lại email xác thực (60s cooldown) |
-| POST | `/api/v1/auth/login/` | Đăng nhập (JWT) |
-| POST | `/api/v1/auth/logout/` | Đăng xuất |
-| POST | `/api/v1/auth/token/refresh/` | Làm mới access token |
-| POST | `/api/v1/auth/forgot-password/` | Gửi email đặt lại mật khẩu |
-| POST | `/api/v1/auth/change-password/` | Đổi mật khẩu (invalidates all sessions) |
-| GET | `/api/v1/vocabulary/words/` | Danh sách từ (filter, search, paginate) |
-| GET/POST | `/api/v1/learning/lessons/` | Danh sách / tạo bài học |
-| GET | `/api/v1/learning/review/` | Từ đến hạn ôn (SRS queue) |
-| POST | `/api/v1/learning/review/{id}/answer/` | Submit kết quả ôn (quality 0–5) |
-| GET | `/api/v1/quiz/generate/?lesson_id=X` | Tạo 10 câu trắc nghiệm từ bài học |
-| POST | `/api/v1/quiz/submit/` | Lưu kết quả quiz |
-| GET | `/api/v1/quiz/sessions/` | Lịch sử quiz của user |
-| GET/POST | `/api/v1/learning/classes/` | Quản lý lớp học (teacher) |
-| POST | `/api/v1/learning/classes/{id}/add_students/` | Thêm học sinh vào lớp |
-| POST | `/api/v1/learning/classes/{id}/assign_lesson/` | Giao bài cho cả lớp |
-| GET | `/api/v1/learning/teacher/stats/` | Thống kê tổng quan giáo viên |
-| GET | `/api/v1/auth/teacher/students/` | Danh sách học sinh (teacher only) |
-| GET | `/api/v1/auth/admin/stats/` | Thống kê hệ thống (admin only) |
-| GET | `/api/v1/quiz/admin/results/` | Kết quả quiz tất cả HS (admin only) |
-| POST | `/api/v1/vocabulary/sets/import/` | Upload CSV tạo bộ từ mới (teacher/admin) |
-
----
+## API docs
+- Swagger UI: http://localhost:8000/api/docs/
+- ReDoc: http://localhost:8000/api/redoc/
+- OpenAPI schema: http://localhost:8000/api/schema/
 
 ## Chạy test
 
-### Backend (pytest)
-
+Backend:
 ```bash
-cd backend
-
-# Toàn bộ test suite
-pytest
-
-# Kèm coverage report
-pytest --cov=apps --cov-report=term-missing
-
-# Theo module
-pytest apps/accounts/tests/ -v        # Auth
-pytest apps/vocabulary/tests/ -v      # Từ vựng
-pytest apps/learning/tests/ -v        # Learning (SM-2, SRS, Assignment, Teacher, Tasks)
-pytest apps/quiz/tests/ -v            # Quiz API
+backend/.venv/Scripts/python -m pytest backend/apps -q
 ```
 
-### Frontend E2E (Cypress)
-
+Frontend unit/integration:
 ```bash
 cd frontend
-npx cypress open   # giao diện đồ họa
-npx cypress run    # headless CI
+npm run test -- --run
+npm run lint
 ```
 
----
-
-## Cấu trúc thư mục
-
-```
-MNM_REPORT/
-├── backend/
-│   ├── apps/
-│   │   └── accounts/          # User, auth (register/login/JWT/reset-password/verify-email)
-│   │   │   ├── management/commands/seed_data.py
-│   │   │   ├── permissions.py           # IsAdmin, IsTeacherOrAdmin
-│   │   │   ├── views_resend_email.py    # ResendVerificationEmailView
-│   │   │   └── tests/
-│   │   ├── vocabulary/        # Word, WordSet, Bookmark, import CSV
-│   │   │   └── tests/
-│   │   ├── learning/          # Lesson, Assignment, ReviewLog (SM-2), UserStreak, Notification
-│   │   │   ├── tasks.py       # Celery: nhắc ôn tập + nhắc bài tập
-│   │   │   └── tests/         # test_sm2, test_review, test_assignment, test_teacher, test_tasks
-│   │   └── quiz/              # Quiz, QuizResult, generate endpoint, submit endpoint
-│   │       └── tests/
-│   ├── config/
-│   │   ├── settings/
-│   │   │   ├── base.py        # Cấu hình chung + Celery
-│   │   │   ├── development.py
-│   │   │   └── production.py
-│   │   └── urls.py
-│   ├── celery.py              # Celery app entry point
-│   ├── requirements/
-│   │   ├── base.txt           # Django, DRF, Celery, Redis…
-│   │   ├── development.txt    # pytest, ipython…
-│   │   └── production.txt
-│   └── manage.py
-├── frontend/
-│   ├── src/
-│   │   ├── api/               # axiosClient, authApi, learningApi, quizApi, teacherApi, adminApi
-│   │   ├── features/
-│   │   │   ├── auth/          # authSlice (Redux)
-│   │   │   ├── teacher/       # TeacherDashboard, TeacherLessons, TeacherAssignments,
-│   │   │   │   │              # TeacherStudents, TeacherClasses, TeacherWordSets
-│   │   │   │   └── dialogs/   # ClassFormDialog, DeleteClassDialog, ManageClassDialog (shared)
-│   │   │   └── admin/         # AdminDashboard, AdminUsers, AdminWords, AdminLessons,
-│   │   │                      # AdminQuizResults, AdminContent
-│   │   ├── pages/             # HomePage, VocabularyPage, StudyPage, ReviewPage, QuizPage, ProfilePage…
-│   │   ├── components/
-│   │   │   ├── layout/        # MainLayout, TeacherLayout, AdminLayout
-│   │   │   └── ui/            # SbButton, SbCard, SbInput, SbAvatar…
-│   │   └── styles/
-│   │       └── theme.js       # Starbucks color tokens
-│   ├── cypress/e2e/           # E2E tests (login → study → review → profile)
-│   └── vite.config.js
-├── docs/
-├── docker-compose.yml
-├── Makefile
-├── CLAUDE.md
-└── README.md
-```
-
----
-
-## Lệnh hữu ích
-
+Frontend E2E (Cypress):
 ```bash
-# Docker
-make up              # Khởi động tất cả service
-make down            # Dừng tất cả service
-make logs            # Xem log realtime
-make migrate         # Chạy migrations
-make shell-backend   # Vào Django shell
-
-# Backend (thủ công)
-python manage.py seed_data --clear   # Reset + seed lại toàn bộ dữ liệu
-python manage.py createsuperuser     # Tạo superuser mới
-python manage.py spectacular --file schema.yml  # Export OpenAPI schema
-
-# Celery
-celery -A celery inspect active      # Xem task đang chạy
-celery -A celery purge               # Xoá toàn bộ task khỏi queue
+cd frontend
+npm run cy:run
 ```
 
-## Learning Module Status (2026-05-15)
+## Trạng thái verify
 
-- Learning test suite: `204/204` pass (`backend/apps/learning/tests`).
-- Timezone handling cho daily-goal/review/streak đã được chuẩn hóa theo timezone-aware date.
-- Lesson complete endpoint đã fix message/caching để ổn định test và tránh lỗi encoding text.
+Kết quả verify gần nhất (2026-05-15):
+- Backend test: `324 passed`
+- Frontend test: `43 passed`
+- Cypress E2E: `9 passed`
+
+Đã xử lý:
+- Lỗi Cypress do biến môi trường `ELECTRON_RUN_AS_NODE=1` (đã fix bằng wrapper script trước khi chạy Cypress).
+- Warning deprecation `esbuild` khi chạy test frontend (đã xử lý cấu hình plugin Vite).
+- README đã được dọn encoding UTF-8, bỏ toàn bộ đoạn mojibake.
+
+## Frontend Test Gate (2026-05-16)
+
+Lenh da chay:
+- `npm run lint` -> PASS
+- `npm run test -- --run` -> PASS (`43 passed`)
+- `npm run build` -> PASS
+- `npm run cy:run` -> FAIL
+
+Chi tiet loi Cypress:
+- App runtime error: `Element type is invalid ... Check the render method of SidebarContent`.
+- Anh huong: `admin_flow.cy.js` fail 4/4 test, `learning_flow.cy.js` fail 5/5 test.
+- Tong ket Cypress: `0 passing, 9 failing`.

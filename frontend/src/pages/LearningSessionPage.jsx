@@ -11,16 +11,38 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { CancelRounded as CancelRoundedIcon } from "@mui/icons-material";
+import { ReplayRounded as ReplayRoundedIcon } from "@mui/icons-material";
+import { FavoriteRounded as FavoriteRoundedIcon } from "@mui/icons-material";
+import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
 const FEEDBACK_DELAY_MS = 180;
+const SESSION_TYPE_LABELS = {
+  lesson: "Bài học",
+  checkpoint: "Checkpoint",
+};
+const DIFFICULTY_LABELS = {
+  easy: "Dễ",
+  normal: "Thường",
+  hard: "Khó",
+};
+const DIFFICULTY_REASON_LABELS = {
+  high_accuracy_and_fast_response: "Độ chính xác cao và phản hồi nhanh",
+  balanced_recent_performance: "Hiệu suất gần đây cân bằng",
+  low_accuracy_or_slow_response: "Độ chính xác thấp hoặc phản hồi chậm",
+};
+
+const getSessionTypeLabel = (value) => SESSION_TYPE_LABELS[value] || value || "Bài học";
+const getDifficultyLabel = (value) => DIFFICULTY_LABELS[value] || value || "Thường";
+const getDifficultyReasonLabel = (value) => {
+  if (!value) return DIFFICULTY_REASON_LABELS.balanced_recent_performance;
+  if (DIFFICULTY_REASON_LABELS[value]) return DIFFICULTY_REASON_LABELS[value];
+  return value.replaceAll("_", " ");
+};
 
 const SessionSummary = ({ session, result, onBack }) => {
   const passed = !!result?.passed;
@@ -32,17 +54,17 @@ const SessionSummary = ({ session, result, onBack }) => {
   return (
     <Stack spacing={2} sx={{ maxWidth: 560, mx: "auto", py: 4, textAlign: "center" }}>
       <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks }}>
-        {isCheckpoint ? "Checkpoint Result" : "Session Completed"}
+        {isCheckpoint ? "Kết quả checkpoint" : "Hoàn thành phiên học"}
       </Typography>
       <SbCard>
         <Stack spacing={1.2}>
-          <Typography>Total: {session?.total_answered ?? 0}</Typography>
-          <Typography>Correct: {session?.correct_answered ?? 0}</Typography>
-          <Typography>XP earned: {session?.xp_earned ?? 0}</Typography>
-          <Typography>Accuracy: {summary?.accuracy_pct ?? 0}%</Typography>
+          <Typography>Tổng câu: {session?.total_answered ?? 0}</Typography>
+          <Typography>Đúng: {session?.correct_answered ?? 0}</Typography>
+          <Typography>XP nhận được: {session?.xp_earned ?? 0}</Typography>
+          <Typography>Độ chính xác: {summary?.accuracy_pct ?? 0}%</Typography>
           {isCheckpoint && result && (
             <Typography sx={{ fontWeight: 700, color: passed ? colors.greenAccent : colors.red }}>
-              Score: {result.score_pct}% | {passed ? "Passed" : "Not passed"}
+              Điểm: {result.score_pct}% | {passed ? "Đạt" : "Chưa đạt"}
             </Typography>
           )}
         </Stack>
@@ -51,7 +73,7 @@ const SessionSummary = ({ session, result, onBack }) => {
       {Object.keys(accuracyByType).length > 0 && (
         <SbCard>
           <Stack spacing={1}>
-            <Typography sx={{ fontWeight: 700 }}>Accuracy By Type</Typography>
+            <Typography sx={{ fontWeight: 700 }}>Độ chính xác theo dạng bài</Typography>
             {Object.entries(accuracyByType).map(([type, row]) => (
               <Typography key={type} sx={{ fontSize: "0.9rem" }}>
                 {type}: {row.correct}/{row.total} ({row.accuracy_pct}%)
@@ -64,7 +86,7 @@ const SessionSummary = ({ session, result, onBack }) => {
       {reviewWords.length > 0 && (
         <SbCard>
           <Stack spacing={1}>
-            <Typography sx={{ fontWeight: 700, color: colors.red }}>Words To Review</Typography>
+            <Typography sx={{ fontWeight: 700, color: colors.red }}>Từ cần ôn lại</Typography>
             {reviewWords.map((word) => (
               <Typography key={word.id} sx={{ fontSize: "0.9rem" }}>
                 {word.text} - {word.definition_vi || word.definition_en}
@@ -74,7 +96,7 @@ const SessionSummary = ({ session, result, onBack }) => {
         </SbCard>
       )}
 
-      <SbButton variant="primary" onClick={onBack}>Back To Learning Path</SbButton>
+      <SbButton variant="primary" onClick={onBack}>Về lộ trình học</SbButton>
     </Stack>
   );
 };
@@ -99,6 +121,7 @@ const LearningSessionPage = () => {
   const attempts = payload?.attempts || [];
   const exercises = payload?.exercises || [];
   const heartsInfo = payload?.hearts;
+  const difficultyHint = payload?.difficulty_hint;
   const currentHearts = feedback?.hearts ?? heartsInfo?.current ?? 0;
   const maxHearts = heartsInfo?.max ?? 5;
 
@@ -218,7 +241,7 @@ const LearningSessionPage = () => {
     return (
       <Stack spacing={2}>
         <Alert severity="error">{error?.response?.data?.detail || "Cannot load session."}</Alert>
-        <SbButton variant="outlined" onClick={() => refetch()}>Retry</SbButton>
+        <SbButton variant="outlined" onClick={() => refetch()}>Thử lại</SbButton>
       </Stack>
     );
   }
@@ -231,7 +254,7 @@ const LearningSessionPage = () => {
     return (
       <Stack spacing={2}>
         <Alert severity="warning">No exercise found for this session.</Alert>
-        <SbButton variant="outlined" onClick={() => navigate("/learning")}>Back</SbButton>
+        <SbButton variant="outlined" onClick={() => navigate("/learning")}>Quay lại</SbButton>
       </Stack>
     );
   }
@@ -246,7 +269,8 @@ const LearningSessionPage = () => {
         </Typography>
         <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
           <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>{session.unit_title}</Typography>
-          <Chip size="small" label={session.session_type} />
+          <Chip size="small" label={getSessionTypeLabel(session.session_type)} />
+          <Chip size="small" label={`Độ khó: ${getDifficultyLabel(session.difficulty)}`} />
           <Chip
             size="small"
             color={currentHearts > 0 ? "default" : "error"}
@@ -256,6 +280,13 @@ const LearningSessionPage = () => {
         </Stack>
       </Box>
 
+      {!!difficultyHint?.context && (
+        <Alert severity="info">
+          Tự động chỉnh độ khó: {getDifficultyLabel(difficultyHint.difficulty || session.difficulty)}. Lý do:{" "}
+          {getDifficultyReasonLabel(difficultyHint.context.reason)}.
+        </Alert>
+      )}
+
       <Stack direction="row" justifyContent="flex-end">
         <SbButton
           variant="outlined"
@@ -263,7 +294,7 @@ const LearningSessionPage = () => {
           loading={quitMutation.isPending}
           sx={{ color: colors.red }}
         >
-          Quit Session
+          Thoát phiên học
         </SbButton>
       </Stack>
 
@@ -277,11 +308,16 @@ const LearningSessionPage = () => {
               loading={switchEasyMutation.isPending}
               onClick={() => switchEasyMutation.mutate()}
             >
-              Switch To Easy
+              Chuyển sang dễ
             </SbButton>
           )}
         >
-          Ban dang sai lien tiep {frustrationGuard.wrong_streak} cau. Nen chuyen sang Easy mode de tiep tuc muot hon.
+          Bạn đang sai liên tiếp {frustrationGuard.wrong_streak} câu. Nên chuyển sang chế độ dễ để học mượt hơn.
+        </Alert>
+      )}
+      {!frustrationGuard?.show_easy_mode_cta && (feedback?.wrong_streak || 0) >= 2 && (
+        <Alert severity="warning">
+          Bạn đang sai liên tiếp {feedback.wrong_streak} câu. Hãy đọc kỹ đề bài và chọn đáp án chậm hơn.
         </Alert>
       )}
 
@@ -296,7 +332,7 @@ const LearningSessionPage = () => {
         }}
       />
       <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
-        Cau {currentStepIndex + 1}/{exercises.length}
+        Câu {currentStepIndex + 1}/{exercises.length}
       </Typography>
 
       <SbCard>
@@ -333,7 +369,7 @@ const LearningSessionPage = () => {
                   }
                 }}
               >
-                Play Audio
+                Phát âm thanh
               </SbButton>
               {(currentExercise.choices || []).map((option) => (
                 <SbButton
@@ -351,6 +387,7 @@ const LearningSessionPage = () => {
           {currentExercise.exercise_type === "fill_blank" && (
             <TextField
               label="Nhap dap an"
+              label="Nhập đáp án"
               value={textAnswer}
               onChange={(event) => setTextAnswer(event.target.value)}
               fullWidth
@@ -361,7 +398,7 @@ const LearningSessionPage = () => {
             <Stack spacing={1.5}>
               <Box sx={{ minHeight: 48, p: 1.2, borderRadius: 2, bgcolor: "background.default" }}>
                 <Typography sx={{ fontSize: "0.95rem" }}>
-                  {orderedTokens.length ? orderedTokens.join(" ") : "Chua chon tu"}
+                  {orderedTokens.length ? orderedTokens.join(" ") : "Chưa chọn từ"}
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -372,7 +409,7 @@ const LearningSessionPage = () => {
                 ))}
               </Stack>
               <SbButton variant="outlined" size="small" startIcon={<ReplayRoundedIcon />} onClick={() => setOrderedTokens([])}>
-                Reset
+                Làm lại
               </SbButton>
             </Stack>
           )}
@@ -383,7 +420,7 @@ const LearningSessionPage = () => {
             loading={answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending}
             onClick={handleSubmitAnswer}
           >
-            Submit
+            Gửi đáp án
           </SbButton>
         </Stack>
       </SbCard>
@@ -391,17 +428,17 @@ const LearningSessionPage = () => {
       {feedback && (
         <Alert severity={feedback.is_correct ? "success" : "error"} icon={feedback.is_correct ? <CheckCircleRoundedIcon /> : <CancelRoundedIcon />}>
           {feedback.is_correct
-            ? `Dung! +${feedback.awarded_xp} XP`
-            : `Sai, tu nay se duoc day vao review som. -${feedback.heart_cost ?? 1} heart`}
+            ? `Đúng! +${feedback.awarded_xp} XP`
+            : `Sai, từ này sẽ được đưa vào ôn tập sớm. -${feedback.heart_cost ?? 1} tim`}
           {feedback.server_eval_ms !== undefined ? ` (server ${feedback.server_eval_ms} ms)` : ""}
         </Alert>
       )}
 
-      {!!answerMutation.error && <Alert severity="error">{answerMutation.error?.response?.data?.detail || "Submit answer failed."}</Alert>}
-      {!!finishMutation.error && <Alert severity="error">{finishMutation.error?.response?.data?.detail || "Finish lesson session failed."}</Alert>}
-      {!!checkpointSubmitMutation.error && <Alert severity="error">{checkpointSubmitMutation.error?.response?.data?.detail || "Submit checkpoint failed."}</Alert>}
-      {!!quitMutation.error && <Alert severity="error">{quitMutation.error?.response?.data?.detail || "Quit session failed."}</Alert>}
-      {!!switchEasyMutation.error && <Alert severity="error">{switchEasyMutation.error?.response?.data?.detail || "Switch easy mode failed."}</Alert>}
+      {!!answerMutation.error && <Alert severity="error">{answerMutation.error?.response?.data?.detail || "Gửi đáp án thất bại."}</Alert>}
+      {!!finishMutation.error && <Alert severity="error">{finishMutation.error?.response?.data?.detail || "Kết thúc phiên học thất bại."}</Alert>}
+      {!!checkpointSubmitMutation.error && <Alert severity="error">{checkpointSubmitMutation.error?.response?.data?.detail || "Nộp checkpoint thất bại."}</Alert>}
+      {!!quitMutation.error && <Alert severity="error">{quitMutation.error?.response?.data?.detail || "Thoát phiên học thất bại."}</Alert>}
+      {!!switchEasyMutation.error && <Alert severity="error">{switchEasyMutation.error?.response?.data?.detail || "Chuyển chế độ dễ thất bại."}</Alert>}
     </Stack>
   );
 };

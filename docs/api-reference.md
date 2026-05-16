@@ -214,7 +214,7 @@ GET /auth/admin/users/
 ```
 *(Yêu cầu role: admin)*
 
-**Query params:** `?search=email&role=teacher&page=1`
+**Query params:** `?search=email&role=user&page=1`
 
 ---
 
@@ -248,7 +248,6 @@ GET /auth/admin/stats/
   "total_lessons": 12,
   "published_lessons": 10,
   "total_wordsets": 25,
-  "total_assignments": 80,
   "reviews_today": 34,
   "total_reviews": 2400,
   "total_quiz_results": 310
@@ -315,7 +314,7 @@ GET /vocabulary/words/{id}/
 ```
 POST /vocabulary/words/
 ```
-*(Yêu cầu role: teacher hoặc admin)*
+*(Yêu cầu role: admin)*
 
 **Body:**
 ```json
@@ -337,7 +336,7 @@ POST /vocabulary/words/
 
 ```
 GET    /vocabulary/sets/          # Danh sách (cache 5 phút)
-POST   /vocabulary/sets/          # Tạo mới (teacher/admin)
+POST   /vocabulary/sets/          # Tạo mới (admin)
 GET    /vocabulary/sets/{id}/     # Chi tiết
 PATCH  /vocabulary/sets/{id}/     # Cập nhật (owner hoặc admin)
 DELETE /vocabulary/sets/{id}/     # Xóa (owner hoặc admin)
@@ -357,7 +356,7 @@ POST   /vocabulary/sets/{id}/remove_word/  # Body: {"word_id": 5}
 POST /vocabulary/sets/import/
 ```
 
-*(Yêu cầu role: teacher hoặc admin)*
+*(Yêu cầu role: admin)*
 
 **Content-Type:** `multipart/form-data`
 
@@ -442,7 +441,7 @@ GET /learning/lessons/{id}/
 ```
 POST /learning/lessons/
 ```
-*(Yêu cầu role: teacher hoặc admin)*
+*(Yêu cầu role: admin)*
 
 **Body:**
 ```json
@@ -463,7 +462,7 @@ POST /learning/lessons/
 POST   /learning/lessons/{id}/words/            # Body: {"word_id": 5, "order_index": 1}
 DELETE /learning/lessons/{id}/words/{word_id}/
 ```
-*(Yêu cầu role: teacher hoặc admin)*
+*(Yêu cầu role: admin)*
 
 ---
 
@@ -574,141 +573,6 @@ GET /learning/review/summary/
 ```
 GET /learning/review/history/
 ```
-
----
-
-### Bài được giao (Assignment)
-
-```
-GET    /learning/assignments/         # Danh sách bài được giao cho tôi
-POST   /learning/assignments/         # Giáo viên giao bài (teacher/admin)
-GET    /learning/assignments/{id}/    # Chi tiết
-DELETE /learning/assignments/{id}/    # Xóa (teacher/admin)
-```
-
-**POST Body:**
-```json
-{
-  "lesson": 1,
-  "student": 3,
-  "due_date": "2026-05-15"
-}
-```
-
----
-
-### Thông báo
-
-```
-GET   /learning/notifications/         # Danh sách thông báo
-PATCH /learning/notifications/{id}/    # Đánh dấu đã đọc: {"is_read": true}
-```
-
----
-
-## Lớp học (Teacher Classes)
-
-*(Tất cả yêu cầu role: teacher hoặc admin)*
-
-### CRUD lớp học
-
-```
-GET    /learning/classes/          # Danh sách lớp của tôi
-POST   /learning/classes/          # Tạo lớp mới
-GET    /learning/classes/{id}/     # Chi tiết lớp (kèm danh sách học sinh)
-PATCH  /learning/classes/{id}/     # Sửa tên lớp
-DELETE /learning/classes/{id}/     # Xóa lớp
-```
-
-**POST Body:**
-```json
-{ "name": "Lớp A1 - Sáng" }
-```
-
----
-
-### Thêm học sinh vào lớp
-
-```
-POST /learning/classes/{id}/add_students/
-```
-
-**Body:**
-```json
-{ "student_ids": [3, 5, 7] }
-```
-
-**Response 200:**
-```json
-{ "added": 3 }
-```
-
----
-
-### Xóa học sinh khỏi lớp
-
-```
-POST /learning/classes/{id}/remove_student/
-```
-
-**Body:**
-```json
-{ "student_id": 5 }
-```
-
----
-
-### Giao bài cho cả lớp
-
-```
-POST /learning/classes/{id}/assign_lesson/
-```
-
-**Body:**
-```json
-{
-  "lesson_id": 2,
-  "due_date": "2026-05-15"
-}
-```
-
-**Response 201:**
-```json
-{
-  "assigned": 18,
-  "skipped": 2,
-  "class_name": "Lớp A1 - Sáng"
-}
-```
-
----
-
-### Thống kê giáo viên
-
-```
-GET /learning/teacher/stats/
-```
-*(Yêu cầu role: teacher hoặc admin)*
-
-**Response 200:**
-```json
-{
-  "my_lessons": 8,
-  "my_assignments": 45,
-  "my_students": 32
-}
-```
-
----
-
-### Danh sách học sinh (teacher)
-
-```
-GET /auth/teacher/students/
-```
-*(Yêu cầu role: teacher hoặc admin)*
-
-Trả về danh sách học sinh: id, email, full_name, level, xp, số bài được giao.
 
 ---
 
@@ -827,3 +691,6 @@ Hoặc lỗi validation field:
 | `POST /auth/reset-password/` | 5 lần/giờ |
 | Các endpoint khác (user đã đăng nhập) | 300 lần/phút |
 | Các endpoint không xác thực | 60 lần/phút |
+
+
+

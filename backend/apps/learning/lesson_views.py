@@ -56,6 +56,8 @@ class LessonViewSet(viewsets.ModelViewSet):
     ordering = ["order_index"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Lesson.objects.none()
         user = self.request.user
         qs = Lesson.objects.select_related("created_by").annotate(
             word_count=Count("words", distinct=True)

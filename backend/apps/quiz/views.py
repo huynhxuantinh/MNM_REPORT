@@ -1,6 +1,8 @@
 """Views cho module quiz."""
 import random
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,6 +20,7 @@ class QuizGenerateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         from apps.learning.models import Lesson
         from apps.vocabulary.models import Word, WordSet
@@ -117,6 +120,9 @@ class QuizGenerateView(APIView):
             "quiz_id": quiz.id,
             "quiz_type": quiz_type,
             "source_title": title,
+            # Backward-compatible aliases for older clients/tests.
+            "lesson_title": title if lesson_id else None,
+            "wordset_title": title if wordset_id else None,
             "questions": questions,
         })
 
@@ -129,6 +135,7 @@ class QuizSubmitView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=QuizResultSerializer)
     def post(self, request):
         quiz_id = request.data.get("quiz_id")
         if not quiz_id:
@@ -159,6 +166,8 @@ class QuizViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = QuizResultSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return QuizResult.objects.none()
         return (
             QuizResult.objects.filter(user=self.request.user)
             .select_related("quiz")

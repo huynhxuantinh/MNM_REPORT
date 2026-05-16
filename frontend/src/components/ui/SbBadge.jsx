@@ -1,8 +1,8 @@
 import { Chip, Box } from "@mui/material";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { StarRounded as StarRoundedIcon } from "@mui/icons-material";
+import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
 import { colors } from "@/styles/theme";
 
 /**

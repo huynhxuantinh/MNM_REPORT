@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -10,10 +10,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
+import { PlayArrowRounded as PlayArrowRoundedIcon } from "@mui/icons-material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { FactCheckRounded as FactCheckRoundedIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
@@ -156,7 +156,7 @@ const LearningPage = () => {
   });
 
   const startMutation = useMutation({
-    mutationFn: (lessonId) => learningApi.startLearningSession(lessonId).then((response) => response.data),
+    mutationFn: (lessonId) => learningApi.startLearningSession(lessonId, "learning_path").then((response) => response.data),
     onSuccess: (session) => {
       navigate(`/learning/session/${session.id}`);
     },
@@ -168,7 +168,7 @@ const LearningPage = () => {
     },
   });
   const resumeMutation = useMutation({
-    mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId).then((response) => response.data),
+    mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId, "learning_page").then((response) => response.data),
     onSuccess: (payload) => {
       navigate(`/learning/session/${payload.session?.id}`);
     },
@@ -193,6 +193,12 @@ const LearningPage = () => {
   const units = useMemo(() => data?.units || [], [data]);
   const startingLessonId = startMutation.variables;
   const startingCheckpointUnitId = checkpointStartMutation.variables;
+  const studiedMinutes = dailyGoalData?.today?.studied_minutes ?? 0;
+  const goalMinutes = dailyGoalData?.today?.goal_minutes ?? dailyGoalData?.target_minutes ?? 10;
+  const progressPercent = Math.min(100, Math.round((studiedMinutes / Math.max(1, goalMinutes)) * 100));
+  const overMinutes = Math.max(0, studiedMinutes - goalMinutes);
+  const isGoalAchieved = !!dailyGoalData?.today?.is_achieved || studiedMinutes >= goalMinutes;
+  const isGoalClaimed = !!dailyGoalData?.today?.claimed_at;
 
   const handleStartSession = (lessonId) => {
     if (!lessonId) return;
@@ -228,71 +234,12 @@ const LearningPage = () => {
     <Stack spacing={2.5}>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: "1.35rem", color: colors.greenStarbucks }}>
-          Learning Path
+          Lộ trình học
         </Typography>
         <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
-          {data?.name || "Course"} · {units.length} units
+          {data?.name || "Khóa học"} · {units.length} unit
         </Typography>
       </Box>
-
-      {!!dailyGoalData && (
-        <SbCard>
-          <Stack spacing={1}>
-            <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
-              Daily Goal
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem" }}>
-              {dailyGoalData.today?.studied_minutes ?? 0}/{dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes} minutes
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem" }}>
-              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 5}
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem" }}>
-              Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
-            </Typography>
-            <SbButton
-              size="small"
-              variant="outlined"
-              disabled={!dailyGoalData.today?.is_achieved || !!dailyGoalData.today?.claimed_at}
-              loading={claimDailyGoalMutation.isPending}
-              onClick={() => claimDailyGoalMutation.mutate()}
-            >
-              {dailyGoalData.today?.claimed_at ? "Claimed" : `Claim +${dailyGoalData.reward_xp ?? 0} XP`}
-            </SbButton>
-            <SbButton
-              size="small"
-              variant="outlined"
-              loading={claimFreezeMutation.isPending}
-              onClick={() => claimFreezeMutation.mutate()}
-            >
-              Buy Freeze (-50 XP)
-            </SbButton>
-            {!!claimDailyGoalMutation.error && (
-              <Alert severity="error">
-                {claimDailyGoalMutation.error?.response?.data?.detail || "Cannot claim daily goal."}
-              </Alert>
-            )}
-            {!!claimFreezeMutation.error && (
-              <Alert severity="error">
-                {claimFreezeMutation.error?.response?.data?.detail || "Cannot buy streak freeze."}
-              </Alert>
-            )}
-          </Stack>
-        </SbCard>
-      )}
-
-      {!!placementStatus && !placementStatus.has_completed_placement && (
-        <Alert
-          severity="info"
-          action={
-            <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/placement")}>
-              Start Placement
-            </SbButton>
-          }
-        >
-          Ban chua hoan thanh placement. Nen lam placement de he thong xep do kho phu hop.
-        </Alert>
-      )}
 
       {!!recoverData?.has_recoverable_session && !!recoverSession && (
         <Alert
@@ -305,20 +252,113 @@ const LearningPage = () => {
                 loading={resumeMutation.isPending}
                 onClick={() => resumeMutation.mutate(recoverSession.id)}
               >
-                Continue Session
+                Tiếp tục phiên học
               </SbButton>
               <SbButton
                 size="small"
                 variant="text"
                 onClick={() => refetchRecover()}
               >
-                Refresh
+                Làm mới
               </SbButton>
             </Stack>
           )}
         >
-          Ban dang co phien hoc dang do: {recoverSession.lesson_title} (step {recoverData.next_step_index || 1}).
+          Bạn đang có phiên học chưa xong: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
         </Alert>
+      )}
+
+      {!!placementStatus && !placementStatus.has_completed_placement && (
+        <Alert
+          severity="info"
+          action={
+            <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/placement")}>
+              Bắt đầu Placement
+            </SbButton>
+          }
+        >
+          Bạn chưa hoàn thành placement. Làm placement trước để hệ thống đề xuất độ khó phù hợp.
+        </Alert>
+      )}
+
+      {!!dailyGoalData && (
+        <SbCard>
+          <Stack spacing={1}>
+            <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
+              Mục tiêu ngày
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={progressPercent}
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                bgcolor: "rgba(0,0,0,0.1)",
+                "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent },
+              }}
+            />
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              {studiedMinutes}/{goalMinutes} phút
+              {overMinutes > 0 ? ` (vượt +${overMinutes})` : ""}
+            </Typography>
+            {isGoalAchieved && (
+              <Typography sx={{ fontSize: "0.82rem", color: colors.greenAccent, fontWeight: 700 }}>
+                Đã hoàn thành mục tiêu hôm nay
+              </Typography>
+            )}
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 5}
+            </Typography>
+            <Typography sx={{ fontSize: "0.9rem" }}>
+              Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
+            </Typography>
+            <SbButton
+              size="small"
+              variant="primary"
+              onClick={() => {
+                if (recoverData?.has_recoverable_session && recoverSession?.id) {
+                  resumeMutation.mutate(recoverSession.id);
+                  return;
+                }
+                navigate("/review");
+              }}
+            >
+              Học tiếp 5 phút
+            </SbButton>
+            <SbButton
+              size="small"
+              variant="outlined"
+              disabled={!isGoalAchieved || isGoalClaimed}
+              loading={claimDailyGoalMutation.isPending}
+              onClick={() => claimDailyGoalMutation.mutate()}
+            >
+              {isGoalClaimed ? "Đã nhận thưởng" : `Nhận +${dailyGoalData.reward_xp ?? 0} XP`}
+            </SbButton>
+            {isGoalClaimed && (
+              <Alert severity="success" sx={{ py: 0 }}>
+                Bạn đã nhận thưởng daily goal hôm nay.
+              </Alert>
+            )}
+            <SbButton
+              size="small"
+              variant="outlined"
+              loading={claimFreezeMutation.isPending}
+              onClick={() => claimFreezeMutation.mutate()}
+            >
+              Mua Freeze (-50 XP)
+            </SbButton>
+            {!!claimDailyGoalMutation.error && (
+              <Alert severity="error">
+                {claimDailyGoalMutation.error?.response?.data?.detail || "Không thể nhận thưởng daily goal."}
+              </Alert>
+            )}
+            {!!claimFreezeMutation.error && (
+              <Alert severity="error">
+                {claimFreezeMutation.error?.response?.data?.detail || "Không thể mua streak freeze."}
+              </Alert>
+            )}
+          </Stack>
+        </SbCard>
       )}
 
       {!!startMutation.error && (
@@ -339,7 +379,7 @@ const LearningPage = () => {
 
       {units.length === 0 && (
         <Alert severity="info">
-          Chưa có learning path. Chạy lệnh seed: <strong>python manage.py seed_learning_path</strong>
+          ChÆ°a cĂ³ learning path. Cháº¡y lá»‡nh seed: <strong>python manage.py seed_learning_path</strong>
         </Alert>
       )}
 
@@ -359,3 +399,4 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
+

@@ -23,3 +23,43 @@ Cypress.Commands.add("loginViaApi", (email = "student@test.com", password = "Tes
     localStorage.setItem("user", JSON.stringify(body.user));
   });
 });
+
+const seedAuthStorage = (win, user, accessToken, refreshToken) => {
+  win.localStorage.setItem("access_token", accessToken);
+  win.localStorage.setItem("refresh_token", refreshToken);
+  win.localStorage.setItem("user", JSON.stringify(user));
+};
+
+Cypress.Commands.add("loginAsAdmin", () => {
+  const user = {
+    id: 1,
+    email: "admin@test.com",
+    username: "admin",
+    full_name: "Quan Tri Vien",
+    role: "admin",
+    xp: 0,
+    level: 1,
+  };
+  cy.visit("/", {
+    onBeforeLoad(win) {
+      seedAuthStorage(win, user, "mock_access_token_admin", "mock_refresh_token_admin");
+    },
+  });
+});
+
+Cypress.Commands.add("loginAsTeacher", () => {
+  const user = {
+    id: 2,
+    email: "teacher@test.com",
+    username: "teacher",
+    full_name: "Tran Thi B",
+    role: "teacher",
+    xp: 500,
+    level: 5,
+  };
+  cy.visit("/", {
+    onBeforeLoad(win) {
+      seedAuthStorage(win, user, "mock_access_token_teacher", "mock_refresh_token_teacher");
+    },
+  });
+});

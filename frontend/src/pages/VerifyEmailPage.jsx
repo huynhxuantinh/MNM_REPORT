@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Box, Typography, CircularProgress } from "@mui/material";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { ErrorRounded as ErrorRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard } from "@/components/ui";
 import authApi from "@/api/authApi";

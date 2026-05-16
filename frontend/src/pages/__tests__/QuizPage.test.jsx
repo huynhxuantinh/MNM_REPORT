@@ -100,7 +100,7 @@ describe("QuizPage", () => {
     const axiosClient = await import("@/api/axiosClient");
     axiosClient.default.get.mockImplementation((url) => {
       if (url.includes("lessons")) return Promise.resolve({ data: mockLessons });
-      if (url.includes("wordsets")) return Promise.resolve({ data: mockWordsets });
+      if (url.includes("sets")) return Promise.resolve({ data: mockWordsets });
       return Promise.resolve({ data: {} });
     });
 
@@ -139,7 +139,7 @@ describe("QuizPage", () => {
     const axiosClient = await import("@/api/axiosClient");
     axiosClient.default.get.mockImplementation((url) => {
       if (url.includes("lessons")) return Promise.resolve({ data: mockLessons });
-      if (url.includes("wordsets")) return Promise.resolve({ data: mockWordsets });
+      if (url.includes("sets")) return Promise.resolve({ data: mockWordsets });
       return Promise.resolve({ data: {} });
     });
 

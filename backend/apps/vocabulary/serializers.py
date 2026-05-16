@@ -20,7 +20,7 @@ class WordListSerializer(serializers.ModelSerializer):
             "definition_vi", "level", "image_url", "is_bookmarked",
         )
 
-    def get_is_bookmarked(self, obj):
+    def get_is_bookmarked(self, obj) -> bool:
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             # Dùng prefetch cache nếu đã annotate, tránh N+1
@@ -50,18 +50,18 @@ class WordSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
 
-    def get_is_bookmarked(self, obj):
+    def get_is_bookmarked(self, obj) -> bool:
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return obj.bookmarks.filter(user=request.user).exists()
         return False
 
-    def get_created_by_name(self, obj):
+    def get_created_by_name(self, obj) -> str | None:
         if obj.created_by:
             return obj.created_by.full_name or obj.created_by.username
         return None
 
-    def get_review_log(self, obj):
+    def get_review_log(self, obj) -> dict | None:
         """Trả về chỉ số SRS của user hiện tại cho từ này (null nếu chưa học)."""
         request = self.context.get("request")
         if not (request and request.user.is_authenticated):
@@ -115,7 +115,7 @@ class WordSetSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
 
-    def get_created_by_name(self, obj):
+    def get_created_by_name(self, obj) -> str | None:
         if obj.created_by:
             return obj.created_by.full_name or obj.created_by.username
         return None

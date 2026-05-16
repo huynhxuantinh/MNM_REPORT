@@ -52,6 +52,7 @@ PLACEMENT_DEFAULT_QUESTION_COUNT = 12
 PLACEMENT_MIN_SUBMIT_QUESTIONS = 5
 PLACEMENT_CACHE_TTL_SECONDS = 30 * 60
 PLACEMENT_LEVEL_ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"]
+SESSION_RECOVER_STALE_HOURS = 24
 
 
 def _get_or_create_streak(user) -> UserStreak:
@@ -113,34 +114,73 @@ def _is_unit_unlocked(user, target_unit: Unit) -> bool:
     return _build_unlock_map(units, progress_map).get(target_unit.id, False)
 
 
-def _detect_difficulty(user) -> str:
+def _detect_difficulty_with_context(user) -> tuple[str, dict]:
+    sessions = list(
+        LearningSession.objects
+        .filter(
+            user=user,
+            status=LearningSession.Status.COMPLETED,
+            session_type=LearningSession.SessionType.LESSON,
+        )
+        .order_by("-completed_at", "-id")[:3]
+    )
+    if not sessions:
+        return "normal", {
+            "recent_session_count": 0,
+            "avg_accuracy_pct": None,
+            "avg_response_ms": None,
+            "recent_wrong_streak": 0,
+            "reason": "no_recent_sessions",
+        }
+
+    session_ids = [session.id for session in sessions]
     attempts = list(
         ExerciseAttempt.objects
-        .filter(session__user=user)
+        .filter(session_id__in=session_ids)
+        .only("session_id", "is_correct", "response_ms", "created_at")
         .order_by("-created_at")
-        .values_list("is_correct", flat=True)[:20]
     )
     if not attempts:
-        return "normal"
+        return "normal", {
+            "recent_session_count": len(sessions),
+            "avg_accuracy_pct": 0,
+            "avg_response_ms": None,
+            "recent_wrong_streak": 0,
+            "reason": "no_attempts_in_recent_sessions",
+        }
 
-    consecutive_correct = 0
-    consecutive_wrong = 0
+    total = len(attempts)
+    correct = sum(1 for item in attempts if item.is_correct)
+    accuracy = correct / total if total > 0 else 0
+    avg_response_ms = int(sum(item.response_ms for item in attempts) / total) if total > 0 else 0
+    recent_wrong_streak = 0
     for item in attempts:
-        if item:
-            if consecutive_wrong > 0:
-                break
-            consecutive_correct += 1
-        else:
-            if consecutive_correct > 0:
-                break
-            consecutive_wrong += 1
+        if item.is_correct:
+            break
+        recent_wrong_streak += 1
 
-    accuracy = sum(1 for item in attempts if item) / len(attempts)
-    if consecutive_wrong >= 2 or accuracy <= 0.45:
-        return "easy"
-    if consecutive_correct >= 3 or accuracy >= 0.8:
-        return "hard"
-    return "normal"
+    if recent_wrong_streak >= 3 or accuracy < 0.45:
+        difficulty = "easy"
+        reason = "low_accuracy_or_wrong_streak"
+    elif accuracy > 0.75 and avg_response_ms <= 4500:
+        difficulty = "hard"
+        reason = "high_accuracy_and_fast_response"
+    else:
+        difficulty = "normal"
+        reason = "balanced_recent_performance"
+
+    return difficulty, {
+        "recent_session_count": len(sessions),
+        "avg_accuracy_pct": round(accuracy * 100, 2),
+        "avg_response_ms": avg_response_ms,
+        "recent_wrong_streak": recent_wrong_streak,
+        "reason": reason,
+    }
+
+
+def _detect_difficulty(user) -> str:
+    difficulty, _ = _detect_difficulty_with_context(user)
+    return difficulty
 
 
 def _build_exercises_from_bank(lesson: Lesson, max_questions: int) -> list[dict]:
@@ -672,11 +712,13 @@ __all__ = [
     "PLACEMENT_DEFAULT_QUESTION_COUNT",
     "PLACEMENT_MIN_SUBMIT_QUESTIONS",
     "PLACEMENT_CACHE_TTL_SECONDS",
+    "SESSION_RECOVER_STALE_HOURS",
     "_get_or_create_streak",
     "_create_level_up_notification",
     "_build_unlock_map",
     "_is_unit_unlocked",
     "_detect_difficulty",
+    "_detect_difficulty_with_context",
     "_build_exercises_from_bank",
     "_update_course_progress",
     "_get_or_create_hearts",

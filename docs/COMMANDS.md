@@ -84,7 +84,6 @@ docker compose exec backend python manage.py import_words data/words.csv --updat
 | Role | Email | Mật khẩu |
 |---|---|---|
 | Admin | `admin@mnm.com` | `Admin@123456` |
-| Giáo viên | `teacher@mnm.com` | `Teacher@123456` |
 | Học sinh | `student@mnm.com` | `Student@123456` |
 
 ```bash
@@ -152,7 +151,6 @@ npx cypress run
 ```bash
 # Chạy thủ công 1 lần (không cần beat scheduler)
 docker compose exec backend celery -A celery call learning.send_review_reminders
-docker compose exec backend celery -A celery call learning.send_assignment_digest
 
 # Kiểm tra worker đang chạy
 docker compose exec backend celery -A celery inspect active
@@ -179,7 +177,7 @@ docker compose exec backend pytest
 # Theo module
 pytest apps/accounts/tests/ -v        # Auth
 pytest apps/vocabulary/tests/ -v      # Từ vựng
-pytest apps/learning/tests/ -v        # Learning, SRS, Assignment, Teacher, Tasks
+pytest apps/learning/tests/ -v        # Learning, SRS, Tasks
 pytest apps/quiz/tests/ -v            # Quiz API
 
 # Coverage

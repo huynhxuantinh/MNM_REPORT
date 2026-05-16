@@ -59,4 +59,5 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "learning_session_quit": None,
     "learning_checkpoint_start": None,
     "learning_checkpoint_submit": None,
+    "learning_analytics_read": None,
 }

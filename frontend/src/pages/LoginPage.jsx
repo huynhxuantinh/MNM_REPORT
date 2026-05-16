@@ -5,10 +5,10 @@ import {
   Box, Typography, IconButton,
   Alert, Divider,
 } from "@mui/material";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import { VisibilityRounded as VisibilityRoundedIcon } from "@mui/icons-material";
+import { VisibilityOffRounded as VisibilityOffRoundedIcon } from "@mui/icons-material";
+import { EmailRounded as EmailRoundedIcon } from "@mui/icons-material";
+import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import { login, clearError } from "@/features/auth/authSlice";
@@ -83,9 +83,8 @@ const LoginPage = () => {
         navigate(from, { replace: true });
       } else {
         const role = result.payload?.user?.role;
-        if (role === "admin")   navigate("/admin",   { replace: true });
-        else if (role === "teacher") navigate("/teacher", { replace: true });
-        else                    navigate("/",        { replace: true });
+        if (role === "admin") navigate("/admin", { replace: true });
+        else navigate("/", { replace: true });
       }
     }
   };

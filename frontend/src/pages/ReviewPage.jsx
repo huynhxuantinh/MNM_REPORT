@@ -1,20 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box, Typography, Chip, LinearProgress,
   CircularProgress, IconButton, Tooltip, Skeleton, keyframes
 } from "@mui/material";
-import VolumeUpRoundedIcon   from "@mui/icons-material/VolumeUpRounded";
-import ArrowBackRoundedIcon  from "@mui/icons-material/ArrowBackRounded";
-import CheckRoundedIcon      from "@mui/icons-material/CheckRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
-import BoltRoundedIcon       from "@mui/icons-material/BoltRounded";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import RepeatRoundedIcon     from "@mui/icons-material/RepeatRounded";
-import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
-import TouchAppRoundedIcon   from "@mui/icons-material/TouchAppRounded";
+import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
+import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
+import { CheckRounded as CheckRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
+import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { RepeatRounded as RepeatRoundedIcon } from "@mui/icons-material";
+import { LibraryBooksRounded as LibraryBooksRoundedIcon } from "@mui/icons-material";
+import { TouchAppRounded as TouchAppRoundedIcon } from "@mui/icons-material";
 import { SbButton } from "@/components/ui";
 import { setUser } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
@@ -293,6 +293,7 @@ const CompletionScreen = ({ stats, onBack, onRestart }) => {
 const ReviewPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
   const [currentIdx, setCurrentIdx]   = useState(0);
   const [flipped, setFlipped]         = useState(false);
@@ -351,10 +352,13 @@ const ReviewPage = () => {
     } catch {
       // Vẫn tiến tiếp dù lỗi mạng
     } finally {
+      queryClient.invalidateQueries({ queryKey: ["review-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["review-history"] });
+      queryClient.invalidateQueries({ queryKey: ["review-list"] });
       setSubmitting(false);
       advance();
     }
-  }, [current, submitting, advance, dispatch]);
+  }, [current, submitting, advance, dispatch, queryClient]);
 
   // Gán ref sau khi handleQuality đã được khởi tạo
   handleQualityRef.current = handleQuality;

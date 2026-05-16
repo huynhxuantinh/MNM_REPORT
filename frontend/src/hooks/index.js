@@ -16,8 +16,6 @@ export {
   useLesson,
   useStartLesson,
   useCompleteLesson,
-  useAssignments,
-  useLearningProgress,
 } from "./useLessons";
 
 // Review/SRS hooks

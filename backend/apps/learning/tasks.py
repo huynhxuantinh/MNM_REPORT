@@ -9,6 +9,16 @@ from django.core.mail import send_mail
 from django.db.models import Count, Sum
 from django.utils import timezone
 
+MIN_REFILL_INTERVAL_SECONDS = 60
+
+
+def _resolve_target_hour(pref, fallback_hour: int) -> int:
+    if pref and pref.preferred_hour is not None:
+        return int(pref.preferred_hour)
+    if pref and pref.last_activity_at:
+        return timezone.localtime(pref.last_activity_at).hour
+    return int(fallback_hour)
+
 
 @shared_task(name="learning.send_review_reminders")
 def send_review_reminders() -> dict:
@@ -43,8 +53,9 @@ def send_review_reminders() -> dict:
     sent = 0
 
     for user in users:
-        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour").first()
-        if pref and pref.preferred_hour is not None and pref.preferred_hour != current_hour:
+        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
+        target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
+        if target_hour != current_hour:
             continue
 
         duplicate = Notification.objects.filter(
@@ -80,57 +91,6 @@ def send_review_reminders() -> dict:
     return {"sent": sent, "users_notified": sent}
 
 
-@shared_task(name="learning.send_assignment_digest")
-def send_assignment_digest() -> dict:
-    """Daily reminder for assignments due in <=2 days."""
-    from apps.learning.models import Assignment, Notification
-
-    today = timezone.localdate()
-    deadline = today + timedelta(days=2)
-
-    upcoming = (
-        Assignment.objects
-        .filter(due_date__lte=deadline, due_date__gte=today, completed_at__isnull=True)
-        .select_related("student", "lesson")
-    )
-
-    notified = set()
-    for assignment in upcoming:
-        user = assignment.student
-        if user.id in notified:
-            continue
-
-        days_left = (assignment.due_date - today).days
-        label = "hom nay" if days_left == 0 else f"trong {days_left} ngay"
-
-        Notification.objects.create(
-            user=user,
-            type=Notification.Type.REMINDER,
-            message=(
-                f'Bai hoc "{assignment.lesson.title}" den han {label}. '
-                "Hay hoan thanh truoc khi qua muon!"
-            ),
-            related_id=assignment.lesson_id,
-        )
-
-        if user.email and user.notification_enabled:
-            send_mail(
-                subject="[MNM English] Nhac nho bai tap sap den han",
-                message=(
-                    f"Xin chao {user.full_name or user.username},\n\n"
-                    f'Bai hoc "{assignment.lesson.title}" se den han {label}.\n'
-                    f"Truy cap: {settings.FRONTEND_URL}/learning\n"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
-
-        notified.add(user.id)
-
-    return {"assignments_checked": upcoming.count(), "users_notified": len(notified)}
-
-
 @shared_task(name="learning.send_daily_goal_reminders")
 def send_daily_goal_reminders() -> dict:
     """Notify users who have not completed daily goal today."""
@@ -147,8 +107,9 @@ def send_daily_goal_reminders() -> dict:
         if not goal:
             continue
 
-        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour").first()
-        if pref and pref.preferred_hour is not None and pref.preferred_hour != current_hour:
+        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
+        target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
+        if target_hour != current_hour:
             continue
 
         log = DailyGoalLog.objects.filter(user=user, goal_date=today).first()
@@ -291,7 +252,15 @@ def refill_hearts() -> dict:
     for hearts in UserHearts.objects.all():
         if hearts.current_hearts >= hearts.max_hearts:
             continue
-        interval_seconds = max(60, hearts.refill_interval_minutes * 60)
+        interval_seconds = max(MIN_REFILL_INTERVAL_SECONDS, hearts.refill_interval_minutes * 60)
+        if hearts.last_refill_at is None:
+            hearts.last_refill_at = now
+            hearts.save(update_fields=["last_refill_at", "updated_at"])
+            continue
+        if hearts.last_refill_at > now:
+            hearts.last_refill_at = now
+            hearts.save(update_fields=["last_refill_at", "updated_at"])
+            continue
         elapsed_seconds = (now - hearts.last_refill_at).total_seconds()
         refill_units = int(elapsed_seconds // interval_seconds)
         if refill_units <= 0:
@@ -301,7 +270,7 @@ def refill_hearts() -> dict:
         if refill_amount <= 0:
             continue
 
-        hearts.current_hearts += refill_amount
+        hearts.current_hearts = min(hearts.max_hearts, hearts.current_hearts + refill_amount)
         hearts.last_refill_at = hearts.last_refill_at + timedelta(seconds=interval_seconds * refill_units)
         hearts.save(update_fields=["current_hearts", "last_refill_at", "updated_at"])
         HeartTransaction.objects.create(

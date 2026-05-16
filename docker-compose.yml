@@ -125,6 +125,9 @@ services:
       - "${FRONTEND_PORT:-5173}:5173"
     depends_on:
       - backend
+    command: >
+      sh -c "npm install &&
+             npm run dev -- --host 0.0.0.0"
     networks:
       - mnm_network
 

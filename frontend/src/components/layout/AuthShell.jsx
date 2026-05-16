@@ -1,16 +1,14 @@
-import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+﻿import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { colors } from "@/styles/theme";
 
 const FEATURES = [
   "Thuật toán SRS SM-2 khoa học, ghi nhớ lâu hơn",
-  "Theo dõi XP, Level và Streak hàng ngày",
+  "Theo dõi XP, Level và Streak hằng ngày",
   "Bài học được thiết kế bài bản theo CEFR",
   "Hệ thống Quiz thông minh luyện phản xạ",
 ];
-
-// ── Left panel ──────────────────���────────────────────────────────────────────
 
 const LeftPanel = ({ headline, subtext }) => (
   <Box
@@ -28,22 +26,25 @@ const LeftPanel = ({ headline, subtext }) => (
       flexShrink: 0,
     }}
   >
-    {/* Decorative circles */}
     <Box
       sx={{
         position: "absolute",
-        top: -80, right: -80,
-        width: 320, height: 320,
+        top: -80,
+        right: -80,
+        width: 320,
+        height: 320,
         borderRadius: "50%",
-        border: `2px solid rgba(255,255,255,0.06)`,
+        border: "2px solid rgba(255,255,255,0.06)",
         pointerEvents: "none",
       }}
     />
     <Box
       sx={{
         position: "absolute",
-        bottom: -120, left: -60,
-        width: 400, height: 400,
+        bottom: -120,
+        left: -60,
+        width: 400,
+        height: 400,
         borderRadius: "50%",
         bgcolor: "rgba(0,117,74,0.18)",
         pointerEvents: "none",
@@ -52,8 +53,10 @@ const LeftPanel = ({ headline, subtext }) => (
     <Box
       sx={{
         position: "absolute",
-        top: "50%", right: -40,
-        width: 200, height: 200,
+        top: "50%",
+        right: -40,
+        width: 200,
+        height: 200,
         borderRadius: "50%",
         bgcolor: "rgba(0,117,74,0.10)",
         transform: "translateY(-50%)",
@@ -61,14 +64,20 @@ const LeftPanel = ({ headline, subtext }) => (
       }}
     />
 
-    {/* Logo */}
     <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 6, textDecoration: "none" }}>
       <Box
         sx={{
-          width: 44, height: 44, borderRadius: "50%",
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
           bgcolor: colors.greenAccent,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontWeight: 900, fontSize: "1.2rem", color: "#fff", flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+          fontSize: "1.2rem",
+          color: "#fff",
+          flexShrink: 0,
         }}
       >
         M
@@ -83,7 +92,6 @@ const LeftPanel = ({ headline, subtext }) => (
       </Box>
     </Box>
 
-    {/* Headline */}
     <Typography
       sx={{
         fontSize: { md: "2rem", lg: "2.4rem" },
@@ -102,7 +110,6 @@ const LeftPanel = ({ headline, subtext }) => (
       </Typography>
     )}
 
-    {/* Feature list */}
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
       {FEATURES.map((f) => (
         <Box key={f} sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
@@ -115,8 +122,6 @@ const LeftPanel = ({ headline, subtext }) => (
     </Box>
   </Box>
 );
-
-// ── Mobile logo bar ───────────────────────────────────────────��───────────────
 
 const MobileLogoBar = () => (
   <Box
@@ -131,10 +136,16 @@ const MobileLogoBar = () => (
   >
     <Box
       sx={{
-        width: 32, height: 32, borderRadius: "50%",
+        width: 32,
+        height: 32,
+        borderRadius: "50%",
         bgcolor: colors.greenAccent,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontWeight: 900, fontSize: "1rem", color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 900,
+        fontSize: "1rem",
+        color: "#fff",
       }}
     >
       M
@@ -144,8 +155,6 @@ const MobileLogoBar = () => (
     </Typography>
   </Box>
 );
-
-// ── Shell ──────────────────────��─────────────────────────────��────────────────
 
 const AuthShell = ({
   headline = "Học từ vựng\nhiệu quả hơn",
@@ -159,7 +168,6 @@ const AuthShell = ({
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <LeftPanel headline={headline} subtext={subtext} />
 
-      {/* Right panel */}
       <Box
         sx={{
           flex: 1,
@@ -182,9 +190,7 @@ const AuthShell = ({
             py: 4,
           }}
         >
-          <Box sx={{ width: "100%", maxWidth: 440 }}>
-            {children}
-          </Box>
+          <Box sx={{ width: "100%", maxWidth: 440 }}>{children}</Box>
         </Box>
       </Box>
     </Box>

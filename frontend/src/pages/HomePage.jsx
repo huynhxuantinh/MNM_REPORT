@@ -1,30 +1,39 @@
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  Box, Typography, Grid, Skeleton, LinearProgress,
-  Chip, useMediaQuery, useTheme,
+  Box,
+  Typography,
+  Grid,
+  Skeleton,
+  LinearProgress,
+  CircularProgress,
+  Chip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip as ChartTooltip, ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as ChartTooltip,
+  ResponsiveContainer,
 } from "recharts";
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
-import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { ArrowForwardRounded as ArrowForwardRoundedIcon } from "@mui/icons-material";
+import { PlayArrowRounded as PlayArrowRoundedIcon } from "@mui/icons-material";
+import { RepeatRounded as RepeatRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
 import { SbCard, SbButton, SbBadge } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const getLevelThreshold = (n) => 100 * n * (n + 1) / 2;
+const getLevelThreshold = (n) => (100 * n * (n + 1)) / 2;
 
 const fmtDate = (iso) => {
   const d = new Date(iso);
@@ -38,16 +47,12 @@ const greet = () => {
   return "Chào buổi tối";
 };
 
-const LEVEL_COLORS = ["#d4e9e2", colors.greenAccent, colors.greenStarbucks, colors.gold];
-
-// ── Review banner ─────────────────────────────────────────────────────────────
-
-const ReviewBanner = ({ summary, loading, onStart }) => {
-  const dueToday     = summary?.due_today ?? 0;
+const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
+  const dueToday = summary?.due_today ?? 0;
   const reviewedToday = summary?.reviewed_today ?? 0;
-  const total        = dueToday + reviewedToday;
-  const pct          = total > 0 ? Math.round((reviewedToday / total) * 100) : (reviewedToday > 0 ? 100 : 0);
-  const allDone      = !loading && dueToday === 0;
+  const total = dueToday + reviewedToday;
+  const pct = total > 0 ? Math.round((reviewedToday / total) * 100) : (reviewedToday > 0 ? 100 : 0);
+  const allDone = !loading && dueToday === 0;
 
   if (loading) {
     return (
@@ -57,69 +62,86 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
     );
   }
 
-  // Hoàn thành hết hôm nay
   if (allDone && reviewedToday > 0) {
     return (
-      <Box sx={{
-        borderRadius: "20px",
-        background: `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`,
-        p: { xs: 2.5, md: 3 },
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 2, flexWrap: "wrap",
-        boxShadow: `0 8px 32px ${colors.greenStarbucks}40`,
-      }}>
+      <Box
+        sx={{
+          borderRadius: "20px",
+          background: `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`,
+          p: { xs: 2.5, md: 3 },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+          flexWrap: "wrap",
+          boxShadow: `0 8px 32px ${colors.greenStarbucks}40`,
+        }}
+      >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Box sx={{
-            width: 52, height: 52, borderRadius: "14px",
-            bgcolor: "rgba(255,255,255,0.2)",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          }}>
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: "14px",
+              bgcolor: "rgba(255,255,255,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
             <EmojiEventsRoundedIcon sx={{ color: colors.gold, fontSize: 28 }} />
           </Box>
           <Box>
             <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", lineHeight: 1.2 }}>
-              Tuyệt vời! Bạn đã ôn xong hôm nay 🎉
+              Tuyệt vời! Bạn đã ôn xong hôm nay
             </Typography>
             <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.8)", mt: 0.25 }}>
-              {reviewedToday} từ đã ôn • Quay lại ngày mai nhé!
+              {reviewedToday} từ đã ôn. Quay lại ngày mai nhé.
             </Typography>
           </Box>
         </Box>
         <SbButton
           variant="outlined"
           size="small"
-          onClick={onStart}
+          onClick={onLearn ?? onStart}
           sx={{ color: "#fff", borderColor: "rgba(255,255,255,0.5)", "&:hover": { borderColor: "#fff", bgcolor: "rgba(255,255,255,0.1)" }, whiteSpace: "nowrap" }}
         >
-          Ôn thêm
+          Học bài mới
         </SbButton>
       </Box>
     );
   }
 
-  // Còn từ cần ôn
-  const urgencyColor = dueToday > 20 ? "#ef5350" : dueToday > 5 ? colors.gold : colors.greenAccent;
-  const urgencyBg    = dueToday > 20
+  const urgencyBg = dueToday > 20
     ? "linear-gradient(135deg, #b71c1c 0%, #e53935 100%)"
     : dueToday > 5
-    ? `linear-gradient(135deg, #e65100 0%, ${colors.gold} 100%)`
-    : `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`;
+      ? `linear-gradient(135deg, #e65100 0%, ${colors.gold} 100%)`
+      : `linear-gradient(135deg, ${colors.greenStarbucks} 0%, ${colors.greenAccent} 100%)`;
 
   return (
-    <Box sx={{
-      borderRadius: "20px",
-      background: urgencyBg,
-      p: { xs: 2.5, md: 3 },
-      boxShadow: `0 8px 32px rgba(0,0,0,0.20)`,
-    }}>
+    <Box
+      sx={{
+        borderRadius: "20px",
+        background: urgencyBg,
+        p: { xs: 2.5, md: 3 },
+        boxShadow: "0 8px 32px rgba(0,0,0,0.20)",
+      }}
+    >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-        {/* Left */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Box sx={{
-            width: 52, height: 52, borderRadius: "14px",
-            bgcolor: "rgba(255,255,255,0.18)",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          }}>
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: "14px",
+              bgcolor: "rgba(255,255,255,0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
             <RepeatRoundedIcon sx={{ color: "#fff", fontSize: 28 }} />
           </Box>
           <Box>
@@ -132,12 +154,11 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
               </Typography>
             </Box>
             <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.75)", mt: 0.25 }}>
-              {reviewedToday > 0 ? `Đã ôn ${reviewedToday} • Còn ${dueToday} từ nữa` : "Bắt đầu buổi ôn tập nhé!"}
+              {reviewedToday > 0 ? `Đã ôn ${reviewedToday}. Còn ${dueToday} từ nữa.` : "Bắt đầu buổi ôn tập nhé."}
             </Typography>
           </Box>
         </Box>
 
-        {/* CTA */}
         <SbButton
           variant="primary"
           size="medium"
@@ -157,7 +178,6 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
         </SbButton>
       </Box>
 
-      {/* Progress bar */}
       {total > 0 && (
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
@@ -165,14 +185,15 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
               Tiến độ hôm nay
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.9)", fontWeight: 700 }}>
-              {reviewedToday}/{total} từ ({pct}%)
+              {reviewedToday}/{total} ({pct}%)
             </Typography>
           </Box>
           <LinearProgress
             variant="determinate"
             value={pct}
             sx={{
-              height: 8, borderRadius: 4,
+              height: 8,
+              borderRadius: 4,
               bgcolor: "rgba(255,255,255,0.2)",
               "& .MuiLinearProgress-bar": { bgcolor: "background.paper", borderRadius: 4 },
             }}
@@ -183,34 +204,22 @@ const ReviewBanner = ({ summary, loading, onStart }) => {
   );
 };
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
 const StatCard = ({ icon, value, label, color, sub, loading }) => (
   <SbCard sx={{ height: "100%" }}>
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
-        {sub && (
-          <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontWeight: 600 }}>
-            {sub}
-          </Typography>
-        )}
+        {sub && <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontWeight: 600 }}>{sub}</Typography>}
       </Box>
       {loading ? (
         <Skeleton variant="text" width="60%" height={40} />
       ) : (
-        <Typography sx={{ fontSize: "1.8rem", fontWeight: 800, color, lineHeight: 1 }}>
-          {value}
-        </Typography>
+        <Typography sx={{ fontSize: "1.8rem", fontWeight: 800, color, lineHeight: 1 }}>{value}</Typography>
       )}
-      <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-        {label}
-      </Typography>
+      <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{label}</Typography>
     </Box>
   </SbCard>
 );
-
-// ── XP progress card ──────────────────────────────────────────────────────────
 
 const XpCard = ({ user, loading }) => {
   const level = user?.level ?? 1;
@@ -224,11 +233,7 @@ const XpCard = ({ user, loading }) => {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <BoltRoundedIcon sx={{ color: colors.greenAccent, fontSize: 24 }} />
-          <Chip
-            label={`Level ${level}`}
-            size="small"
-            sx={{ bgcolor: colors.greenAccent, color: "#fff", fontWeight: 700, fontSize: "0.72rem" }}
-          />
+          <Chip label={`Level ${level}`} size="small" sx={{ bgcolor: colors.greenAccent, color: "#fff", fontWeight: 700, fontSize: "0.72rem" }} />
         </Box>
         {loading ? (
           <Skeleton variant="text" width="70%" height={40} />
@@ -250,23 +255,18 @@ const XpCard = ({ user, loading }) => {
   );
 };
 
-// ── Chart ─────────────────────────────────────────────────────────────────────
-
 const ReviewChart = ({ data, loading }) => {
   if (loading) return <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />;
   if (!data?.length) return null;
 
-  const formatted = data.map((d, i) => ({
-    ...d,
-    label: i % 5 === 0 ? fmtDate(d.date) : "",
-  }));
+  const formatted = data.map((d, i) => ({ ...d, label: i % 5 === 0 ? fmtDate(d.date) : "" }));
 
   return (
     <ResponsiveContainer width="100%" height={180}>
       <AreaChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="reviewGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor={colors.greenAccent} stopOpacity={0.28} />
+            <stop offset="5%" stopColor={colors.greenAccent} stopOpacity={0.28} />
             <stop offset="95%" stopColor={colors.greenAccent} stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -276,58 +276,39 @@ const ReviewChart = ({ data, loading }) => {
         <ChartTooltip
           contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", fontSize: 12 }}
           formatter={(v) => [v, "Từ đã ôn"]}
-          labelFormatter={(_, payload) => payload?.[0]?.payload?.date ? fmtDate(payload[0].payload.date) : ""}
+          labelFormatter={(_, payload) => (payload?.[0]?.payload?.date ? fmtDate(payload[0].payload.date) : "")}
         />
-        <Area
-          type="monotone"
-          dataKey="count"
-          stroke={colors.greenAccent}
-          strokeWidth={2}
-          fill="url(#reviewGrad)"
-          dot={false}
-          activeDot={{ r: 4, fill: colors.greenAccent }}
-        />
+        <Area type="monotone" dataKey="count" stroke={colors.greenAccent} strokeWidth={2} fill="url(#reviewGrad)" dot={false} activeDot={{ r: 4, fill: colors.greenAccent }} />
       </AreaChart>
     </ResponsiveContainer>
   );
 };
 
-// ── Lesson card (small) ───────────────────────────────────────────────────────
-
-const LessonCard = ({ lesson, assignment }) => {
+const LessonCard = ({ lesson }) => {
   const navigate = useNavigate();
-
   const isCompleted = !!lesson.user_progress?.completed_at;
-  const isStarted   = !!lesson.user_progress?.started_at;
-  const dueDate     = assignment?.due_date;
-  const isOverdue   = dueDate && new Date(dueDate) < new Date();
+  const isStarted = !!lesson.user_progress?.started_at;
 
   return (
-    <SbCard
-      sx={{
-        border: `1px solid ${isOverdue ? colors.red + "44" : "transparent"}`,
-        transition: "box-shadow 0.2s",
-        "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
-      }}
-    >
+    <SbCard sx={{ transition: "box-shadow 0.2s", "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" } }}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-        {/* Header row */}
         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: "flex", gap: 0.75, mb: 0.5, flexWrap: "wrap" }}>
               {lesson.level && (
-                <Chip label={lesson.level} size="small"
-                  sx={{ bgcolor: colors.greenLight, color: colors.greenHouse, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
-              )}
-              {assignment && (
-                <Chip icon={<AssignmentRoundedIcon sx={{ fontSize: "12px !important" }} />}
-                  label="Được giao" size="small"
-                  sx={{ bgcolor: `${colors.gold}22`, color: colors.gold, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
+                <Chip
+                  label={lesson.level}
+                  size="small"
+                  sx={{ bgcolor: colors.greenLight, color: colors.greenHouse, fontWeight: 700, fontSize: "0.68rem", height: 20 }}
+                />
               )}
               {isCompleted && (
-                <Chip icon={<CheckCircleRoundedIcon sx={{ fontSize: "12px !important" }} />}
-                  label="Hoàn thành" size="small"
-                  sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }} />
+                <Chip
+                  icon={<CheckCircleRoundedIcon sx={{ fontSize: "12px !important" }} />}
+                  label="Hoàn thành"
+                  size="small"
+                  sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }}
+                />
               )}
             </Box>
             <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: "text.primary", lineHeight: 1.3 }}>
@@ -337,20 +318,8 @@ const LessonCard = ({ lesson, assignment }) => {
           <MenuBookRoundedIcon sx={{ color: colors.greenLight, fontSize: 22, flexShrink: 0, mt: 0.25 }} />
         </Box>
 
-        {/* Meta */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-            {lesson.word_count} từ
-          </Typography>
-          {dueDate && (
-            <Typography sx={{ fontSize: "0.8rem", color: isOverdue ? colors.red : "text.secondary", fontWeight: isOverdue ? 700 : 400 }}>
-              · Hạn: {fmtDate(dueDate)}
-              {isOverdue ? " (Quá hạn!)" : ""}
-            </Typography>
-          )}
-        </Box>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{lesson.word_count} từ</Typography>
 
-        {/* Action */}
         <SbButton
           variant={isCompleted ? "outlined" : "primary"}
           size="small"
@@ -366,8 +335,6 @@ const LessonCard = ({ lesson, assignment }) => {
   );
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
@@ -378,6 +345,7 @@ const HomePage = () => {
     queryKey: ["review-summary"],
     queryFn: () => learningApi.getReviewSummary().then((r) => r.data),
     staleTime: 60_000,
+    refetchOnMount: "always",
   });
 
   const { data: history, isLoading: histLoading } = useQuery({
@@ -391,54 +359,80 @@ const HomePage = () => {
     queryFn: () => learningApi.getLessons({ page_size: 6 }).then((r) => r.data),
     staleTime: 120_000,
   });
-
-  const { data: assignmentsData, isLoading: assignLoading } = useQuery({
-    queryKey: ["assignments"],
-    queryFn: () => learningApi.getAssignments().then((r) => r.data),
-    staleTime: 120_000,
+  const { data: recoverData, refetch: refetchRecover } = useQuery({
+    queryKey: ["home-recover-session"],
+    queryFn: () => learningApi.getRecoverableSession().then((r) => r.data),
+    staleTime: 30_000,
+  });
+  const resumeMutation = useMutation({
+    mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId, "home_page").then((r) => r.data),
+    onSuccess: (payload) => navigate(`/learning/session/${payload.session?.id}`),
+  });
+  const { data: dailyGoalData, isLoading: goalLoading } = useQuery({
+    queryKey: ["home-daily-goal"],
+    queryFn: () => learningApi.getDailyGoal().then((r) => r.data),
+    staleTime: 60_000,
   });
 
-  const dueToday  = summary?.due_today ?? 0;
+  const dueToday = summary?.due_today ?? 0;
   const reviewDue = summary?.reviewed_today ?? 0;
-  const streak    = summary?.streak ?? user?.streak?.current_streak ?? 0;
-
-  // Map assignment by lesson id
-  const assignMap = {};
-  (assignmentsData?.results ?? []).forEach((a) => {
-    assignMap[a.lesson] = a;
-  });
+  const streak = summary?.streak ?? user?.streak?.current_streak ?? 0;
 
   const lessons = lessonsData?.results ?? [];
-
-  // Total words learned = total reviews
   const totalWords = history?.reduce((s, d) => s + d.count, 0) ?? 0;
   const totalReviewDays = history?.filter((d) => d.count > 0).length ?? 0;
+  const recoverSession = recoverData?.session;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-
-      {/* ── Greeting ─────────────────────────────────────────────────────── */}
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.3rem", md: "1.6rem" }, color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
-          {greet()}, {user?.full_name || user?.username || "bạn"}! 🌱
+          {greet()}, {user?.full_name || user?.username || "bạn"}
         </Typography>
         <Typography sx={{ color: "text.secondary", fontSize: "0.9rem", mt: 0.25 }}>
           {sumLoading
             ? "Đang tải..."
             : reviewDue > 0
-            ? `Hôm nay bạn đã ôn ${reviewDue} từ. ${dueToday > 0 ? "Hãy tiếp tục!" : "Xuất sắc!"}`
-            : "Chưa ôn tập hôm nay. Bắt đầu ngay nhé!"}
+              ? `Hôm nay bạn đã ôn ${reviewDue} từ. ${dueToday > 0 ? "Hãy tiếp tục." : "Xuất sắc."}`
+              : "Chưa ôn tập hôm nay. Bắt đầu ngay."}
         </Typography>
       </Box>
 
-      {/* ── Review banner ────────────────────────────────────────────────── */}
+      {!!recoverData?.has_recoverable_session && !!recoverSession && (
+        <SbCard sx={{ border: `1px solid ${colors.gold}66`, bgcolor: `${colors.gold}12` }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+            <Box>
+              <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
+                Continue Session
+              </Typography>
+              <Typography sx={{ fontSize: "0.86rem", color: "text.secondary" }}>
+                Ban con do lesson {recoverSession.lesson_title} (step {recoverData.next_step_index || 1}).
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <SbButton size="small" variant="outlined" onClick={() => refetchRecover()}>
+                Refresh
+              </SbButton>
+              <SbButton
+                size="small"
+                variant="primary"
+                loading={resumeMutation.isPending}
+                onClick={() => resumeMutation.mutate(recoverSession.id)}
+              >
+                Continue
+              </SbButton>
+            </Box>
+          </Box>
+        </SbCard>
+      )}
+
       <ReviewBanner
         summary={summary}
         loading={sumLoading}
         onStart={() => navigate("/review")}
+        onLearn={() => navigate("/learning")}
       />
 
-      {/* ── Stat cards row ─────────────────────────────────────────────────── */}
       <Grid container spacing={2}>
         <Grid item xs={6} md={3}>
           <XpCard user={user} loading={sumLoading} />
@@ -449,7 +443,7 @@ const HomePage = () => {
             color={streak > 0 ? colors.gold : "text.secondary"}
             value={streak}
             label="Ngày học liên tiếp"
-            sub={streak >= 7 ? "🏆 Milestone!" : undefined}
+            sub={streak >= 7 ? "Milestone" : undefined}
             loading={sumLoading}
           />
         </Grid>
@@ -474,7 +468,59 @@ const HomePage = () => {
         </Grid>
       </Grid>
 
-      {/* ── Activity chart ─────────────────────────────────────────────────── */}
+      {!!dailyGoalData && (
+        <SbCard>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+            <Box>
+              <Typography sx={{ fontWeight: 700, color: colors.greenStarbucks }}>Daily Goal Progress</Typography>
+              <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
+                {dailyGoalData.today?.studied_minutes ?? 0}/{dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes} minutes
+              </Typography>
+            </Box>
+            <Box sx={{ position: "relative", display: "inline-flex" }}>
+              <CircularProgress
+                variant="determinate"
+                value={goalLoading ? 0 : Math.min(
+                  100,
+                  Math.round(
+                    ((dailyGoalData.today?.studied_minutes ?? 0) /
+                      Math.max(1, dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes ?? 1)) *
+                      100
+                  )
+                )}
+                size={56}
+                thickness={4.8}
+                sx={{ color: colors.greenAccent }}
+              />
+              <Box
+                sx={{
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  right: 0,
+                  position: "absolute",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "0.75rem", fontWeight: 700 }}>
+                  {Math.min(
+                    100,
+                    Math.round(
+                      ((dailyGoalData.today?.studied_minutes ?? 0) /
+                        Math.max(1, dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes ?? 1)) *
+                        100
+                    )
+                  )}
+                  %
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </SbCard>
+      )}
+
       <SbCard>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
           <Box>
@@ -482,7 +528,7 @@ const HomePage = () => {
               Hoạt động ôn tập
             </Typography>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-              30 ngày qua • {totalWords} từ đã ôn
+              30 ngày qua. {totalWords} từ đã ôn
             </Typography>
           </Box>
           <SbBadge type="xp" value={`+${totalWords * 5}`} label={`+${totalWords * 5} XP`} />
@@ -490,23 +536,17 @@ const HomePage = () => {
         <ReviewChart data={history} loading={histLoading} />
       </SbCard>
 
-      {/* ── Lessons section ────────────────────────────────────────────────── */}
       <Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
             Bài học của tôi
           </Typography>
-          <SbButton
-            variant="outlined"
-            size="small"
-            endIcon={<ArrowForwardRoundedIcon />}
-            onClick={() => navigate("/learning")}
-          >
+          <SbButton variant="outlined" size="small" endIcon={<ArrowForwardRoundedIcon />} onClick={() => navigate("/learning")}>
             Xem tất cả
           </SbButton>
         </Box>
 
-        {lessLoading || assignLoading ? (
+        {lessLoading ? (
           <Grid container spacing={2}>
             {[1, 2, 3].map((i) => (
               <Grid item xs={12} sm={6} md={4} key={i}>
@@ -518,7 +558,7 @@ const HomePage = () => {
           <SbCard variant="cream" sx={{ textAlign: "center", py: 4 }}>
             <MenuBookRoundedIcon sx={{ fontSize: 40, color: colors.greenLight, mb: 1 }} />
             <Typography sx={{ color: "text.secondary" }}>
-              Chưa có bài học nào. Hãy khám phá thư viện bài học!
+              Chưa có bài học nào. Hãy khám phá thư viện bài học.
             </Typography>
             <SbButton variant="primary" sx={{ mt: 2 }} onClick={() => navigate("/learning")}>
               Khám phá bài học
@@ -528,32 +568,12 @@ const HomePage = () => {
           <Grid container spacing={2}>
             {lessons.map((lesson) => (
               <Grid item xs={12} sm={6} md={4} key={lesson.id}>
-                <LessonCard lesson={lesson} assignment={assignMap[lesson.id]} />
+                <LessonCard lesson={lesson} />
               </Grid>
             ))}
           </Grid>
         )}
       </Box>
-
-      {/* ── Assignments section ────────────────────────────────────────────── */}
-      {(assignmentsData?.results?.length ?? 0) > 0 && (
-        <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks, mb: 2 }}>
-            Bài được giao
-          </Typography>
-          <Grid container spacing={2}>
-            {(assignmentsData?.results ?? []).slice(0, 3).map((a) => {
-              const lessonObj = { id: a.lesson, title: a.lesson_title, word_count: 0, level: "" };
-              return (
-                <Grid item xs={12} sm={6} md={4} key={a.id}>
-                  <LessonCard lesson={lessonObj} assignment={a} />
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Box>
-      )}
-
     </Box>
   );
 };

@@ -5,9 +5,9 @@ import {
   TableBody, TableContainer, Paper, Chip, Skeleton, Pagination,
   Stack, InputAdornment, LinearProgress, Tooltip,
 } from "@mui/material";
-import SearchRoundedIcon  from "@mui/icons-material/SearchRounded";
-import QuizRoundedIcon    from "@mui/icons-material/QuizRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
+import { QuizRounded as QuizRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
 import adminApi from "@/api/adminApi";
 
 const ADMIN_BG     = "#1a1f3a";

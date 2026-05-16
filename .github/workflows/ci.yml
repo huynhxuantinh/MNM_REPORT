@@ -191,14 +191,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
       - name: Run Bandit (Python security linter)
         uses: PyCQA/bandit@main
         with:
-          args: "-r backend/apps -f json -o bandit-report.json || true"
+          args: "-r backend/apps -f json -o bandit-report.json"
 
       - name: Run npm audit
         working-directory: ./frontend
-        run: npm audit --audit-level=moderate || true
+        run: npm audit --audit-level=moderate
 
       - name: Upload security scan results
         uses: actions/upload-artifact@v4

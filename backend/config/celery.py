@@ -23,18 +23,13 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Tự phát hiện tasks.py trong mỗi installed app
 app.autodiscover_tasks()
 
-# Override beat schedule với crontab đúng giờ (20:00 và 08:00 ICT)
+# Override beat schedule với crontab chuẩn theo từng task
 # base.py dùng timedelta làm fallback; ở đây chúng ta đặt lịch chính xác.
 app.conf.beat_schedule = {
     # 20:00 ICT mỗi ngày — nhắc học sinh có từ đến hạn chưa ôn
     "review-reminders-daily": {
         "task": "learning.send_review_reminders",
         "schedule": crontab(hour=20, minute=0),
-    },
-    # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn (≤ 2 ngày)
-    "assignment-digest-daily": {
-        "task": "learning.send_assignment_digest",
-        "schedule": crontab(hour=8, minute=0),
     },
     # Every hour: send daily-goal reminders based on user preferred hour
     "daily-goal-reminders-hourly": {

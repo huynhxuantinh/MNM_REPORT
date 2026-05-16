@@ -55,6 +55,8 @@ def test_placement_submit_creates_result_and_status_completed(sc, student, teach
     assert status_resp.status_code == 200
     assert status_resp.data["has_completed_placement"] is True
     assert status_resp.data["should_show_onboarding"] is False
+    assert status_resp.data["placement"]["completed"] is True
+    assert status_resp.data["onboarding"]["next_action"] in {"start_first_lesson", "continue_learning_path"}
 
 
 def test_placement_submit_requires_min_answers(sc, teacher):

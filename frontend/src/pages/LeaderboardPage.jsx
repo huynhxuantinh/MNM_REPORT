@@ -59,7 +59,7 @@ const rotateStar = keyframes`
 // ── Star particles ───────────────────────────────────────────────────────────
 const STARS = Array.from({ length: 30 }, (_, i) => ({
   id: i,
-  top:  `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
   size: Math.random() * 3 + 1,
   delay: `${Math.random() * 4}s`,
@@ -297,11 +297,11 @@ const PodiumItem = ({ user, rank }) => {
 
 // ── Rank Row Card ─────────────────────────────────────────────────────────────
 const rankRowColors = [
-  { bg: "rgba(0,116,74,0.12)",  border: "rgba(0,116,74,0.35)",  text: colors.greenAccent },
+  { bg: "rgba(0,116,74,0.12)", border: "rgba(0,116,74,0.35)", text: colors.greenAccent },
   { bg: "rgba(96,165,250,0.08)", border: "rgba(96,165,250,0.25)", text: "#60a5fa" },
   { bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.25)", text: "#fbbf24" },
-  { bg: "rgba(167,139,250,0.08)",border: "rgba(167,139,250,0.25)",text: "#a78bfa" },
-  { bg: "rgba(251,113,133,0.08)",border: "rgba(251,113,133,0.25)",text: "#fb7185" },
+  { bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.25)", text: "#a78bfa" },
+  { bg: "rgba(251,113,133,0.08)", border: "rgba(251,113,133,0.25)", text: "#fb7185" },
 ];
 
 const RankRow = ({ user, rank, delay }) => {
@@ -324,7 +324,7 @@ const RankRow = ({ user, rank, delay }) => {
         "&:hover": {
           transform: "translateX(6px) scale(1.01)",
           border: `1px solid ${colorSet.text}`,
-          background: colorSet.bg.replace("0.08", "0.15").replace("0.12","0.20"),
+          background: colorSet.bg.replace("0.08", "0.15").replace("0.12", "0.20"),
           boxShadow: `0 4px 20px ${colorSet.border}`,
         },
       }}
@@ -430,8 +430,8 @@ const LeaderboardPage = () => {
     );
   }
 
-  const top3  = data?.slice(0, 3) || [];
-  const others = data?.slice(3)  || [];
+  const top3 = data?.slice(0, 3) || [];
+  const others = data?.slice(3) || [];
   // Bục: Hạng 2 (Trái) - Hạng 1 (Giữa) - Hạng 3 (Phải)
   const podiumOrder = [top3[1], top3[0], top3[2]];
 

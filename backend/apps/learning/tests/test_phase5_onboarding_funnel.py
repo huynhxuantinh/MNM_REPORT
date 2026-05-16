@@ -8,7 +8,6 @@ pytestmark = pytest.mark.django_db
 QUESTIONS_URL = "/api/v1/learning/placement/questions/"
 SUBMIT_URL = "/api/v1/learning/placement/submit/"
 START_URL = "/api/v1/learning/session/start/"
-FUNNEL_URL = "/api/v1/learning/kpi/onboarding-funnel/"
 
 
 @pytest.fixture
@@ -36,7 +35,7 @@ def _seed_words(teacher, total=10):
         )
 
 
-def test_onboarding_events_and_funnel_kpi(sc, tc, student, teacher, placement_lesson):
+def test_onboarding_events(sc, student, teacher, placement_lesson):
     _seed_words(teacher, total=12)
 
     first_questions = sc.get(QUESTIONS_URL)
@@ -82,11 +81,3 @@ def test_onboarding_events_and_funnel_kpi(sc, tc, student, teacher, placement_le
     ).count()
     assert submit_events >= 1
     assert first_lesson_events >= 1
-
-    funnel = tc.get(FUNNEL_URL, {"days": 7})
-    assert funnel.status_code == 200
-    data = funnel.data["funnel"]
-    assert data["placement_enter_users"] >= 1
-    assert data["placement_submit_users"] >= 1
-    assert data["first_lesson_start_users"] >= 1
-    assert data["placement_abandon_users"] >= 1

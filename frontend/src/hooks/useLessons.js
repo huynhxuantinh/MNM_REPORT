@@ -1,10 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import learningApi from "@/api/learningApi";
 
-/**
- * Hook để lấy danh sách bài học
- * @param {Object} params - { level, is_published, page, page_size }
- */
 export const useLessons = (params = {}, options = {}) => {
   const { level, is_published, page = 1, page_size = 20, ...rest } = params;
 
@@ -23,10 +19,6 @@ export const useLessons = (params = {}, options = {}) => {
   });
 };
 
-/**
- * Hook để lấy chi tiết một bài học
- * @param {number} id - ID bài học
- */
 export const useLesson = (id, options = {}) => {
   return useQuery({
     queryKey: ["lesson", id],
@@ -37,9 +29,6 @@ export const useLesson = (id, options = {}) => {
   });
 };
 
-/**
- * Hook để bắt đầu học một bài (gọi API start)
- */
 export const useStartLesson = () => {
   const queryClient = useQueryClient();
 
@@ -52,9 +41,6 @@ export const useStartLesson = () => {
   });
 };
 
-/**
- * Hook để hoàn thành bài học (gọi API complete)
- */
 export const useCompleteLesson = () => {
   const queryClient = useQueryClient();
 
@@ -68,29 +54,3 @@ export const useCompleteLesson = () => {
     },
   });
 };
-
-/**
- * Hook để lấy danh sách bài học được giao (assignments)
- */
-export const useAssignments = (options = {}) => {
-  return useQuery({
-    queryKey: ["assignments"],
-    queryFn: () => learningApi.getAssignments().then((res) => res.data),
-    staleTime: 2 * 60 * 1000,
-    ...options,
-  });
-};
-
-/**
- * Hook để lấy tiến trình học tập của user
- */
-export const useLearningProgress = (options = {}) => {
-  return useQuery({
-    queryKey: ["learning-progress"],
-    queryFn: () => learningApi.getProgress().then((res) => res.data),
-    staleTime: 2 * 60 * 1000,
-    ...options,
-  });
-};
-
-export default useLessons;

@@ -6,15 +6,15 @@ import {
   Box, Typography, Chip, LinearProgress,
   CircularProgress, IconButton, Tooltip, Skeleton, keyframes
 } from "@mui/material";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
+import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
+import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
+import { ArrowForwardRounded as ArrowForwardRoundedIcon } from "@mui/icons-material";
+import { CheckRounded as CheckRoundedIcon } from "@mui/icons-material";
+import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
+import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
+import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { AutoStoriesRounded as AutoStoriesRoundedIcon } from "@mui/icons-material";
+import { TouchAppRounded as TouchAppRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard, SbBadge } from "@/components/ui";
 import { setUser } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";

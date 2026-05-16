@@ -9,7 +9,7 @@ import hashlib
 import io
 
 from django.core.cache import cache
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, Max, OuterRef, Q
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -21,10 +21,17 @@ WORDSET_CACHE_TTL = 5 * 60  # 5 phút
 _WORDSET_VER_KEY = "wordset_list_ver"
 
 
-def _wordset_cache_key(user_id: int, params: str) -> str:
+def _wordset_cache_key(user_id: int, params: str, stamp: str) -> str:
     ver = cache.get(_WORDSET_VER_KEY, 1)
-    raw = f"wsl:v{ver}:u{user_id}:{params}"
+    raw = f"wsl:v{ver}:u{user_id}:{params}:s{stamp}"
     return "wsl_" + hashlib.md5(raw.encode()).hexdigest()
+
+
+def _wordset_cache_stamp() -> str:
+    meta = WordSet.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    latest = meta["latest"]
+    latest_iso = latest.isoformat() if latest else "none"
+    return f"{meta['total']}:{latest_iso}"
 
 
 def _invalidate_wordset_cache() -> None:
@@ -67,6 +74,8 @@ class WordViewSet(viewsets.ModelViewSet):
     ordering = ["text"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Word.objects.none()
         # Annotate _bookmarked_by_user bằng Exists subquery để tránh N+1
         # trong WordListSerializer.get_is_bookmarked
         bookmarked_sq = Bookmark.objects.filter(
@@ -212,6 +221,8 @@ class WordSetViewSet(viewsets.ModelViewSet):
     ordering = ["-created_at"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return WordSet.objects.none()
         user = self.request.user
         qs = WordSet.objects.select_related("created_by").annotate(
             word_count=Count("words", distinct=True)
@@ -235,7 +246,12 @@ class WordSetViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         """Cache danh sách WordSet per-user 5 phút."""
-        key = _wordset_cache_key(request.user.id, request.query_params.urlencode())
+        stamp = _wordset_cache_stamp()
+        key = _wordset_cache_key(
+            request.user.id,
+            request.query_params.urlencode(),
+            stamp,
+        )
         cached = cache.get(key)
         if cached is not None:
             return Response(cached)
@@ -398,6 +414,8 @@ class BookmarkListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Bookmark.objects.none()
         return (
             Bookmark.objects.filter(user=self.request.user)
             .select_related("word")

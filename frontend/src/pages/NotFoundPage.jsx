@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
-import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
+import { SearchOffRounded as SearchOffRoundedIcon } from "@mui/icons-material";
 import { SbButton } from "@/components/ui";
 import { colors } from "@/styles/theme";
 

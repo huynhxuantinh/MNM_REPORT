@@ -38,6 +38,7 @@ const LearningPlacementPage = () => {
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
   const [placementResult, setPlacementResult] = useState(null);
+  const [submitHint, setSubmitHint] = useState("");
 
   const { data: statusData } = useQuery({
     queryKey: ["placement-status"],
@@ -56,12 +57,24 @@ const LearningPlacementPage = () => {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (payload) => learningApi.submitPlacement(payload).then((response) => response.data),
+    mutationFn: (payload) => learningApi.submitPlacement(payload, "placement_page").then((response) => response.data),
     onSuccess: (data) => {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(PLACEMENT_DRAFT_KEY);
       }
+      setSubmitHint("");
       setPlacementResult(data);
+    },
+    onError: (err) => {
+      const detail = String(err?.response?.data?.detail || "").toLowerCase();
+      if (detail.includes("het han")) {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(PLACEMENT_DRAFT_KEY);
+        }
+        setAnswers({});
+        setSubmitHint("Bộ câu hỏi cũ đã hết hạn. Hệ thống đã tải bộ câu hỏi mới, vui lòng làm lại.");
+        refetch();
+      }
     },
   });
   const startFirstLessonMutation = useMutation({
@@ -71,7 +84,7 @@ const LearningPlacementPage = () => {
       if (!firstLesson?.id) {
         throw new Error("Khong tim thay lesson mo khoa de bat dau.");
       }
-      return learningApi.startLearningSession(firstLesson.id).then((response) => response.data);
+      return learningApi.startLearningSession(firstLesson.id, "placement_result_cta").then((response) => response.data);
     },
     onSuccess: (session) => {
       navigate(`/learning/session/${session.id}`);
@@ -141,10 +154,10 @@ const LearningPlacementPage = () => {
     return (
       <Stack spacing={2}>
         <Alert severity="error">
-          {error?.response?.data?.detail || "Cannot load placement questions."}
+          {error?.response?.data?.detail || "Không tải được câu hỏi placement."}
         </Alert>
         <SbButton variant="outlined" onClick={() => refetch()}>
-          Retry
+          Thử lại
         </SbButton>
       </Stack>
     );
@@ -154,18 +167,18 @@ const LearningPlacementPage = () => {
     return (
       <Stack spacing={2.5} sx={{ maxWidth: 680, mx: "auto" }}>
         <Typography sx={{ fontWeight: 800, fontSize: "1.35rem", color: colors.greenStarbucks }}>
-          Placement Completed
+          Hoàn thành placement
         </Typography>
         <SbCard>
           <Stack spacing={1}>
             <Typography>
-              Recommended level: <strong>{placementResult.result.recommended_level || "A1"}</strong>
+              Trình độ gợi ý: <strong>{placementResult.result.recommended_level || "A1"}</strong>
             </Typography>
             <Typography>
-              Score: <strong>{placementResult.result.score_pct}%</strong>
+              Điểm: <strong>{placementResult.result.score_pct}%</strong>
             </Typography>
             <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
-              Nen bat dau bai dau tien ngay de giu momentum.
+              Nên bắt đầu bài đầu tiên ngay để giữ đà học.
             </Typography>
           </Stack>
         </SbCard>
@@ -173,19 +186,19 @@ const LearningPlacementPage = () => {
           <Alert severity="error">
             {startFirstLessonMutation.error?.response?.data?.detail
               || startFirstLessonMutation.error?.message
-              || "Cannot start first lesson."}
+              || "Không thể bắt đầu bài học đầu tiên."}
           </Alert>
         )}
         <Stack direction="row" spacing={1.5}>
           <SbButton variant="outlined" onClick={() => navigate("/learning")}>
-            Later
+            Để sau
           </SbButton>
           <SbButton
             variant="primary"
             loading={startFirstLessonMutation.isPending}
             onClick={() => startFirstLessonMutation.mutate()}
           >
-            Start First Lesson Now
+            Bắt đầu bài học đầu tiên
           </SbButton>
         </Stack>
       </Stack>
@@ -196,14 +209,19 @@ const LearningPlacementPage = () => {
     <Stack spacing={2.5} sx={{ maxWidth: 860, mx: "auto" }}>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: "1.35rem", color: colors.greenStarbucks }}>
-          Placement Test
+          Bài kiểm tra xếp lớp
         </Typography>
         <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
-          Hoan thanh bai xep lop de toi uu do kho. Da tra loi {answeredCount}/{questions.length}.
+          Hoàn thành bài xếp lớp để tối ưu độ khó. Đã trả lời {answeredCount}/{questions.length}.
         </Typography>
         {!!statusData?.has_completed_placement && (
           <Alert severity="info" sx={{ mt: 1.5 }}>
-            Ban da co ket qua placement truoc do (level: {statusData?.recommended_level || "N/A"}). Co the lam lai.
+            Bạn đã có kết quả placement trước đó (level: {statusData?.recommended_level || "N/A"}). Có thể làm lại.
+          </Alert>
+        )}
+        {!!submitHint && (
+          <Alert severity="warning" sx={{ mt: 1.5 }}>
+            {submitHint}
           </Alert>
         )}
       </Box>
@@ -223,7 +241,7 @@ const LearningPlacementPage = () => {
         <SbCard key={question.question_id}>
           <Stack spacing={1.5}>
             <Typography sx={{ fontWeight: 700 }}>
-              Cau {index + 1}: {question.prompt}
+              Câu {index + 1}: {question.prompt}
             </Typography>
             <FormControl>
               <RadioGroup
@@ -246,13 +264,13 @@ const LearningPlacementPage = () => {
 
       {!!submitMutation.error && (
         <Alert severity="error">
-          {submitMutation.error?.response?.data?.detail || "Cannot submit placement."}
+          {submitMutation.error?.response?.data?.detail || "Không thể nộp placement."}
         </Alert>
       )}
 
       <Stack direction="row" spacing={1.5}>
         <SbButton variant="outlined" onClick={() => navigate("/learning")}>
-          Save & Back
+          Lưu & quay lại
         </SbButton>
         <SbButton
           variant="primary"
@@ -260,7 +278,7 @@ const LearningPlacementPage = () => {
           loading={submitMutation.isPending}
           onClick={handleSubmit}
         >
-          Submit Placement
+          Nộp placement
         </SbButton>
       </Stack>
     </Stack>

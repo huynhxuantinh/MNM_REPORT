@@ -4,7 +4,6 @@ from rest_framework import serializers
 from apps.vocabulary.models import Word
 from apps.vocabulary.serializers import WordListSerializer
 from .models import (
-    Assignment,
     Course,
     ExerciseAttempt,
     LearningSession,
@@ -14,7 +13,6 @@ from .models import (
     Notification,
     PlacementResult,
     ReviewLog,
-    StudentClass,
     Unit,
     UnitLesson,
     UserCourseProgress,
@@ -58,7 +56,7 @@ class LessonSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
 
-    def get_created_by_name(self, obj):
+    def get_created_by_name(self, obj) -> str | None:
         if obj.created_by:
             return obj.created_by.full_name or obj.created_by.username
         return None
@@ -71,7 +69,7 @@ class LessonDetailSerializer(LessonSerializer):
     class Meta(LessonSerializer.Meta):
         fields = LessonSerializer.Meta.fields + ("words", "user_progress")
 
-    def get_user_progress(self, obj):
+    def get_user_progress(self, obj) -> dict | None:
         request = self.context.get("request")
         if not request:
             return None
@@ -79,38 +77,6 @@ class LessonDetailSerializer(LessonSerializer):
         if not progress:
             return None
         return LessonProgressSerializer(progress).data
-
-
-class AssignmentSerializer(serializers.ModelSerializer):
-    lesson_title = serializers.CharField(source="lesson.title", read_only=True)
-    student_email = serializers.CharField(source="student.email", read_only=True)
-    teacher_email = serializers.CharField(source="teacher.email", read_only=True)
-    is_completed = serializers.BooleanField(read_only=True)
-
-    class Meta:
-        model = Assignment
-        fields = (
-            "id",
-            "lesson",
-            "lesson_title",
-            "student",
-            "student_email",
-            "teacher",
-            "teacher_email",
-            "due_date",
-            "completed_at",
-            "is_completed",
-            "created_at",
-        )
-        read_only_fields = ("id", "teacher", "completed_at", "created_at")
-
-
-class AssignmentCreateSerializer(serializers.Serializer):
-    lesson_id = serializers.PrimaryKeyRelatedField(
-        queryset=Lesson.objects.filter(is_published=True), source="lesson"
-    )
-    student_ids = serializers.ListField(child=serializers.IntegerField(), min_length=1)
-    due_date = serializers.DateField(required=False, allow_null=True)
 
 
 class LessonProgressSerializer(serializers.ModelSerializer):
@@ -304,29 +270,6 @@ class UserStreakSerializer(serializers.ModelSerializer):
         model = UserStreak
         fields = ("current_streak", "longest_streak", "last_active_date")
         read_only_fields = fields
-
-
-class StudentClassSerializer(serializers.ModelSerializer):
-    student_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = StudentClass
-        fields = ("id", "name", "teacher", "student_count", "created_at")
-        read_only_fields = ("id", "teacher", "created_at")
-
-
-class StudentClassDetailSerializer(StudentClassSerializer):
-    students = serializers.SerializerMethodField()
-
-    class Meta(StudentClassSerializer.Meta):
-        fields = StudentClassSerializer.Meta.fields + ("students",)
-
-    def get_students(self, obj):
-        return list(
-            obj.students.all().values(
-                "id", "username", "full_name", "email", "xp", "level"
-            )
-        )
 
 
 class NotificationSerializer(serializers.ModelSerializer):

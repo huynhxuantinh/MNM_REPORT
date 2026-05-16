@@ -1,19 +1,13 @@
-"""
-Tests cho Celery tasks:
-  send_review_reminders   — nhắc ôn từ đến hạn
-  send_assignment_digest  — nhắc bài tập sắp đến hạn
-"""
-import pytest
+"""Tests for learning Celery tasks."""
+
 from datetime import date, timedelta
+
+import pytest
 from django.core import mail
 from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# send_review_reminders
-# ══════════════════════════════════════════════════════════════════════════════
 
 class TestSendReviewReminders:
     def test_creates_notification_for_pending_user(self, student, word_a):
@@ -21,7 +15,8 @@ class TestSendReviewReminders:
         from apps.learning.tasks import send_review_reminders
 
         ReviewLog.objects.create(
-            user=student, word=word_a,
+            user=student,
+            word=word_a,
             next_review_date=date.today(),
         )
 
@@ -37,7 +32,8 @@ class TestSendReviewReminders:
         from apps.learning.tasks import send_review_reminders
 
         ReviewLog.objects.create(
-            user=student, word=word_a,
+            user=student,
+            word=word_a,
             next_review_date=date.today(),
         )
 
@@ -51,38 +47,37 @@ class TestSendReviewReminders:
         from apps.learning.tasks import send_review_reminders
 
         ReviewLog.objects.create(
-            user=student, word=word_a,
+            user=student,
+            word=word_a,
             next_review_date=date.today(),
             last_reviewed=date.today(),
         )
 
         send_review_reminders()
 
-        assert not Notification.objects.filter(
-            user=student, type="reminder"
-        ).exists()
+        assert not Notification.objects.filter(user=student, type="reminder").exists()
 
     def test_skips_future_review_dates(self, student, word_b):
         from apps.learning.models import Notification, ReviewLog
         from apps.learning.tasks import send_review_reminders
 
         ReviewLog.objects.create(
-            user=student, word=word_b,
+            user=student,
+            word=word_b,
             next_review_date=date.today() + timedelta(days=3),
         )
 
         send_review_reminders()
 
-        assert not Notification.objects.filter(
-            user=student, type="reminder"
-        ).exists()
+        assert not Notification.objects.filter(user=student, type="reminder").exists()
 
     def test_returns_sent_count(self, student, word_a):
         from apps.learning.models import ReviewLog
         from apps.learning.tasks import send_review_reminders
 
         ReviewLog.objects.create(
-            user=student, word=word_a,
+            user=student,
+            word=word_a,
             next_review_date=date.today(),
         )
 
@@ -98,119 +93,24 @@ class TestSendReviewReminders:
         assert result["sent"] == 0
         assert len(mail.outbox) == 0
 
+    def test_uses_last_activity_hour_when_preferred_hour_missing(self, student, word_a):
+        from apps.learning.models import Notification, ReviewLog, UserReminderPreference
+        from apps.learning.tasks import send_review_reminders
 
-# ══════════════════════════════════════════════════════════════════════════════
-# send_assignment_digest
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TestSendAssignmentDigest:
-    def test_creates_notification_for_upcoming_deadline(
-        self, student, teacher, lesson
-    ):
-        from apps.learning.models import Assignment, Notification
-        from apps.learning.tasks import send_assignment_digest
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today() + timedelta(days=1),
-            completed_at=None,
+        ReviewLog.objects.create(
+            user=student,
+            word=word_a,
+            next_review_date=date.today(),
+        )
+        pref = UserReminderPreference.objects.create(
+            user=student,
+            preferred_hour=None,
+            last_activity_at=timezone.now(),
         )
 
-        send_assignment_digest()
-
-        assert Notification.objects.filter(
-            user=student, type=Notification.Type.REMINDER
-        ).exists()
-
-    def test_sends_email_for_upcoming_deadline(self, student, teacher, lesson):
-        from apps.learning.models import Assignment
-        from apps.learning.tasks import send_assignment_digest
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today() + timedelta(days=1),
-            completed_at=None,
-        )
-
-        send_assignment_digest()
-
-        assert len(mail.outbox) == 1
-        assert student.email in mail.outbox[0].to
-
-    def test_skips_completed_assignments(self, student, teacher, lesson):
-        from apps.learning.models import Assignment, Notification
-        from apps.learning.tasks import send_assignment_digest
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today() + timedelta(days=1),
-            completed_at=timezone.now(),
-        )
-
-        send_assignment_digest()
-
-        assert not Notification.objects.filter(
-            user=student, type="reminder"
-        ).exists()
-
-    def test_skips_assignments_beyond_2_days(self, student, teacher, lesson):
-        from apps.learning.models import Assignment, Notification
-        from apps.learning.tasks import send_assignment_digest
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today() + timedelta(days=5),
-            completed_at=None,
-        )
-
-        send_assignment_digest()
-
-        assert not Notification.objects.filter(
-            user=student, type="reminder"
-        ).exists()
-
-    def test_returns_stats_dict(self, student, teacher, lesson):
-        from apps.learning.models import Assignment
-        from apps.learning.tasks import send_assignment_digest
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today(),
-            completed_at=None,
-        )
-
-        result = send_assignment_digest()
-
-        assert "users_notified" in result
-        assert result["users_notified"] == 1
-
-    def test_each_user_notified_only_once(self, student, teacher, lesson, db):
-        """Học sinh có nhiều bài sắp đến hạn chỉ nhận 1 email."""
-        from apps.learning.models import Assignment, Lesson, LessonWord
-        from apps.learning.tasks import send_assignment_digest
-        from apps.vocabulary.models import Word
-
-        word = Word.objects.create(
-            text="extra", level="A1", created_by=teacher
-        )
-        lesson2 = Lesson.objects.create(
-            title="Lesson 2", level="A1", order_index=2,
-            is_published=True, created_by=teacher,
-        )
-        LessonWord.objects.create(lesson=lesson2, word=word, order_index=0)
-
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson,
-            due_date=date.today() + timedelta(days=1), is_completed=False,
-        )
-        Assignment.objects.create(
-            teacher=teacher, student=student, lesson=lesson2,
-            due_date=date.today() + timedelta(days=2), is_completed=False,
-        )
-
-        send_assignment_digest()
-
-        assert len(mail.outbox) == 1
+        result = send_review_reminders()
+        assert result["sent"] >= 1
+        assert Notification.objects.filter(user=student, type=Notification.Type.REMINDER).exists()
 
 
 class TestSendOnboardingFirstLessonReminders:
@@ -223,7 +123,9 @@ class TestSendOnboardingFirstLessonReminders:
             event_type=LearningEvent.EventType.ONBOARDING_STEP,
             meta={"step": "placement_submit"},
         )
-        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=25))
+        LearningEvent.objects.filter(id=submit.id).update(
+            created_at=timezone.now() - timedelta(hours=25)
+        )
 
         result = send_onboarding_first_lesson_reminders()
 
@@ -248,7 +150,9 @@ class TestSendOnboardingFirstLessonReminders:
             event_type=LearningEvent.EventType.ONBOARDING_STEP,
             meta={"step": "placement_submit"},
         )
-        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=25))
+        LearningEvent.objects.filter(id=submit.id).update(
+            created_at=timezone.now() - timedelta(hours=25)
+        )
         LearningEvent.objects.create(
             user=student,
             event_type=LearningEvent.EventType.ONBOARDING_STEP,
@@ -272,7 +176,9 @@ class TestSendOnboardingFirstLessonReminders:
             event_type=LearningEvent.EventType.ONBOARDING_STEP,
             meta={"step": "placement_submit"},
         )
-        LearningEvent.objects.filter(id=submit.id).update(created_at=timezone.now() - timedelta(hours=26))
+        LearningEvent.objects.filter(id=submit.id).update(
+            created_at=timezone.now() - timedelta(hours=26)
+        )
 
         first = send_onboarding_first_lesson_reminders()
         second = send_onboarding_first_lesson_reminders()
@@ -283,3 +189,23 @@ class TestSendOnboardingFirstLessonReminders:
             user=student,
             type=Notification.Type.REMINDER,
         ).count() == 1
+
+
+class TestRefillHearts:
+    def test_handles_future_last_refill_without_crash(self, student):
+        from apps.learning.models import UserHearts
+        from apps.learning.tasks import refill_hearts
+
+        hearts = UserHearts.objects.create(
+            user=student,
+            current_hearts=1,
+            max_hearts=5,
+            refill_interval_minutes=5,
+            last_refill_at=timezone.now() + timedelta(hours=2),
+        )
+        result = refill_hearts()
+        hearts.refresh_from_db()
+
+        assert result["users_updated"] >= 0
+        assert hearts.current_hearts == 1
+        assert hearts.last_refill_at <= timezone.now()

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Box, Typography, Alert } from "@mui/material";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import MarkEmailReadRoundedIcon from "@mui/icons-material/MarkEmailReadRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import { EmailRounded as EmailRoundedIcon } from "@mui/icons-material";
+import { MarkEmailReadRounded as MarkEmailReadRoundedIcon } from "@mui/icons-material";
+import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import authApi from "@/api/authApi";

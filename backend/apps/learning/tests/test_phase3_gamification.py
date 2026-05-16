@@ -6,6 +6,7 @@ from django.utils import timezone
 from apps.learning.models import (
     DailyGoal,
     DailyGoalLog,
+    ExerciseAttempt,
     LearningSession,
     UserHearts,
     UserReminderPreference,
@@ -260,3 +261,67 @@ def test_claim_streak_freeze_respects_cap(sc, student):
     assert response.status_code == 400
     streak.refresh_from_db()
     assert streak.streak_freezes == 5
+
+
+def _seed_recent_completed_sessions(student, lesson, unit, sessions_payload):
+    for index, payload in enumerate(sessions_payload, start=1):
+        session = LearningSession.objects.create(
+            user=student,
+            unit=unit,
+            lesson=lesson,
+            status=LearningSession.Status.COMPLETED,
+            session_type=LearningSession.SessionType.LESSON,
+            difficulty=LearningSession.Difficulty.NORMAL,
+            exercises=[{"step_index": i + 1, "exercise_type": "mc_meaning", "prompt": f"q{index}-{i}"} for i in range(payload["total"])],
+            total_answered=payload["total"],
+            correct_answered=payload["correct"],
+            xp_earned=0,
+            completed_at=timezone.now() - timedelta(hours=index),
+        )
+        for step in range(1, payload["total"] + 1):
+            ExerciseAttempt.objects.create(
+                session=session,
+                step_index=step,
+                exercise_type="mc_meaning",
+                prompt=f"p-{step}",
+                submitted_answer={"option": "A"},
+                is_correct=step <= payload["correct"],
+                response_ms=payload["response_ms"],
+                awarded_xp=0,
+            )
+
+
+def test_adaptive_difficulty_switches_to_easy_on_low_accuracy(sc, student, lesson, course_with_units):
+    _, unit, _ = course_with_units
+    _seed_recent_completed_sessions(
+        student,
+        lesson,
+        unit,
+        [
+            {"total": 6, "correct": 2, "response_ms": 6200},
+            {"total": 6, "correct": 1, "response_ms": 7000},
+            {"total": 6, "correct": 2, "response_ms": 6800},
+        ],
+    )
+
+    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+    assert start.status_code == 201
+    assert start.data["difficulty"] == "easy"
+
+
+def test_adaptive_difficulty_switches_to_hard_on_high_accuracy(sc, student, lesson, course_with_units):
+    _, unit, _ = course_with_units
+    _seed_recent_completed_sessions(
+        student,
+        lesson,
+        unit,
+        [
+            {"total": 6, "correct": 6, "response_ms": 2800},
+            {"total": 6, "correct": 5, "response_ms": 3000},
+            {"total": 6, "correct": 6, "response_ms": 2600},
+        ],
+    )
+
+    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+    assert start.status_code == 201
+    assert start.data["difficulty"] == "hard"

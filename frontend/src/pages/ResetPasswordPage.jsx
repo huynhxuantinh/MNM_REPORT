@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Typography, IconButton, Alert } from "@mui/material";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
+import { VisibilityRounded as VisibilityRoundedIcon } from "@mui/icons-material";
+import { VisibilityOffRounded as VisibilityOffRoundedIcon } from "@mui/icons-material";
+import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
+import { ErrorRounded as ErrorRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import authApi from "@/api/authApi";

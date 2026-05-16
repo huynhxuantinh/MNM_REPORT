@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import (
-    Assignment, Lesson, LessonProgress, LessonWord,
+    Lesson, LessonProgress, LessonWord,
     Notification, ReviewLog, UserStreak,
 )
 
@@ -45,19 +45,6 @@ class LessonAdmin(admin.ModelAdmin):
     def unpublish_lessons(self, request, queryset):
         updated = queryset.update(is_published=False)
         self.message_user(request, f"Đã ẩn {updated} bài học.")
-
-
-@admin.register(Assignment)
-class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ("lesson", "student", "teacher", "due_date", "is_done", "created_at")
-    list_filter = ("due_date",)
-    search_fields = ("student__email", "teacher__email", "lesson__title")
-    raw_id_fields = ("teacher", "student", "lesson")
-    readonly_fields = ("created_at",)
-
-    @admin.display(description="Hoàn thành", boolean=True)
-    def is_done(self, obj):
-        return obj.is_completed
 
 
 @admin.register(LessonProgress)

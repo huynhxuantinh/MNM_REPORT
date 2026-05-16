@@ -6,8 +6,8 @@ import {
   Paper, Chip, Switch, Tooltip, IconButton, InputAdornment,
   Skeleton, Pagination, Stack, Alert, Snackbar,
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
+import { EditRounded as EditRoundedIcon } from "@mui/icons-material";
 import adminApi from "@/api/adminApi";
 import { SbAvatar } from "@/components/ui";
 

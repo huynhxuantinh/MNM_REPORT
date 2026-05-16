@@ -4,14 +4,14 @@ import {
   Box, Typography, Chip, Skeleton, Divider, Tooltip,
   IconButton, LinearProgress, Grid, Alert,
 } from "@mui/material";
-import ArrowBackRoundedIcon     from "@mui/icons-material/ArrowBackRounded";
-import BookmarkBorderRoundedIcon from "@mui/icons-material/BookmarkBorderRounded";
-import BookmarkRoundedIcon       from "@mui/icons-material/BookmarkRounded";
-import VolumeUpRoundedIcon       from "@mui/icons-material/VolumeUpRounded";
-import RepeatRoundedIcon         from "@mui/icons-material/RepeatRounded";
-import CheckCircleRoundedIcon    from "@mui/icons-material/CheckCircleRounded";
-import CalendarTodayRoundedIcon  from "@mui/icons-material/CalendarTodayRounded";
-import TrendingUpRoundedIcon     from "@mui/icons-material/TrendingUpRounded";
+import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
+import { BookmarkBorderRounded as BookmarkBorderRoundedIcon } from "@mui/icons-material";
+import { BookmarkRounded as BookmarkRoundedIcon } from "@mui/icons-material";
+import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
+import { RepeatRounded as RepeatRoundedIcon } from "@mui/icons-material";
+import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
+import { CalendarTodayRounded as CalendarTodayRoundedIcon } from "@mui/icons-material";
+import { TrendingUpRounded as TrendingUpRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import vocabularyApi from "@/api/vocabularyApi";

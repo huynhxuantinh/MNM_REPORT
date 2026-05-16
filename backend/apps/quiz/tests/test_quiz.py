@@ -73,6 +73,50 @@ class TestQuizGenerate:
         r = sc.get(GENERATE_URL, {"lesson_id": lesson.id})
         assert r.data["lesson_title"] == lesson.title
 
+    def test_generate_with_wordset_and_match_type(self, sc, teacher):
+        from apps.vocabulary.models import Word, WordSet, WordSetWord
+
+        ws = WordSet.objects.create(
+            name="Quiz WordSet",
+            level="A1",
+            is_public=True,
+            created_by=teacher,
+        )
+        words = [
+            Word.objects.create(text="one", definition_vi="một", level="A1", created_by=teacher),
+            Word.objects.create(text="two", definition_vi="hai", level="A1", created_by=teacher),
+            Word.objects.create(text="three", definition_vi="ba", level="A1", created_by=teacher),
+            Word.objects.create(text="four", definition_vi="bốn", level="A1", created_by=teacher),
+        ]
+        for idx, word in enumerate(words):
+            WordSetWord.objects.create(wordset=ws, word=word, order_index=idx)
+
+        r = sc.get(GENERATE_URL, {"wordset_id": ws.id, "type": "match"})
+        assert r.status_code == 200
+        assert r.data["quiz_type"] == "match"
+        assert r.data["wordset_title"] == ws.name
+        assert len(r.data["questions"]) == 4
+
+    def test_generate_wordset_with_less_than_4_words_returns_400(self, sc, teacher):
+        from apps.vocabulary.models import Word, WordSet, WordSetWord
+
+        ws = WordSet.objects.create(name="Too Short", is_public=True, created_by=teacher)
+        for idx in range(3):
+            w = Word.objects.create(
+                text=f"w{idx}",
+                definition_vi=f"nghia {idx}",
+                level="A1",
+                created_by=teacher,
+            )
+            WordSetWord.objects.create(wordset=ws, word=w, order_index=idx)
+
+        r = sc.get(GENERATE_URL, {"wordset_id": ws.id})
+        assert r.status_code == 400
+
+    def test_generate_nonexistent_wordset_returns_404(self, sc):
+        r = sc.get(GENERATE_URL, {"wordset_id": 999999})
+        assert r.status_code == 404
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SUBMIT
@@ -183,3 +227,51 @@ class TestQuizHistory:
         from rest_framework.test import APIClient
         r = APIClient().get(HISTORY_URL)
         assert r.status_code in (401, 403)
+
+
+class TestAdminQuizResults:
+    URL = "/api/v1/quiz/admin/results/"
+
+    def test_admin_can_filter_by_search_and_quiz(self, db, lesson, teacher):
+        from apps.accounts.models import User
+        from rest_framework.test import APIClient
+
+        admin = User.objects.create_user(
+            username="quiz_admin",
+            email="quiz_admin@test.com",
+            password="Pass123!",
+            is_active=True,
+            email_verified=True,
+            role=User.Role.ADMIN,
+        )
+        student = User.objects.create_user(
+            username="quiz_student",
+            email="quiz_student@test.com",
+            password="Pass123!",
+            full_name="Quiz Student",
+            is_active=True,
+            email_verified=True,
+            role=User.Role.USER,
+        )
+        tc = APIClient()
+        tc.force_authenticate(user=teacher)
+        gen = tc.get(GENERATE_URL, {"lesson_id": lesson.id})
+        quiz_id = gen.data["quiz_id"]
+
+        sc = APIClient()
+        sc.force_authenticate(user=student)
+        sc.post(
+            SUBMIT_URL,
+            {"quiz_id": quiz_id, "score": 80, "total_questions": 4, "correct_answers": 3},
+            format="json",
+        )
+
+        ac = APIClient()
+        ac.force_authenticate(user=admin)
+        response = ac.get(self.URL, {"search": "quiz_student", "quiz": quiz_id})
+        assert response.status_code == 200
+        assert response.data["count"] == 1
+
+    def test_non_admin_forbidden(self, sc):
+        response = sc.get(self.URL)
+        assert response.status_code == 403

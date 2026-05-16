@@ -9,14 +9,14 @@ import {
   Alert, Skeleton, Pagination, Stack, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Paper,
 } from "@mui/material";
-import AddRoundedIcon           from "@mui/icons-material/AddRounded";
-import EditRoundedIcon          from "@mui/icons-material/EditRounded";
-import DeleteRoundedIcon        from "@mui/icons-material/DeleteRounded";
-import SearchRoundedIcon        from "@mui/icons-material/SearchRounded";
-import FileUploadRoundedIcon    from "@mui/icons-material/FileUploadRounded";
-import BookmarkBorderRoundedIcon from "@mui/icons-material/BookmarkBorderRounded";
-import BookmarkRoundedIcon      from "@mui/icons-material/BookmarkRounded";
-import MenuBookRoundedIcon      from "@mui/icons-material/MenuBookRounded";
+import { AddRounded as AddRoundedIcon } from "@mui/icons-material";
+import { EditRounded as EditRoundedIcon } from "@mui/icons-material";
+import { DeleteRounded as DeleteRoundedIcon } from "@mui/icons-material";
+import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
+import { FileUploadRounded as FileUploadRoundedIcon } from "@mui/icons-material";
+import { BookmarkBorderRounded as BookmarkBorderRoundedIcon } from "@mui/icons-material";
+import { BookmarkRounded as BookmarkRoundedIcon } from "@mui/icons-material";
+import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import vocabularyApi from "@/api/vocabularyApi";

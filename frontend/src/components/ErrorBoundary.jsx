@@ -1,6 +1,6 @@
 import { Component } from "react";
 import { Box, Typography } from "@mui/material";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { WarningAmberRounded as WarningAmberRoundedIcon } from "@mui/icons-material";
 
 class ErrorBoundary extends Component {
   constructor(props) {

@@ -8,7 +8,8 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
-DEBUG = config("DEBUG", default=False, cast=bool)
+_DEBUG_RAW = str(config("DEBUG", default="False")).strip().lower()
+DEBUG = _DEBUG_RAW in {"1", "true", "yes", "on", "debug"}
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
 
 # ── Ứng dụng ──────────────────────────────────────────────────────
@@ -154,6 +155,7 @@ REST_FRAMEWORK = {
         "learning_session_quit": "60/minute",
         "learning_checkpoint_start": "20/minute",
         "learning_checkpoint_submit": "20/minute",
+        "learning_analytics_read": "120/minute",
     },
 }
 
@@ -218,11 +220,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "learning.send_review_reminders",
         "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
     },
-    # 08:00 ICT mỗi ngày — nhắc bài tập sắp đến hạn
-    "assignment-digest-daily": {
-        "task": "learning.send_assignment_digest",
-        "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
-    },
     "daily-goal-reminders-hourly": {
         "task": "learning.send_daily_goal_reminders",
         "schedule": timedelta(hours=1),
@@ -248,4 +245,8 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API cho ứng dụng học từ vựng tiếng Anh MNM",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "LessonLevelEnum": "apps.learning.models.Lesson.Level",
+        "WordLevelEnum": "apps.vocabulary.models.Word.Level",
+    },
 }
