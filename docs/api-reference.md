@@ -239,7 +239,6 @@ GET /auth/admin/stats/
 {
   "total_users": 150,
   "students": 120,
-  "teachers": 8,
   "admins": 2,
   "active_users": 145,
   "inactive_users": 5,

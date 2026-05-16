@@ -12,6 +12,7 @@ import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import { login, clearError } from "@/features/auth/authSlice";
+import learningApi from "@/api/learningApi";
 import { colors } from "@/styles/theme";
 
 // ── Validation ───────────────────────────────────────────────────────────────
@@ -78,14 +79,25 @@ const LoginPage = () => {
 
     const result = await dispatch(login({ email: form.email, password: form.password }));
     if (login.fulfilled.match(result)) {
-      // Nếu user đang bị redirect từ trang cụ thể thì về đó, không thì redirect theo role
-      if (from !== "/") {
-        navigate(from, { replace: true });
-      } else {
-        const role = result.payload?.user?.role;
-        if (role === "admin") navigate("/admin", { replace: true });
-        else navigate("/", { replace: true });
+      const role = result.payload?.user?.role;
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+        return;
       }
+
+      // User chưa placement: bắt buộc làm placement ngay sau login.
+      try {
+        const placementStatus = await learningApi.getPlacementStatus().then((res) => res.data);
+        if (placementStatus && !placementStatus.has_completed_placement) {
+          navigate("/learning/placement", { replace: true });
+          return;
+        }
+      } catch {
+        // fallback luồng cũ nếu API placement lỗi
+      }
+
+      if (from !== "/") navigate(from, { replace: true });
+      else navigate("/", { replace: true });
     }
   };
 

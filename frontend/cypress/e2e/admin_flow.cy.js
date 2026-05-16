@@ -31,7 +31,6 @@ describe("Admin Portal Flow", () => {
       body: {
         total_users: 150,
         students: 120,
-        teachers: 25,
         admins: 5,
         new_users_this_week: 8,
         active_users: 140,
@@ -54,7 +53,7 @@ describe("Admin Portal Flow", () => {
   it("loads users management page", () => {
     cy.intercept("GET", "**/api/v1/auth/admin/stats/**", {
       statusCode: 200,
-      body: { total_users: 1, students: 1, teachers: 0, admins: 0 },
+      body: { total_users: 1, students: 1, admins: 0 },
     });
 
     cy.intercept("GET", "**/api/v1/auth/admin/users/**", {
@@ -62,7 +61,7 @@ describe("Admin Portal Flow", () => {
       body: {
         count: 2,
         results: [
-          { id: 2, email: "teacher@test.com", full_name: "Tran Thi B", username: "teacher", role: "teacher", is_active: true, xp: 100, created_at: "2026-01-02T00:00:00Z" },
+          { id: 2, email: "staff@test.com", full_name: "Tran Thi B", username: "staff", role: "user", is_active: true, xp: 100, created_at: "2026-01-02T00:00:00Z" },
           { id: 10, email: "student@test.com", full_name: "Nguyen Van A", username: "student", role: "user", is_active: true, xp: 200, created_at: "2026-01-03T00:00:00Z" },
         ],
       },

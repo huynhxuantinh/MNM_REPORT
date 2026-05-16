@@ -17,7 +17,7 @@ def _user(username, role, db):
 @pytest.fixture
 def student(db):  return _user("qstudent", User.Role.USER,    db)
 @pytest.fixture
-def teacher(db):  return _user("qteacher", User.Role.TEACHER, db)
+def teacher(db):  return _user("qteacher", User.Role.ADMIN, db)
 
 
 def _client(user):

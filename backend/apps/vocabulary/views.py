@@ -40,7 +40,7 @@ def _invalidate_wordset_cache() -> None:
 
 from .filters import WordFilter, WordSetFilter
 from .models import Bookmark, Word, WordSet, WordSetWord
-from apps.accounts.permissions import IsAdmin as IsTeacherOrAdmin
+from apps.accounts.permissions import IsAdmin
 from .permissions import IsOwnerOrAdmin
 from .serializers import (
     AddWordToSetSerializer,
@@ -97,7 +97,7 @@ class WordViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         if self.action == "bookmark":
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+        return [IsAuthenticated(), IsAdmin(), IsOwnerOrAdmin()]
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -145,7 +145,7 @@ class WordViewSet(viewsets.ModelViewSet):
         methods=["post"],
         url_path="import",
         parser_classes=[MultiPartParser],
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def import_csv(self, request):
         """
@@ -243,7 +243,7 @@ class WordSetViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+        return [IsAuthenticated(), IsAdmin(), IsOwnerOrAdmin()]
 
     def list(self, request, *args, **kwargs):
         """Cache danh sách WordSet per-user 5 phút."""
@@ -278,7 +278,7 @@ class WordSetViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["post"],
         url_path="words",
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def add_word(self, request, pk=None):
         """POST /sets/{id}/words/ – thêm 1 từ vào bộ từ."""
@@ -312,7 +312,7 @@ class WordSetViewSet(viewsets.ModelViewSet):
         methods=["post"],
         url_path="import",
         parser_classes=[MultiPartParser],
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def import_csv(self, request):
         """
@@ -391,7 +391,7 @@ class WordSetViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["delete"],
         url_path=r"words/(?P<word_id>\d+)",
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def remove_word(self, request, pk=None, word_id=None):
         """DELETE /sets/{id}/words/{word_id}/ – gỡ 1 từ khỏi bộ từ."""

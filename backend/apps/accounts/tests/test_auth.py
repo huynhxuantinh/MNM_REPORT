@@ -135,7 +135,8 @@ class TestLogin:
         response = client.post(LOGIN_URL, {"email": active_user.email, "password": "TestPass123!"})
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
-        assert "refresh" in response.data
+        assert "refresh" not in response.data
+        assert "refresh_token" in response.cookies
 
     def test_success_returns_user_data(self, client, active_user):
         response = client.post(LOGIN_URL, {"email": active_user.email, "password": "TestPass123!"})
@@ -203,7 +204,8 @@ REFRESH_URL = "/api/v1/auth/token/refresh/"
 class TestTokenRefresh:
     def test_success_returns_new_access_token(self, client, active_user):
         login = client.post(LOGIN_URL, {"email": active_user.email, "password": "TestPass123!"})
-        response = client.post(REFRESH_URL, {"refresh": login.data["refresh"]})
+        refresh_token = login.cookies.get("refresh_token").value
+        response = client.post(REFRESH_URL, {"refresh": refresh_token})
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
 
@@ -482,7 +484,7 @@ class TestAdminPermissions:
         ac, _ = self._make_admin_client(client, db)
         r = ac.get(ADMIN_STATS_URL)
         assert r.status_code == 200
-        for field in ("total_users", "students", "teachers", "total_words", "total_lessons"):
+        for field in ("total_users", "students", "admins", "total_words", "total_lessons"):
             assert field in r.data
 
     def test_student_cannot_access_admin_users(self, auth_client):
@@ -493,8 +495,8 @@ class TestAdminPermissions:
         r = auth_client.get(ADMIN_STATS_URL)
         assert r.status_code == 403
 
-    def test_teacher_cannot_access_admin_users(self, client, teacher_user):
-        r = client.post("/api/v1/auth/login/", {"email": teacher_user.email, "password": "TestPass123!"})
+    def test_non_admin_cannot_access_admin_users(self, client, staff_user):
+        r = client.post("/api/v1/auth/login/", {"email": staff_user.email, "password": "TestPass123!"})
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {r.data['access']}")
         assert client.get(ADMIN_USERS_URL).status_code == 403
 

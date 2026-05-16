@@ -156,10 +156,10 @@ class TestWordUpdate:
         r = student_client.patch(f"{WORDS_URL}{word.id}/", {"definition_vi": "x"})
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_teacher_cannot_update(self, db, word):
+    def test_other_non_owner_cannot_update(self, db, word):
         other = __import__("apps.accounts.models", fromlist=["User"]).User.objects.create_user(
             username="other_t", email="other@test.com", password="Pass123!",
-            is_active=True, role="teacher",
+            is_active=True, role="user",
         )
         from rest_framework.test import APIClient
         c = APIClient()

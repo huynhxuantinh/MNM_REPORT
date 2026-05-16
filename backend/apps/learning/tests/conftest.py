@@ -28,7 +28,7 @@ def student(db):
 
 @pytest.fixture
 def teacher(db):
-    return _user("teacher", User.Role.TEACHER, db)
+    return _user("teacher", User.Role.ADMIN, db)
 
 
 @pytest.fixture

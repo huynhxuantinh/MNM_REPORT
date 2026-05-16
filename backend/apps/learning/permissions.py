@@ -8,7 +8,7 @@ class IsOwnerOrAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
-        owner_id = getattr(obj, "created_by_id", None) or getattr(obj, "teacher_id", None)
+        owner_id = getattr(obj, "created_by_id", None)
         return (
             owner_id == request.user.id
             or request.user.role == "admin"

@@ -22,7 +22,7 @@ def teacher(db):
     return User.objects.create_user(
         username="teacher", email="teacher@test.com",
         password="Pass123!", is_active=True, email_verified=True,
-        role=User.Role.TEACHER,
+        role=User.Role.ADMIN,
     )
 
 

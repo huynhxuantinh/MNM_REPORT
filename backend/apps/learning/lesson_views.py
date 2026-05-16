@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from .filters import LessonFilter
 from .models import Lesson, LessonProgress, LessonWord, ReviewLog
-from apps.accounts.permissions import IsAdmin as IsTeacherOrAdmin
+from apps.accounts.permissions import IsAdmin
 from .permissions import IsOwnerOrAdmin
 from .serializers import LessonDetailSerializer, LessonSerializer, LessonWordSerializer
 from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards
@@ -77,7 +77,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("list", "retrieve", "start", "complete"):
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+        return [IsAuthenticated(), IsAdmin(), IsOwnerOrAdmin()]
 
     def list(self, request, *args, **kwargs):
         stamp = _lesson_cache_stamp()
@@ -105,7 +105,7 @@ class LessonViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["post"],
         url_path="words",
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def add_word(self, request, pk=None):
         lesson = self.get_object()
@@ -125,7 +125,7 @@ class LessonViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["delete"],
         url_path=r"words/(?P<word_id>\d+)",
-        permission_classes=[IsAuthenticated, IsTeacherOrAdmin],
+        permission_classes=[IsAuthenticated, IsAdmin],
     )
     def remove_word(self, request, pk=None, word_id=None):
         lesson = self.get_object()

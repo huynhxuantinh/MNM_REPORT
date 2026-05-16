@@ -48,12 +48,12 @@ def inactive_user(db):
 
 
 @pytest.fixture
-def teacher_user(db):
+def staff_user(db):
     return User.objects.create_user(
-        username="teacher",
-        email="teacher@example.com",
+        username="staff",
+        email="staff@example.com",
         password="TestPass123!",
-        role=User.Role.TEACHER,
+        role=User.Role.USER,
         is_active=True,
         email_verified=True,
     )
@@ -69,7 +69,7 @@ def auth_client(client, active_user):
         {"email": active_user.email, "password": "TestPass123!"},
     )
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
-    client._refresh_token = response.data["refresh"]
+    client._refresh_token = response.cookies.get("refresh_token").value
     return client
 
 

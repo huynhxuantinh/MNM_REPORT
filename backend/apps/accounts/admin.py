@@ -37,7 +37,7 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description="Vai trò")
     def role_badge(self, obj):
-        colors = {"admin": "#d32f2f", "teacher": "#1976d2", "user": "#388e3c"}
+        colors = {"admin": "#d32f2f", "user": "#388e3c"}
         color = colors.get(obj.role, "#757575")
         return format_html(
             '<span style="background:{};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">{}</span>',

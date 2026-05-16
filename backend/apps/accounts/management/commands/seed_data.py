@@ -1,7 +1,7 @@
 """Management command: tạo dữ liệu mẫu ban đầu.
 
 Tạo:
-  - 3 tài khoản mẫu: 1 admin, 1 teacher, 1 user
+  - 2 tài khoản mẫu: 1 admin, 1 user
   - 5 bài học mẫu được công bố, mỗi bài có từ 10-15 từ vựng phù hợp cấp độ
 
 Command này idempotent: chạy nhiều lần không tạo trùng (dùng get_or_create).
@@ -19,17 +19,6 @@ SAMPLE_USERS = [
         "role": "admin",
         "is_staff": True,
         "is_superuser": True,
-        "is_active": True,
-        "email_verified": True,
-    },
-    {
-        "email": "teacher@mnm-english.com",
-        "username": "teacher_mnm",
-        "full_name": "Nguyễn Thị Lan",
-        "password": "Teacher@2024!",
-        "role": "teacher",
-        "is_staff": False,
-        "is_superuser": False,
         "is_active": True,
         "email_verified": True,
     },
@@ -93,7 +82,7 @@ SAMPLE_LESSONS = [
 
 
 class Command(BaseCommand):
-    help = "Tạo dữ liệu mẫu: 3 tài khoản và 5 bài học với từ vựng thực."
+    help = "Tạo dữ liệu mẫu: 2 tài khoản và 5 bài học với từ vựng thực."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -139,11 +128,7 @@ class Command(BaseCommand):
 
                 users[role] = User.objects.get(email=email)
 
-            teacher = users.get("teacher")
-            if not teacher:
-                # Fallback nếu teacher chưa tạo được
-                teacher = User.objects.filter(role="teacher").first() or \
-                          User.objects.filter(is_superuser=True).first()
+            content_owner = users.get("admin") or User.objects.filter(is_superuser=True).first()
 
             # ── 2. Tạo bài học mẫu ───────────────────────────────────
             for entry in SAMPLE_LESSONS:
@@ -155,7 +140,7 @@ class Command(BaseCommand):
                     defaults={
                         **lesson_fields,
                         "is_published": True,
-                        "created_by": teacher,
+                        "created_by": content_owner,
                     },
                 )
 
@@ -187,7 +172,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             "\nSeed data hoàn tất! Tài khoản mẫu:\n"
             "  admin@mnm-english.com   / Admin@2024!\n"
-            "  teacher@mnm-english.com / Teacher@2024!\n"
             "  student@mnm-english.com / Student@2024!\n"
             "\nLưu ý: Chạy lệnh này sau khi đã import từ vựng:\n"
             "  python manage.py import_words data/words.csv\n"
