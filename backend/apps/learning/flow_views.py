@@ -1,12 +1,13 @@
 ﻿"""Flow-facing learning views (B2C learner journey)."""
 
+from collections import defaultdict
 from datetime import timedelta
 import math
 import time
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, F
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -19,11 +20,13 @@ from apps.vocabulary.models import Word
 from .exercise_engine import evaluate_exercise_answer, generate_exercises_from_words, to_client_exercise
 from .models import (
     Course,
+    DailyGoalLog,
     ExerciseAttempt,
     ExperimentAssignment,
     LearningEvent,
     LearningSession,
     Lesson,
+    LessonWord,
     LessonProgress,
     Notification,
     PlacementResult,
@@ -183,6 +186,48 @@ class LearningPathView(APIView):
             unit for unit in course.units.all()
             if unit.is_published
         ]
+        lesson_ids = []
+        for unit in units:
+            for link in unit.unit_lessons.all():
+                if link.lesson and link.lesson.is_published:
+                    lesson_ids.append(link.lesson_id)
+        lesson_ids = sorted(set(lesson_ids))
+
+        lesson_word_count_map = {
+            item["lesson_id"]: int(item["total"])
+            for item in (
+                LessonWord.objects
+                .filter(lesson_id__in=lesson_ids)
+                .values("lesson_id")
+                .annotate(total=Count("word_id", distinct=True))
+            )
+        }
+        learned_word_map = defaultdict(set)
+        sessions = (
+            LearningSession.objects
+            .filter(
+                user=request.user,
+                lesson_id__in=lesson_ids,
+                session_type=LearningSession.SessionType.LESSON,
+            )
+            .prefetch_related("attempts")
+        )
+        for session in sessions:
+            attempted_steps = set(session.attempts.values_list("step_index", flat=True))
+            if not attempted_steps:
+                continue
+            for exercise in session.exercises or []:
+                step_index = int(exercise.get("step_index") or 0)
+                if step_index not in attempted_steps:
+                    continue
+                word_id = int(exercise.get("word_id") or 0)
+                if word_id > 0:
+                    learned_word_map[session.lesson_id].add(word_id)
+        lesson_learning_map = {
+            lesson_id: len(word_ids)
+            for lesson_id, word_ids in learned_word_map.items()
+        }
+
         progress_map = {
             item.unit_id: item
             for item in UserUnitProgress.objects.filter(
@@ -210,11 +255,20 @@ class LearningPathView(APIView):
                 "request": request,
                 "progress_map": progress_map,
                 "course_progress_map": course_progress_map,
+                "lesson_word_count_map": lesson_word_count_map,
+                "lesson_learning_map": lesson_learning_map,
             },
         )
         payload = serializer.data
         payload["units"] = LearningPathUnitSerializer(
-            units, many=True, context={"request": request, "progress_map": progress_map}
+            units,
+            many=True,
+            context={
+                "request": request,
+                "progress_map": progress_map,
+                "lesson_word_count_map": lesson_word_count_map,
+                "lesson_learning_map": lesson_learning_map,
+            },
         ).data
         return Response(payload)
 
@@ -697,15 +751,22 @@ class LearningSessionAnswerView(APIView):
                         "idempotent": True,
                         "attempt": ExerciseAttemptSerializer(attempt).data,
                         "session": LearningSessionSerializer(session).data,
+                        "feedback": {
+                            "is_correct": attempt.is_correct,
+                            "awarded_xp": attempt.awarded_xp,
+                            "exercise_type": attempt.exercise_type,
+                            "hearts": hearts.current_hearts,
+                        },
                         "hearts": _build_hearts_payload(hearts),
                     }
                 )
 
-            session.total_answered += 1
-            if is_correct:
-                session.correct_answered += 1
-            session.xp_earned += awarded_xp
-            session.save(update_fields=["total_answered", "correct_answered", "xp_earned"])
+            LearningSession.objects.filter(pk=session.pk).update(
+                total_answered=F("total_answered") + 1,
+                correct_answered=F("correct_answered") + (1 if is_correct else 0),
+                xp_earned=F("xp_earned") + awarded_xp,
+            )
+            session.refresh_from_db(fields=["total_answered", "correct_answered", "xp_earned"])
 
             if not is_correct:
                 heart_cost = _get_heart_cost(session, is_correct)
@@ -803,20 +864,28 @@ class LearningSessionFinishView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if session.status == LearningSession.Status.COMPLETED:
-            summary = _build_session_summary(session)
-            return Response(
-                {
-                    "already_completed": True,
-                    "session": LearningSessionSerializer(session).data,
-                    "summary": summary,
-                }
-            )
-        if session.status != LearningSession.Status.STARTED:
-            return Response({"detail": "Phien hoc khong hop le de ket thuc."}, status=status.HTTP_400_BAD_REQUEST)
-
         now = timezone.now()
         with transaction.atomic():
+            session = (
+                LearningSession.objects
+                .select_for_update()
+                .select_related("unit", "unit__course", "lesson")
+                .filter(id=session_id, user=request.user)
+                .first()
+            )
+            if not session:
+                return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            if session.status == LearningSession.Status.COMPLETED:
+                summary = _build_session_summary(session)
+                return Response(
+                    {
+                        "already_completed": True,
+                        "session": LearningSessionSerializer(session).data,
+                        "summary": summary,
+                    }
+                )
+            if session.status != LearningSession.Status.STARTED:
+                return Response({"detail": "Phien hoc khong hop le de ket thuc."}, status=status.HTTP_400_BAD_REQUEST)
             session.status = LearningSession.Status.COMPLETED
             session.completed_at = now
             session.save(update_fields=["status", "completed_at"])
@@ -871,7 +940,7 @@ class LearningSessionFinishView(APIView):
             )
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
 
-        session_minutes = max(1, math.ceil((now - session.started_at).total_seconds() / 60))
+        session_minutes = max(1, min(120, math.ceil((now - session.started_at).total_seconds() / 60)))
         streak = _apply_learning_rewards(
             request.user,
             xp_earned=session.xp_earned,
@@ -1241,6 +1310,9 @@ class LearningCheckpointStartView(APIView):
         payload = LearningSessionSerializer(session).data
         payload["exercise_count"] = len(exercises)
         payload["hearts"] = hearts.current_hearts
+        payload["hearts_info"] = _build_hearts_payload(hearts)
+        payload["difficulty"] = LearningSession.Difficulty.HARD
+        payload["difficulty_context"] = None
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
@@ -1278,6 +1350,13 @@ class LearningCheckpointSubmitView(APIView):
 
         now = timezone.now()
         with transaction.atomic():
+            session = (
+                LearningSession.objects
+                .select_for_update()
+                .select_related("unit", "unit__course")
+                .filter(pk=session.pk, user=request.user)
+                .first()
+            )
             if session.status != LearningSession.Status.COMPLETED:
                 session.status = LearningSession.Status.COMPLETED
                 session.completed_at = now
@@ -1295,7 +1374,7 @@ class LearningCheckpointSubmitView(APIView):
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
 
         if passed:
-            session_minutes = max(1, math.ceil((now - session.started_at).total_seconds() / 60))
+            session_minutes = max(1, min(120, math.ceil((now - session.started_at).total_seconds() / 60)))
             _apply_learning_rewards(
                 request.user,
                 xp_earned=session.xp_earned,
@@ -1407,29 +1486,32 @@ class DailyGoalClaimView(APIView):
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
         goal = _get_or_create_daily_goal(request.user)
-        log = _get_today_goal_log(request.user, goal)
 
         if not goal.is_active:
             return Response({"detail": "Daily goal is disabled."}, status=status.HTTP_400_BAD_REQUEST)
-        if not log.is_achieved:
-            return Response(
-                {"detail": "You have not reached today's daily goal yet."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if log.claimed_at:
-            return Response(
-                {
-                    "already_claimed": True,
-                    "claimed_at": log.claimed_at,
-                    "xp": request.user.xp,
-                    "level": request.user.level,
-                }
-            )
 
         now = timezone.now()
-        log.claimed_at = now
-        log.reward_xp_awarded = goal.reward_xp
-        log.save(update_fields=["claimed_at", "reward_xp_awarded", "updated_at"])
+        with transaction.atomic():
+            log = _get_today_goal_log(request.user, goal)
+            log = DailyGoalLog.objects.select_for_update().get(pk=log.pk)
+            if not log.is_achieved:
+                return Response(
+                    {"detail": "You have not reached today's daily goal yet."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if log.claimed_at:
+                return Response(
+                    {
+                        "already_claimed": True,
+                        "claimed_at": log.claimed_at,
+                        "xp": request.user.xp,
+                        "level": request.user.level,
+                    }
+                )
+            log.claimed_at = now
+            log.reward_xp_awarded = goal.reward_xp
+            log.save(update_fields=["claimed_at", "reward_xp_awarded", "updated_at"])
+
         leveled_up = request.user.add_xp(goal.reward_xp)
         if leveled_up:
             _create_level_up_notification(request.user, request.user.level)
@@ -1545,7 +1627,7 @@ class ReviewAnswerView(APIView):
         log.apply_sm2(quality)
 
         xp = XP_REVIEW_CORRECT if quality >= 3 else XP_REVIEW_WRONG
-        _apply_learning_rewards(request.user, xp_earned=xp, study_minutes=1)
+        streak = _apply_learning_rewards(request.user, xp_earned=xp, study_minutes=1)
 
         return Response(
             {
@@ -1557,6 +1639,7 @@ class ReviewAnswerView(APIView):
                 "xp_earned": xp,
                 "total_xp": request.user.xp,
                 "level": request.user.level,
+                "streak": streak.current_streak,
             }
         )
 

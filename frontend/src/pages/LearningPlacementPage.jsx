@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -36,6 +36,7 @@ const getFirstUnlockedLesson = (pathData) => {
 
 const LearningPlacementPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [answers, setAnswers] = useState({});
   const [placementResult, setPlacementResult] = useState(null);
   const [submitHint, setSubmitHint] = useState("");
@@ -64,6 +65,8 @@ const LearningPlacementPage = () => {
       }
       setSubmitHint("");
       setPlacementResult(data);
+      queryClient.invalidateQueries({ queryKey: ["placement-status"] });
+      queryClient.invalidateQueries({ queryKey: ["learning-path"] });
     },
     onError: (err) => {
       const detail = String(err?.response?.data?.detail || "").toLowerCase();

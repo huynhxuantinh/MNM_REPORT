@@ -3,6 +3,7 @@ Models cho module xác thực và tài khoản người dùng.
 """
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import F
 from django.utils.translation import gettext_lazy as _
 
 
@@ -11,7 +12,6 @@ class User(AbstractUser):
 
     class Role(models.TextChoices):
         USER = "user", "Học sinh"
-        TEACHER = "teacher", "Giáo viên"
         ADMIN = "admin", "Quản trị viên"
 
     # Dùng email làm username chính để đăng nhập
@@ -42,20 +42,17 @@ class User(AbstractUser):
         return f"{self.email} ({self.get_role_display()})"
 
     @property
-    def is_teacher(self) -> bool:
-        return self.role == self.Role.TEACHER
-
-    @property
     def is_admin_user(self) -> bool:
         return self.role == self.Role.ADMIN
 
     def add_xp(self, amount: int) -> bool:
         """Cộng XP và tự động nâng level. Trả về True nếu vừa lên level."""
-        self.xp += amount
+        type(self).objects.filter(pk=self.pk).update(xp=F("xp") + amount)
+        self.refresh_from_db(fields=["xp"])
         new_level = self._calculate_level(self.xp)
         leveled_up = new_level > self.level
         self.level = new_level
-        self.save(update_fields=["xp", "level"])
+        self.save(update_fields=["level"])
         return leveled_up
 
     @staticmethod

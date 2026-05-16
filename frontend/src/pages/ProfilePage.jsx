@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -23,15 +24,15 @@ import { WorkspacePremiumRounded as WorkspacePremiumRoundedIcon } from "@mui/ico
 import { AutoAwesomeRounded as AutoAwesomeRoundedIcon } from "@mui/icons-material";
 import { LocalLibraryRounded as LocalLibraryRoundedIcon } from "@mui/icons-material";
 import { SbCard, SbButton, SbInput } from "@/components/ui";
-import { setUser } from "@/features/auth/authSlice";
+import { setUser, logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
 import authApi from "@/api/authApi";
 import learningApi from "@/api/learningApi";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const ROLE_LABEL = { user: "Học sinh", teacher: "Giáo viên", admin: "Quản trị viên" };
-const ROLE_COLOR = { user: colors.greenAccent, teacher: colors.gold, admin: colors.red };
+const ROLE_LABEL = { user: "Học sinh", admin: "Quản trị viên" };
+const ROLE_COLOR = { user: colors.greenAccent, admin: colors.red };
 
 const fmtDate = (iso) => {
   if (!iso) return "—";
@@ -284,7 +285,7 @@ const BadgesSection = () => {
 
   const s = stats ?? {};
   const level = user?.level ?? 1;
-  const streak = user?.streak?.current_streak ?? 0;
+  const streak = s.current_streak ?? 0;
 
   const BADGES = [
     {
@@ -372,6 +373,7 @@ const BadgesSection = () => {
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
 
   const [form, setForm]           = useState({ full_name: user?.full_name ?? "", notification_enabled: user?.notification_enabled ?? true });
@@ -382,10 +384,16 @@ const ProfilePage = () => {
   const [pwMsg, setPwMsg]         = useState(null);
   const [pwOpen, setPwOpen]       = useState(false);
 
+  const { data: profileStats } = useQuery({
+    queryKey: ["profile-stats"],
+    queryFn: () => learningApi.getProfileStats().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
   // XP progress
   const level   = user?.level ?? 1;
   const xp      = user?.xp ?? 0;
-  const streak  = user?.streak?.current_streak ?? 0;
+  const streak  = profileStats?.current_streak ?? 0;
   const nextXp  = getLevelXp(level);
   const prevXp  = getLevelXp(level - 1);
   const xpPct   = nextXp > prevXp ? Math.round(((xp - prevXp) / (nextXp - prevXp)) * 100) : 100;
@@ -405,9 +413,13 @@ const ProfilePage = () => {
   const pwMut = useMutation({
     mutationFn: (d) => authApi.changePassword(d),
     onSuccess: () => {
-      setPwMsg({ type: "success", text: "Đổi mật khẩu thành công." });
+      setPwMsg({ type: "success", text: "Đổi mật khẩu thành công. Đang đăng xuất..." });
       setPwForm({ old_password: "", new_password: "", new_password_confirm: "" });
-      setTimeout(() => { setPwMsg(null); setPwOpen(false); }, 2500);
+      setTimeout(() => {
+        authApi.logout().catch(() => {});
+        dispatch(logout());
+        navigate("/login", { replace: true });
+      }, 1500);
     },
     onError: (err) => {
       const detail = err?.response?.data?.old_password?.[0]

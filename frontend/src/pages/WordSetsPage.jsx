@@ -1,16 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSelector } from "react-redux";
 import {
   Box, Typography, Grid, Chip, TextField, InputAdornment,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Skeleton, Alert, Divider, IconButton, Tooltip, Snackbar,
-  LinearProgress,
+  LinearProgress, Button, FormControl, InputLabel, Select, MenuItem, Switch,
+  FormControlLabel,
 } from "@mui/material";
 import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
 import { BookmarkBorderRounded as BookmarkBorderRoundedIcon } from "@mui/icons-material";
 import { BookmarkRounded as BookmarkRoundedIcon } from "@mui/icons-material";
 import { CollectionsBookmarkRounded as CollectionsBookmarkRoundedIcon } from "@mui/icons-material";
 import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
+import { AddRounded as AddRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import vocabularyApi from "@/api/vocabularyApi";
@@ -264,13 +267,114 @@ const WordSetCard = ({ set, onClick }) => {
   );
 };
 
+// ── CreateWordSetDialog ───────────────────────────────────────────────────────
+
+const EMPTY_FORM = { name: "", description: "", level: "", is_public: true };
+
+const CreateWordSetDialog = ({ open, onClose }) => {
+  const qc = useQueryClient();
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errMsg, setErrMsg] = useState("");
+
+  const { mutate: create, isPending } = useMutation({
+    mutationFn: (data) => vocabularyApi.createSet(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["wordsets-public"] });
+      setForm(EMPTY_FORM);
+      setErrMsg("");
+      onClose();
+    },
+    onError: (err) => {
+      setErrMsg(err?.response?.data?.name?.[0] || "Tạo bộ từ thất bại. Vui lòng thử lại.");
+    },
+  });
+
+  const handleClose = () => { setForm(EMPTY_FORM); setErrMsg(""); onClose(); };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth
+      PaperProps={{ sx: { borderRadius: "16px" } }}>
+      <DialogTitle sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
+        Tạo bộ từ vựng mới
+      </DialogTitle>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+        {errMsg && <Alert severity="error" sx={{ borderRadius: "10px" }}>{errMsg}</Alert>}
+
+        <TextField
+          label="Tên bộ từ"
+          required
+          fullWidth
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          inputProps={{ maxLength: 200 }}
+        />
+
+        <TextField
+          label="Mô tả"
+          fullWidth
+          multiline
+          rows={2}
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          inputProps={{ maxLength: 500 }}
+        />
+
+        <FormControl fullWidth size="small">
+          <InputLabel>Cấp độ</InputLabel>
+          <Select value={form.level} label="Cấp độ"
+            onChange={(e) => setForm({ ...form, level: e.target.value })}>
+            <MenuItem value="">Không chọn</MenuItem>
+            {LEVELS.map((lv) => <MenuItem key={lv} value={lv}>{lv}</MenuItem>)}
+          </Select>
+        </FormControl>
+
+        <FormControlLabel
+          control={
+            <Switch
+              checked={form.is_public}
+              onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
+              sx={{ "& .MuiSwitch-thumb": { bgcolor: form.is_public ? colors.greenAccent : "#bbb" } }}
+            />
+          }
+          label={
+            <Box>
+              <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                {form.is_public ? "Công khai" : "Riêng tư"}
+              </Typography>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+                {form.is_public ? "Tất cả người dùng đều xem được" : "Chỉ bạn và admin xem được"}
+              </Typography>
+            </Box>
+          }
+        />
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={handleClose} color="inherit">Hủy</Button>
+        <Button
+          onClick={() => create(form)}
+          variant="contained"
+          disabled={!form.name.trim() || isPending}
+          sx={{ bgcolor: colors.greenAccent, borderRadius: "10px", textTransform: "none",
+            "&:hover": { bgcolor: colors.greenStarbucks } }}
+        >
+          {isPending ? "Đang tạo…" : "Tạo bộ từ"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 // ── Main WordSetsPage ─────────────────────────────────────────────────────────
 
 const WordSetsPage = () => {
+  const { user } = useSelector((state) => state.auth);
+  const canCreate = user?.role === "admin";
+
   const [search, setSearch]       = useState("");
   const [levelFilter, setLevel]   = useState("");
   const [debouncedSearch, setDS]  = useState("");
   const [detailDlg, setDetailDlg] = useState({ open: false, setId: null });
+  const [openCreate, setOpenCreate] = useState(false);
 
   // Debounce search 400ms
   useEffect(() => {
@@ -297,16 +401,32 @@ const WordSetsPage = () => {
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto" }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
-          <CollectionsBookmarkRoundedIcon sx={{ color: colors.greenAccent, fontSize: 26 }} />
-          <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color: colors.greenStarbucks }}>
-            Bộ từ vựng
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+        <Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
+            <CollectionsBookmarkRoundedIcon sx={{ color: colors.greenAccent, fontSize: 26 }} />
+            <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", color: colors.greenStarbucks }}>
+              Bộ từ vựng
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: "0.9rem", color: "text.secondary" }}>
+            Khám phá các bộ từ được tuyển chọn theo chủ đề và cấp độ
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: "0.9rem", color: "text.secondary" }}>
-          Khám phá các bộ từ được tuyển chọn theo chủ đề và cấp độ
-        </Typography>
+        {canCreate && (
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => setOpenCreate(true)}
+            sx={{
+              bgcolor: colors.greenAccent, borderRadius: "10px",
+              textTransform: "none", fontWeight: 700,
+              "&:hover": { bgcolor: colors.greenStarbucks },
+            }}
+          >
+            Tạo bộ từ mới
+          </Button>
+        )}
       </Box>
 
       {/* Search + Level filter */}
@@ -405,6 +525,14 @@ const WordSetsPage = () => {
         setId={detailDlg.setId}
         onClose={handleClose}
       />
+
+      {/* Create Dialog — chỉ admin */}
+      {canCreate && (
+        <CreateWordSetDialog
+          open={openCreate}
+          onClose={() => setOpenCreate(false)}
+        />
+      )}
     </Box>
   );
 };

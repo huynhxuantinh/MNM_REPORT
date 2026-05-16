@@ -558,7 +558,7 @@ const SetsTab = ({ isTeacher }) => {
 const VocabularyPage = () => {
   const [tab, setTab] = useState(0);
   const { user } = useSelector((s) => s.auth);
-  const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const isTeacher = user?.role === "admin";
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>

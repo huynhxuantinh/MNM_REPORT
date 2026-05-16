@@ -11,8 +11,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from .filters import LessonFilter
 from .models import Lesson, LessonProgress, LessonWord, ReviewLog
-from .permissions import IsOwnerOrAdmin, IsTeacherOrAdmin
+from apps.accounts.permissions import IsAdmin as IsTeacherOrAdmin
+from .permissions import IsOwnerOrAdmin
 from .serializers import LessonDetailSerializer, LessonSerializer, LessonWordSerializer
 from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards
 
@@ -41,7 +43,7 @@ def _invalidate_lesson_cache() -> None:
 class LessonViewSet(viewsets.ModelViewSet):
     """
     list: GET /lessons/
-    create: POST /lessons/ (teacher/admin)
+    create: POST /lessons/ (admin only)
     retrieve: GET /lessons/{id}/
     update: PUT/PATCH /lessons/{id}/ (owner/admin)
     destroy: DELETE /lessons/{id}/ (owner/admin)
@@ -51,6 +53,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     complete: POST /lessons/{id}/complete/
     """
 
+    filterset_class = LessonFilter
     search_fields = ["title", "description"]
     ordering_fields = ["order_index", "created_at", "level"]
     ordering = ["order_index"]
@@ -64,8 +67,6 @@ class LessonViewSet(viewsets.ModelViewSet):
         )
         if user.role == "user":
             qs = qs.filter(is_published=True)
-        elif user.role == "teacher":
-            qs = qs.filter(Q(is_published=True) | Q(created_by=user))
         if getattr(self, "action", None) == "retrieve":
             qs = qs.prefetch_related("lesson_words__word")
         return qs

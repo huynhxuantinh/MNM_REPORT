@@ -11,6 +11,7 @@ from django.core.mail import BadHeaderError
 from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -36,6 +37,9 @@ from .serializers import (
     VerifyEmailSerializer,
 )
 from .utils import generate_token, send_password_reset_email, send_verification_email
+
+logger = logging.getLogger(__name__)
+MAIL_SEND_ERRORS = (smtplib.SMTPException, BadHeaderError, TimeoutError, OSError)
 
 
 def _set_refresh_cookie(response, refresh_token: str) -> None:
@@ -159,7 +163,6 @@ class LoginView(APIView):
         response = Response(
             {
                 "access": str(refresh.access_token),
-                "refresh": str(refresh),
                 "user": UserSerializer(user).data,
             }
         )
@@ -234,10 +237,6 @@ class CookieTokenRefreshView(APIView):
             _set_refresh_cookie(response, new_refresh)
 
         return response
-
-
-logger = logging.getLogger(__name__)
-MAIL_SEND_ERRORS = (smtplib.SMTPException, BadHeaderError, TimeoutError, OSError)
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -350,9 +349,12 @@ class ChangePasswordView(APIView):
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password"])
 
-        # Blacklist tất cả outstanding tokens của user để force logout ở các thiết bị khác
-        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-        OutstandingToken.objects.filter(user=user).update(expires_at=timezone.now())
+        # Blacklist tất cả outstanding tokens còn hiệu lực để force logout ở các thiết bị khác
+        outstanding = OutstandingToken.objects.filter(user=user, expires_at__gt=timezone.now())
+        BlacklistedToken.objects.bulk_create(
+            [BlacklistedToken(token=t) for t in outstanding],
+            ignore_conflicts=True,
+        )
 
         return Response({
             "detail": "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại trên tất cả các thiết bị."
@@ -438,7 +440,6 @@ class AdminStatsView(APIView):
         return Response({
             "total_users":         User.objects.count(),
             "students":            User.objects.filter(role="user").count(),
-            "teachers":            User.objects.filter(role="teacher").count(),
             "admins":              User.objects.filter(role="admin").count(),
             "active_users":        User.objects.filter(is_active=True).count(),
             "inactive_users":      User.objects.filter(is_active=False).count(),

@@ -40,7 +40,8 @@ def _invalidate_wordset_cache() -> None:
 
 from .filters import WordFilter, WordSetFilter
 from .models import Bookmark, Word, WordSet, WordSetWord
-from .permissions import IsOwnerOrAdmin, IsTeacherOrAdmin
+from apps.accounts.permissions import IsAdmin as IsTeacherOrAdmin
+from .permissions import IsOwnerOrAdmin
 from .serializers import (
     AddWordToSetSerializer,
     BookmarkSerializer,
@@ -91,7 +92,7 @@ class WordViewSet(viewsets.ModelViewSet):
         return WordSerializer
 
     def get_permissions(self):
-        """Student chỉ đọc; teacher/admin mới được CUD."""
+        """Student chỉ đọc; admin mới được CUD."""
         if self.action in ("list", "retrieve"):
             return [IsAuthenticated()]
         if self.action == "bookmark":

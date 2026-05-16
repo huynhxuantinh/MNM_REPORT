@@ -93,7 +93,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "email", "username", "full_name", "role",
             "xp", "level", "avatar_url", "notification_enabled", "created_at",
         )
-        read_only_fields = ("id", "email", "role", "xp", "level", "created_at")
+        read_only_fields = ("id", "email", "username", "role", "xp", "level", "created_at")
 
 
 # ── Xác thực email ─────────────────────────────────────────────────────────

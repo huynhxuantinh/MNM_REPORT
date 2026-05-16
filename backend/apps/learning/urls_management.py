@@ -3,6 +3,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from .admin_views import CourseAdminViewSet, UnitAdminViewSet
 from .lesson_views import LessonViewSet
 from .management_views import (
     KpiBaselineView,
@@ -16,6 +17,8 @@ from .management_views import (
 router = DefaultRouter()
 router.register("lessons", LessonViewSet, basename="lesson")
 router.register("notifications", NotificationViewSet, basename="notification")
+router.register("admin/courses", CourseAdminViewSet, basename="admin-course")
+router.register("admin/units", UnitAdminViewSet, basename="admin-unit")
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -28,9 +28,11 @@ const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
 const AdminDashboard = lazy(() => import("@/features/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/features/admin/AdminUsers"));
 const AdminWords = lazy(() => import("@/features/admin/AdminWords"));
+const AdminWordSets = lazy(() => import("@/features/admin/AdminWordSets"));
 const AdminLessons = lazy(() => import("@/features/admin/AdminLessons"));
 const AdminContent = lazy(() => import("@/features/admin/AdminContent"));
 const AdminQuizResults = lazy(() => import("@/features/admin/AdminQuizResults"));
+const AdminLearningPath = lazy(() => import("@/features/admin/AdminLearningPath"));
 
 import { initAuth } from "@/features/auth/authSlice";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -119,9 +121,11 @@ const App = () => {
           <Route index element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminDashboard /></Suspense></ErrorBoundary>} />
           <Route path="users" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminUsers /></Suspense></ErrorBoundary>} />
           <Route path="words" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminWords /></Suspense></ErrorBoundary>} />
+          <Route path="wordsets" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminWordSets /></Suspense></ErrorBoundary>} />
           <Route path="lessons" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminLessons /></Suspense></ErrorBoundary>} />
           <Route path="content" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminContent /></Suspense></ErrorBoundary>} />
           <Route path="quizzes" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminQuizResults /></Suspense></ErrorBoundary>} />
+          <Route path="learning" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminLearningPath /></Suspense></ErrorBoundary>} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

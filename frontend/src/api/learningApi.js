@@ -6,6 +6,8 @@ const learningApi = {
   createLesson: (data) => axiosClient.post("/learning/lessons/", data),
   updateLesson: (id, data) => axiosClient.patch(`/learning/lessons/${id}/`, data),
   deleteLesson: (id) => axiosClient.delete(`/learning/lessons/${id}/`),
+  addWordToLesson: (lessonId, wordId) => axiosClient.post(`/learning/lessons/${lessonId}/words/`, { word_id: wordId }),
+  removeWordFromLesson: (lessonId, wordId) => axiosClient.delete(`/learning/lessons/${lessonId}/words/${wordId}/`),
   startLesson: (id) => axiosClient.post(`/learning/lessons/${id}/start/`),
   completeLesson: (id) => axiosClient.post(`/learning/lessons/${id}/complete/`),
 
@@ -41,6 +43,21 @@ const learningApi = {
   getNotifications: () => axiosClient.get("/learning/notifications/"),
   markRead: (id) => axiosClient.put(`/learning/notifications/${id}/read/`),
   markAllRead: () => axiosClient.put("/learning/notifications/read-all/"),
+
+  // Admin: Course/Unit management
+  getAdminCourses: () => axiosClient.get("/learning/admin/courses/"),
+  createAdminCourse: (data) => axiosClient.post("/learning/admin/courses/", data),
+  updateAdminCourse: (id, data) => axiosClient.patch(`/learning/admin/courses/${id}/`, data),
+  deleteAdminCourse: (id) => axiosClient.delete(`/learning/admin/courses/${id}/`),
+  getAdminUnits: (courseId) => axiosClient.get("/learning/admin/units/", { params: { course_id: courseId } }),
+  createAdminUnit: (data) => axiosClient.post("/learning/admin/units/", data),
+  updateAdminUnit: (id, data) => axiosClient.patch(`/learning/admin/units/${id}/`, data),
+  deleteAdminUnit: (id) => axiosClient.delete(`/learning/admin/units/${id}/`),
+  getAdminUnitLessons: (unitId) => axiosClient.get(`/learning/admin/units/${unitId}/lessons/`),
+  addLessonToUnit: (unitId, lessonId, orderIndex = 0) =>
+    axiosClient.post(`/learning/admin/units/${unitId}/lessons/`, { lesson_id: lessonId, order_index: orderIndex }),
+  removeLessonFromUnit: (unitId, lessonId) =>
+    axiosClient.delete(`/learning/admin/units/${unitId}/lessons/${lessonId}/`),
 };
 
 export default learningApi;

@@ -60,6 +60,36 @@ class TestLearningPath:
         assert response.data["units"][0]["unlocked"] is True
         assert response.data["units"][1]["unlocked"] is False
 
+    def test_returns_lesson_word_learning_stats(self, sc, lesson, course_with_units):
+        start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+        assert start.status_code == 201
+        session_id = start.data["id"]
+        session = LearningSession.objects.get(id=session_id)
+        target_word_id = lesson.words.first().id
+        session.exercises = [
+            {
+                "step_index": 1,
+                "exercise_type": "mc_meaning",
+                "prompt": "p1",
+                "choices": ["A", "B"],
+                "word_id": target_word_id,
+                "correct_option": "A",
+            }
+        ]
+        session.save(update_fields=["exercises"])
+        answer = sc.post(
+            ANSWER_URL(session_id),
+            {"step_index": 1, "submitted_answer": {"option": "A"}, "response_ms": 300},
+            format="json",
+        )
+        assert answer.status_code == 200
+
+        response = sc.get(PATH_URL)
+        assert response.status_code == 200
+        first_lesson = response.data["units"][0]["lessons"][0]["lesson"]
+        assert first_lesson["words_total"] == 2
+        assert first_lesson["words_learned"] == 1
+
 
 class TestLearningSession:
     def test_start_session_success(self, sc, lesson, course_with_units):

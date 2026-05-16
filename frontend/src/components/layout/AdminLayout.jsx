@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -54,8 +54,10 @@ const NAV_ITEMS = [
   { label: "Tổng quan", to: "/admin", end: true },
   { label: "Người dùng", to: "/admin/users" },
   { label: "Từ vựng", to: "/admin/words" },
+  { label: "Bộ từ vựng", to: "/admin/wordsets" },
   { label: "Bài học", to: "/admin/lessons" },
   { label: "Nội dung", to: "/admin/content" },
+  { label: "Lộ trình học", to: "/admin/learning" },
   { label: "Kết quả Quiz", to: "/admin/quizzes" },
 ];
 

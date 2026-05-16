@@ -15,8 +15,8 @@ const ADMIN_BG     = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
 const PAGE_SIZE    = 15;
 
-const ROLE_LABEL = { user: "Học sinh", teacher: "Giáo viên", admin: "Admin" };
-const ROLE_COLOR = { user: "success", teacher: "warning", admin: "error" };
+const ROLE_LABEL = { user: "Học sinh", admin: "Admin" };
+const ROLE_COLOR = { user: "success", admin: "error" };
 
 // ── EditRoleDialog (inline select trong bảng) ─────────────────────────────────
 
@@ -58,7 +58,6 @@ const RoleSelect = ({ userId, currentRole, onSave }) => {
       sx={{ fontSize: "0.8rem", minWidth: 110 }}
     >
       <MenuItem value="user">Học sinh</MenuItem>
-      <MenuItem value="teacher">Giáo viên</MenuItem>
       <MenuItem value="admin">Admin</MenuItem>
     </Select>
   );
@@ -83,7 +82,7 @@ const AdminUsers = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", params],
     queryFn: () => adminApi.getUsers(params).then((r) => r.data),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
     staleTime: 15_000,
   });
 
@@ -141,7 +140,6 @@ const AdminUsers = () => {
           <Select value={roleFilter} label="Role" onChange={handleRole}>
             <MenuItem value="">Tất cả</MenuItem>
             <MenuItem value="user">Học sinh</MenuItem>
-            <MenuItem value="teacher">Giáo viên</MenuItem>
             <MenuItem value="admin">Admin</MenuItem>
           </Select>
         </FormControl>

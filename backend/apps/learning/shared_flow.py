@@ -3,6 +3,7 @@
 import random
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Min, Sum
 from django.utils import timezone
 from rest_framework import status
@@ -311,51 +312,59 @@ def _refill_hearts(hearts: UserHearts, now=None) -> UserHearts:
 
 
 def _consume_heart(user, reason: str, cost: int = 1) -> UserHearts:
-    hearts = _refill_hearts(_get_or_create_hearts(user))
-    if hearts.current_hearts <= 0 or cost <= 0:
+    _get_or_create_hearts(user)  # đảm bảo row tồn tại trước khi lock
+    with transaction.atomic():
+        hearts = UserHearts.objects.select_for_update().get(user=user)
+        apply_hearts_experiment(user, hearts)
+        hearts = _refill_hearts(hearts)
+        if hearts.current_hearts <= 0 or cost <= 0:
+            return hearts
+        actual_cost = min(cost, hearts.current_hearts)
+        hearts.current_hearts -= actual_cost
+        hearts.save(update_fields=["current_hearts", "updated_at"])
+        HeartTransaction.objects.create(
+            hearts=hearts,
+            transaction_type=HeartTransaction.TxType.CONSUME,
+            delta=-actual_cost,
+            reason=reason[:120],
+        )
+        track_experiment_metric(
+            user,
+            HEARTS_EXPERIMENT_KEY,
+            metric_key="heart_consume",
+            metric_value=actual_cost,
+            meta={"reason": reason[:120]},
+        )
         return hearts
-    actual_cost = min(cost, hearts.current_hearts)
-    hearts.current_hearts -= actual_cost
-    hearts.save(update_fields=["current_hearts", "updated_at"])
-    HeartTransaction.objects.create(
-        hearts=hearts,
-        transaction_type=HeartTransaction.TxType.CONSUME,
-        delta=-actual_cost,
-        reason=reason[:120],
-    )
-    track_experiment_metric(
-        user,
-        HEARTS_EXPERIMENT_KEY,
-        metric_key="heart_consume",
-        metric_value=actual_cost,
-        meta={"reason": reason[:120]},
-    )
-    return hearts
 
 
 def _grant_heart_bonus(user, reason: str, amount: int = 1) -> tuple[UserHearts, int]:
-    hearts = _refill_hearts(_get_or_create_hearts(user))
-    if amount <= 0 or hearts.current_hearts >= hearts.max_hearts:
-        return hearts, 0
-    granted = min(amount, hearts.max_hearts - hearts.current_hearts)
-    if granted <= 0:
-        return hearts, 0
-    hearts.current_hearts += granted
-    hearts.save(update_fields=["current_hearts", "updated_at"])
-    HeartTransaction.objects.create(
-        hearts=hearts,
-        transaction_type=HeartTransaction.TxType.BONUS,
-        delta=granted,
-        reason=reason[:120],
-    )
-    track_experiment_metric(
-        user,
-        HEARTS_EXPERIMENT_KEY,
-        metric_key="heart_bonus",
-        metric_value=granted,
-        meta={"reason": reason[:120]},
-    )
-    return hearts, granted
+    _get_or_create_hearts(user)  # đảm bảo row tồn tại trước khi lock
+    with transaction.atomic():
+        hearts = UserHearts.objects.select_for_update().get(user=user)
+        apply_hearts_experiment(user, hearts)
+        hearts = _refill_hearts(hearts)
+        if amount <= 0 or hearts.current_hearts >= hearts.max_hearts:
+            return hearts, 0
+        granted = min(amount, hearts.max_hearts - hearts.current_hearts)
+        if granted <= 0:
+            return hearts, 0
+        hearts.current_hearts += granted
+        hearts.save(update_fields=["current_hearts", "updated_at"])
+        HeartTransaction.objects.create(
+            hearts=hearts,
+            transaction_type=HeartTransaction.TxType.BONUS,
+            delta=granted,
+            reason=reason[:120],
+        )
+        track_experiment_metric(
+            user,
+            HEARTS_EXPERIMENT_KEY,
+            metric_key="heart_bonus",
+            metric_value=granted,
+            meta={"reason": reason[:120]},
+        )
+        return hearts, granted
 
 
 def _get_or_create_daily_goal(user) -> DailyGoal:
@@ -380,15 +389,17 @@ def _add_study_minutes(user, minutes: int) -> DailyGoalLog | None:
     goal = _get_or_create_daily_goal(user)
     if not goal.is_active:
         return None
-    log = _get_today_goal_log(user, goal)
-    log.goal_minutes = goal.target_minutes
-    log.studied_minutes += minutes
-    fields = ["goal_minutes", "studied_minutes", "updated_at"]
-    if not log.is_achieved and log.studied_minutes >= log.goal_minutes:
-        log.is_achieved = True
-        log.achieved_at = timezone.now()
-        fields.extend(["is_achieved", "achieved_at"])
-    log.save(update_fields=fields)
+    with transaction.atomic():
+        log = _get_today_goal_log(user, goal)  # tạo row nếu chưa có
+        log = DailyGoalLog.objects.select_for_update().get(pk=log.pk)
+        log.goal_minutes = goal.target_minutes
+        log.studied_minutes += minutes
+        fields = ["goal_minutes", "studied_minutes", "updated_at"]
+        if not log.is_achieved and log.studied_minutes >= log.goal_minutes:
+            log.is_achieved = True
+            log.achieved_at = timezone.now()
+            fields.extend(["is_achieved", "achieved_at"])
+        log.save(update_fields=fields)
     return log
 
 

@@ -100,7 +100,7 @@ describe("Student Learning Flow", () => {
     }).as("dailyGoal");
 
     cy.intercept("POST", "**/api/v1/learning/session/start/**", {
-      statusCode: 200,
+      statusCode: 201,
       body: { id: 900 },
     }).as("startSession");
 
@@ -128,7 +128,7 @@ describe("Student Learning Flow", () => {
     cy.visit("/learning");
     cy.wait("@learningPath");
     cy.wait("@dailyGoal");
-    cy.contains("Learning Path").should("be.visible");
+    cy.contains("Lộ trình học").should("be.visible");
     cy.contains("button", "Start").first().click();
     cy.wait("@startSession");
     cy.wait("@session900");

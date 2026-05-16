@@ -7,7 +7,7 @@ import learningApi from "@/api/learningApi";
 export const useReviewQueue = (options = {}) => {
   return useQuery({
     queryKey: ["review-queue"],
-    queryFn: () => learningApi.getReview().then((res) => res.data),
+    queryFn: () => learningApi.getReviewList().then((res) => res.data),
     staleTime: 1 * 60 * 1000, // 1 minute - cần fresh vì thay đổi liên tục
     ...options,
   });
@@ -33,7 +33,7 @@ export const useReviewHistory = (days = 30, options = {}) => {
   return useQuery({
     queryKey: ["review-history", days],
     queryFn: () =>
-      learningApi.getReviewHistory({ days }).then((res) => res.data),
+      learningApi.getReviewHistory(days).then((res) => res.data),
     staleTime: 5 * 60 * 1000,
     ...options,
   });
@@ -47,7 +47,7 @@ export const useSubmitReview = () => {
 
   return useMutation({
     mutationFn: ({ wordId, quality }) =>
-      learningApi.submitReview(wordId, { quality }),
+      learningApi.submitAnswer(wordId, quality),
     onSuccess: () => {
       // Invalidate các queries liên quan
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
@@ -65,7 +65,7 @@ export const useDueCount = (options = {}) => {
   return useQuery({
     queryKey: ["due-count"],
     queryFn: async () => {
-      const res = await learningApi.getReview();
+      const res = await learningApi.getReviewList();
       return res.data?.length || 0;
     },
     staleTime: 1 * 60 * 1000,
@@ -105,5 +105,3 @@ export const useReviewSession = () => {
     refresh,
   };
 };
-
-export default useReview;

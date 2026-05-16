@@ -47,13 +47,13 @@ const AdminWords = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-words", params],
     queryFn: () => vocabularyApi.getWords(params).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
-  const { mutate: saveWord, isLoading: isSaving } = useMutation({
+  const { mutate: saveWord, isPending: isSaving } = useMutation({
     mutationFn: (payload) => payload.id ? vocabularyApi.updateWord(payload.id, payload) : vocabularyApi.createWord(payload),
     onSuccess: () => {
-      qc.invalidateQueries(["admin-words"]);
+      qc.invalidateQueries({ queryKey: ["admin-words"] });
       setToast({ msg: formData.id ? "Cập nhật từ vựng thành công" : "Thêm từ vựng thành công", severity: "success" });
       setOpenDialog(false);
     },
@@ -63,20 +63,20 @@ const AdminWords = () => {
   const { mutate: deleteWord } = useMutation({
     mutationFn: (id) => vocabularyApi.deleteWord(id),
     onSuccess: () => {
-      qc.invalidateQueries(["admin-words"]);
+      qc.invalidateQueries({ queryKey: ["admin-words"] });
       setToast({ msg: "Đã xoá từ vựng", severity: "success" });
     },
     onError: () => setToast({ msg: "Lỗi xoá từ vựng", severity: "error" }),
   });
 
-  const { mutate: importCsv, isLoading: isImporting } = useMutation({
+  const { mutate: importCsv, isPending: isImporting } = useMutation({
     mutationFn: (file) => {
       const fd = new FormData();
       fd.append("file", file);
       return vocabularyApi.importCsv(fd);
     },
     onSuccess: (res) => {
-      qc.invalidateQueries(["admin-words"]);
+      qc.invalidateQueries({ queryKey: ["admin-words"] });
       setToast({ msg: `Import thành công ${res.data.imported} từ. Bỏ qua: ${res.data.skipped}.`, severity: "success" });
       setOpenImport(false);
       setImportFile(null);

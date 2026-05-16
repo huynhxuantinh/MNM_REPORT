@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -17,6 +18,7 @@ import { ReplayRounded as ReplayRoundedIcon } from "@mui/icons-material";
 import { FavoriteRounded as FavoriteRoundedIcon } from "@mui/icons-material";
 import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
+import { setUser } from "@/features/auth/authSlice";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
@@ -34,7 +36,7 @@ const DIFFICULTY_LABELS = {
 const DIFFICULTY_REASON_LABELS = {
   high_accuracy_and_fast_response: "Độ chính xác cao và phản hồi nhanh",
   balanced_recent_performance: "Hiệu suất gần đây cân bằng",
-  low_accuracy_or_slow_response: "Độ chính xác thấp hoặc phản hồi chậm",
+  low_accuracy_or_wrong_streak: "Độ chính xác thấp hoặc nhiều lỗi liên tiếp",
 };
 
 const getSessionTypeLabel = (value) => SESSION_TYPE_LABELS[value] || value || "Bài học";
@@ -105,11 +107,13 @@ const SessionSummary = ({ session, result, onBack }) => {
 const LearningSessionPage = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [orderedTokens, setOrderedTokens] = useState([]);
+  const [usedTokenIndexes, setUsedTokenIndexes] = useState(new Set());
   const [finishPayload, setFinishPayload] = useState(null);
   const [frustrationGuard, setFrustrationGuard] = useState(null);
   const stepStartedAtRef = useRef(Date.now());
@@ -117,6 +121,9 @@ const LearningSessionPage = () => {
     queryClient.invalidateQueries({ queryKey: ["learning-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["home-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["learning-path"] });
+    queryClient.invalidateQueries({ queryKey: ["daily-goal"] });
+    queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
   };
 
   const { data: payload, isLoading, isError, error, refetch } = useQuery({
@@ -148,6 +155,7 @@ const LearningSessionPage = () => {
   useEffect(() => {
     setTextAnswer("");
     setOrderedTokens([]);
+    setUsedTokenIndexes(new Set());
     stepStartedAtRef.current = Date.now();
   }, [currentStepIndex]);
 
@@ -164,6 +172,9 @@ const LearningSessionPage = () => {
     mutationFn: () => learningApi.finishLearningSession(sessionId).then((response) => response.data),
     onSuccess: (data) => {
       setFinishPayload(data);
+      if (data?.user?.xp !== undefined) {
+        dispatch(setUser({ xp: data.user.xp, level: data.user.level }));
+      }
       invalidateLearningCaches();
       refetch();
     },
@@ -186,7 +197,7 @@ const LearningSessionPage = () => {
   const answerMutation = useMutation({
     mutationFn: (answerPayload) => learningApi.answerLearningSession(sessionId, answerPayload).then((response) => response.data),
     onSuccess: (data) => {
-      setFeedback(data.feedback);
+      if (data.feedback) setFeedback(data.feedback);
       if (data?.frustration_guard?.show_easy_mode_cta) {
         setFrustrationGuard(data.frustration_guard);
       } else {
@@ -257,8 +268,14 @@ const LearningSessionPage = () => {
     handleSubmitAnswer,
   ]);
 
-  const addToken = (token) => {
+  const addToken = (token, index) => {
     setOrderedTokens((prev) => [...prev, token]);
+    setUsedTokenIndexes((prev) => new Set([...prev, index]));
+  };
+
+  const resetTokens = () => {
+    setOrderedTokens([]);
+    setUsedTokenIndexes(new Set());
   };
 
   if (isLoading) {
@@ -427,7 +444,6 @@ const LearningSessionPage = () => {
 
           {currentExercise.exercise_type === "fill_blank" && (
             <TextField
-              label="Nhap dap an"
               label="Nhập đáp án"
               value={textAnswer}
               onChange={(event) => setTextAnswer(event.target.value)}
@@ -444,12 +460,18 @@ const LearningSessionPage = () => {
               </Box>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 {(currentExercise.tokens || []).map((token, index) => (
-                  <SbButton key={`${token}-${index}`} size="small" variant="outlined" onClick={() => addToken(token)}>
+                  <SbButton
+                    key={`${token}-${index}`}
+                    size="small"
+                    variant="outlined"
+                    disabled={usedTokenIndexes.has(index)}
+                    onClick={() => addToken(token, index)}
+                  >
                     {token}
                   </SbButton>
                 ))}
               </Stack>
-              <SbButton variant="outlined" size="small" startIcon={<ReplayRoundedIcon />} onClick={() => setOrderedTokens([])}>
+              <SbButton variant="outlined" size="small" startIcon={<ReplayRoundedIcon />} onClick={resetTokens}>
                 Làm lại
               </SbButton>
             </Stack>

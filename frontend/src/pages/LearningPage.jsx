@@ -103,7 +103,7 @@ const UnitCard = ({
                   Lesson {item.order_index}: {item.lesson?.title}
                 </Typography>
                 <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-                  {item.lesson?.level || "A1"}
+                  {(item.lesson?.level || "A1")} · Đã học {item.lesson?.words_learned ?? 0}/{item.lesson?.words_total ?? 0} từ
                 </Typography>
               </Box>
               <SbButton
@@ -149,10 +149,12 @@ const LearningPage = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["learning-path"],
     queryFn: () => learningApi.getLearningPath().then((response) => response.data),
+    staleTime: 0,
   });
   const { data: placementStatus } = useQuery({
     queryKey: ["placement-status"],
     queryFn: () => learningApi.getPlacementStatus().then((response) => response.data),
+    staleTime: 0,
   });
   const { data: recoverData, refetch: refetchRecover } = useQuery({
     queryKey: ["learning-recover-session"],
@@ -180,6 +182,7 @@ const LearningPage = () => {
   const { data: dailyGoalData, refetch: refetchDailyGoal } = useQuery({
     queryKey: ["daily-goal"],
     queryFn: () => learningApi.getDailyGoal().then((response) => response.data),
+    staleTime: 0,
   });
   const claimDailyGoalMutation = useMutation({
     mutationFn: () => learningApi.claimDailyGoal().then((response) => response.data),
@@ -436,7 +439,7 @@ const LearningPage = () => {
 
       {units.length === 0 && (
         <Alert severity="info">
-          ChÆ°a cĂ³ learning path. Cháº¡y lá»‡nh seed: <strong>python manage.py seed_learning_path</strong>
+          Chưa có learning path. Chạy lệnh seed: <strong>python manage.py seed_learning_path</strong>
         </Alert>
       )}
 

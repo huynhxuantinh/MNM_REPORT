@@ -27,7 +27,8 @@
       "Bash(docker exec mnm_frontend *)",
       "Bash(docker restart *)",
       "Bash(grep -E \"\\\\.\\(jsx|js\\)$\")",
-      "Bash(grep -E \"\\\\.jsx$\")"
+      "Bash(grep -E \"\\\\.jsx$\")",
+      "Bash(node --input-type=module --eval ' *)"
     ]
   }
 }
