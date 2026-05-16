@@ -648,9 +648,9 @@ class UserHearts(models.Model):
         related_name="hearts",
         verbose_name="User",
     )
-    current_hearts = models.PositiveIntegerField("Current hearts", default=5)
-    max_hearts = models.PositiveIntegerField("Max hearts", default=5)
-    refill_interval_minutes = models.PositiveIntegerField("Refill interval minutes", default=240)
+    current_hearts = models.PositiveIntegerField("Current hearts", default=10)
+    max_hearts = models.PositiveIntegerField("Max hearts", default=10)
+    refill_interval_minutes = models.PositiveIntegerField("Refill interval minutes", default=10)
     last_refill_at = models.DateTimeField("Last refill at", default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

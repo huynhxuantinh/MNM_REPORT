@@ -1,4 +1,4 @@
-"""Flow-facing learning views (B2C learner journey)."""
+﻿"""Flow-facing learning views (B2C learner journey)."""
 
 from datetime import timedelta
 import math
@@ -73,8 +73,10 @@ from .shared_flow import (
     _detect_suspicious_answer,
     _get_awarded_xp,
     _get_or_create_daily_goal,
+    _get_consecutive_correct_streak,
     _get_consecutive_wrong_streak,
     _get_expected_step_index,
+    _grant_heart_bonus,
     _get_or_create_streak,
     _get_heart_cost,
     _get_or_create_hearts,
@@ -729,6 +731,19 @@ class LearningSessionAnswerView(APIView):
                     "suspicious_flags": suspicious_flags,
                 },
             )
+            correct_streak = _get_consecutive_correct_streak(session)
+            heart_bonus = 0
+            if (
+                is_correct
+                and session.session_type == LearningSession.SessionType.LESSON
+                and correct_streak > 0
+                and correct_streak % 5 == 0
+            ):
+                hearts, heart_bonus = _grant_heart_bonus(
+                    request.user,
+                    reason=f"correct_streak_{correct_streak}",
+                    amount=1,
+                )
             wrong_streak = _get_consecutive_wrong_streak(session)
             show_easy_mode_cta = (
                 wrong_streak >= 3
@@ -751,7 +766,9 @@ class LearningSessionAnswerView(APIView):
                     "heart_cost": _get_heart_cost(session, is_correct),
                     "suspicious": bool(suspicious_flags),
                     "suspicious_flags": suspicious_flags,
+                    "correct_streak": correct_streak,
                     "wrong_streak": wrong_streak,
+                    "heart_bonus": heart_bonus,
                     "show_easy_mode_cta": show_easy_mode_cta,
                 },
                 "frustration_guard": {
@@ -862,6 +879,18 @@ class LearningSessionFinishView(APIView):
             when=now,
         )
         summary = _build_session_summary(session)
+        hearts = _refill_hearts(_get_or_create_hearts(request.user))
+        finish_heart_bonus = 0
+        if (
+            session.session_type == LearningSession.SessionType.LESSON
+            and session.total_answered > 0
+            and summary["accuracy_pct"] >= 80
+        ):
+            hearts, finish_heart_bonus = _grant_heart_bonus(
+                request.user,
+                reason="finish_accuracy_80",
+                amount=1,
+            )
         _track_learning_event(
             request.user,
             LearningEvent.EventType.SESSION_FINISH,
@@ -894,6 +923,11 @@ class LearningSessionFinishView(APIView):
                     "xp": request.user.xp,
                     "level": request.user.level,
                     "streak": streak.current_streak,
+                },
+                "hearts": _build_hearts_payload(hearts),
+                "heart_bonus": {
+                    "granted": finish_heart_bonus,
+                    "reason": "finish_accuracy_80" if finish_heart_bonus > 0 else None,
                 },
             }
         )
@@ -1402,7 +1436,7 @@ class DailyGoalClaimView(APIView):
         Notification.objects.create(
             user=request.user,
             type=Notification.Type.REMINDER,
-            message=f"Ban da nhan {goal.reward_xp} XP tu daily goal hom nay.",
+            message=f"Bạn đã nhận {goal.reward_xp} XP từ daily goal hôm nay.",
         )
         track_experiment_metric(
             request.user,
@@ -1618,3 +1652,4 @@ __all__ = [
     "ReviewHistoryView",
     "ReviewAnswerView",
 ]
+

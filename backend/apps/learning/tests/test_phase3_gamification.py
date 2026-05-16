@@ -19,6 +19,7 @@ pytestmark = pytest.mark.django_db
 START_URL = "/api/v1/learning/session/start/"
 ANSWER_URL = lambda sid: f"/api/v1/learning/session/{sid}/answer/"
 DETAIL_URL = lambda sid: f"/api/v1/learning/session/{sid}/"
+FINISH_URL = lambda sid: f"/api/v1/learning/session/{sid}/finish/"
 DAILY_GOAL_URL = "/api/v1/learning/daily-goal/"
 DAILY_GOAL_CLAIM_URL = "/api/v1/learning/daily-goal/claim/"
 STREAK_FREEZE_CLAIM_URL = "/api/v1/learning/streak-freeze/claim/"
@@ -123,7 +124,7 @@ def test_hearts_consumed_and_blocked_when_zero(sc, lesson, student, course_with_
     assert second.status_code == 429
 
 
-def test_wrong_answer_hard_mode_costs_two_hearts(sc, lesson, student, course_with_units):
+def test_wrong_answer_hard_mode_costs_one_heart(sc, lesson, student, course_with_units):
     start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
     session_id = start.data["id"]
     session = LearningSession.objects.get(id=session_id)
@@ -154,8 +155,98 @@ def test_wrong_answer_hard_mode_costs_two_hearts(sc, lesson, student, course_wit
         format="json",
     )
     assert answer.status_code == 200
-    assert answer.data["feedback"]["heart_cost"] == 2
-    assert answer.data["feedback"]["hearts"] == 1
+    assert answer.data["feedback"]["heart_cost"] == 1
+    assert answer.data["feedback"]["hearts"] == 2
+
+
+def test_correct_streak_5_grants_one_heart(sc, lesson, student, course_with_units):
+    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+    session_id = start.data["id"]
+    session = LearningSession.objects.get(id=session_id)
+    target_word_id = lesson.words.first().id
+    session.exercises = [
+        {
+            "step_index": idx,
+            "exercise_type": "mc_meaning",
+            "prompt": f"p{idx}",
+            "choices": ["A", "B"],
+            "word_id": target_word_id,
+            "correct_option": "A",
+        }
+        for idx in range(1, 6)
+    ]
+    session.save(update_fields=["exercises"])
+
+    hearts = UserHearts.objects.get(user=student)
+    hearts.current_hearts = 1
+    hearts.max_hearts = 5
+    hearts.refill_interval_minutes = 10000
+    hearts.last_refill_at = timezone.now()
+    hearts.save(update_fields=["current_hearts", "max_hearts", "refill_interval_minutes", "last_refill_at", "updated_at"])
+
+    fifth = None
+    for step_index in range(1, 6):
+        response = sc.post(
+            ANSWER_URL(session_id),
+            {"step_index": step_index, "submitted_answer": {"option": "A"}, "response_ms": 200},
+            format="json",
+        )
+        assert response.status_code == 200
+        if step_index == 5:
+            fifth = response
+
+    assert fifth is not None
+    assert fifth.data["feedback"]["correct_streak"] == 5
+    assert fifth.data["feedback"]["heart_bonus"] == 1
+    assert fifth.data["feedback"]["hearts"] == 2
+
+
+def test_finish_session_accuracy_80_grants_one_heart(sc, lesson, student, course_with_units):
+    start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+    session_id = start.data["id"]
+    session = LearningSession.objects.get(id=session_id)
+    target_word_id = lesson.words.first().id
+    session.exercises = [
+        {
+            "step_index": idx,
+            "exercise_type": "mc_meaning",
+            "prompt": f"p{idx}",
+            "choices": ["A", "B"],
+            "word_id": target_word_id,
+            "correct_option": "A",
+        }
+        for idx in range(1, 6)
+    ]
+    session.save(update_fields=["exercises"])
+
+    hearts = UserHearts.objects.get(user=student)
+    hearts.current_hearts = 1
+    hearts.max_hearts = 5
+    hearts.refill_interval_minutes = 10000
+    hearts.last_refill_at = timezone.now()
+    hearts.save(update_fields=["current_hearts", "max_hearts", "refill_interval_minutes", "last_refill_at", "updated_at"])
+
+    for step_index in range(1, 5):
+        response = sc.post(
+            ANSWER_URL(session_id),
+            {"step_index": step_index, "submitted_answer": {"option": "A"}, "response_ms": 200},
+            format="json",
+        )
+        assert response.status_code == 200
+
+    wrong = sc.post(
+        ANSWER_URL(session_id),
+        {"step_index": 5, "submitted_answer": {"option": "B"}, "response_ms": 200},
+        format="json",
+    )
+    assert wrong.status_code == 200
+    assert wrong.data["feedback"]["hearts"] == 0
+
+    finish = sc.post(FINISH_URL(session_id))
+    assert finish.status_code == 200
+    assert finish.data["summary"]["accuracy_pct"] == 80.0
+    assert finish.data["heart_bonus"]["granted"] == 1
+    assert finish.data["hearts"]["current"] == 1
 
 
 def test_easy_mode_correct_answer_awards_8_xp(sc, lesson, course_with_units):

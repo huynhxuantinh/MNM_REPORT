@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+﻿import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -8,12 +8,14 @@ import {
   CircularProgress,
   LinearProgress,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
 import { PlayArrowRounded as PlayArrowRoundedIcon } from "@mui/icons-material";
 import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
 import { FactCheckRounded as FactCheckRoundedIcon } from "@mui/icons-material";
+import { InfoOutlined as InfoOutlinedIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
@@ -141,6 +143,8 @@ const UnitCard = ({
 
 const LearningPage = () => {
   const navigate = useNavigate();
+  const [quickStudyLoading, setQuickStudyLoading] = useState(false);
+  const [quickStudyError, setQuickStudyError] = useState("");
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["learning-path"],
@@ -209,6 +213,50 @@ const LearningPage = () => {
     checkpointStartMutation.mutate(unitId);
   };
   const recoverSession = recoverData?.session;
+  const getNextLessonId = () => {
+    const unlockedUnits = [...units]
+      .filter((unit) => !!unit?.unlocked)
+      .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+    for (const unit of unlockedUnits) {
+      const lessonLinks = [...(unit?.lessons || [])]
+        .filter((item) => !!item?.lesson?.id)
+        .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+      if (!lessonLinks.length) continue;
+      const completed = Math.max(0, unit?.progress?.completed_lessons ?? 0);
+      const nextLink = lessonLinks[Math.min(completed, lessonLinks.length - 1)];
+      if (nextLink?.lesson?.id) return nextLink.lesson.id;
+    }
+    return null;
+  };
+
+  const handleQuickStudy = async () => {
+    if (quickStudyLoading || resumeMutation.isPending || startMutation.isPending) return;
+    setQuickStudyError("");
+    if (recoverData?.has_recoverable_session && recoverSession?.id) {
+      resumeMutation.mutate(recoverSession.id);
+      return;
+    }
+
+    setQuickStudyLoading(true);
+    try {
+      const reviewData = await learningApi.getReviewList().then((response) => response.data);
+      const dueCount = (reviewData?.words || []).length;
+      if (dueCount > 0) {
+        navigate("/review");
+        return;
+      }
+      const lessonId = getNextLessonId();
+      if (!lessonId) {
+        setQuickStudyError("Hiện chưa có bài học phù hợp để bắt đầu.");
+        return;
+      }
+      startMutation.mutate(lessonId);
+    } catch (err) {
+      setQuickStudyError(err?.response?.data?.detail || "Không thể bắt đầu học nhanh.");
+    } finally {
+      setQuickStudyLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -307,21 +355,27 @@ const LearningPage = () => {
               </Typography>
             )}
             <Typography sx={{ fontSize: "0.9rem" }}>
-              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 5}
+              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 10}
             </Typography>
-            <Typography sx={{ fontSize: "0.9rem" }}>
-              Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Typography sx={{ fontSize: "0.9rem" }}>
+                Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
+              </Typography>
+              <Tooltip
+                arrow
+                title="Nếu bạn nghỉ 1 ngày, hệ thống sẽ tự dùng 1 freeze để giữ streak không bị reset."
+              >
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }} />
+              </Tooltip>
+            </Stack>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+              Dùng để bảo vệ streak khi lỡ nghỉ học 1 ngày.
             </Typography>
             <SbButton
               size="small"
               variant="primary"
-              onClick={() => {
-                if (recoverData?.has_recoverable_session && recoverSession?.id) {
-                  resumeMutation.mutate(recoverSession.id);
-                  return;
-                }
-                navigate("/review");
-              }}
+              loading={quickStudyLoading || resumeMutation.isPending}
+              onClick={handleQuickStudy}
             >
               Học tiếp 5 phút
             </SbButton>
@@ -376,6 +430,9 @@ const LearningPage = () => {
           {resumeMutation.error?.response?.data?.detail || "Cannot resume session."}
         </Alert>
       )}
+      {!!quickStudyError && (
+        <Alert severity="error">{quickStudyError}</Alert>
+      )}
 
       {units.length === 0 && (
         <Alert severity="info">
@@ -399,4 +456,11 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
+
+
+
+
+
+
+
 

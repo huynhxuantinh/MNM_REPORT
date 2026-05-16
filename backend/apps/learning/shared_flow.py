@@ -1,4 +1,4 @@
-"""Shared constants and helper functions for learner flow logic."""
+﻿"""Shared constants and helper functions for learner flow logic."""
 
 import random
 from datetime import timedelta
@@ -35,15 +35,16 @@ from .models import (
     UserUnitProgress,
 )
 
-# XP constants â€“ Ä‘Ăºng theo báº£ng chÆ°Æ¡ng 2.6
+# XP constants Ă¢â‚¬â€œ Ă„â€˜Ä‚Âºng theo bĂ¡ÂºÂ£ng chĂ†Â°Ă†Â¡ng 2.6
 XP_NEW_WORD = 10
 XP_LESSON_BONUS = 20
 XP_REVIEW_CORRECT = 5   # q >= 3
 XP_REVIEW_WRONG = 2     # q < 3
 
-# Giá»›i háº¡n tá»« má»—i phiĂªn Ă´n (trĂ¡nh quĂ¡ táº£i)
+# GiĂ¡Â»â€ºi hĂ¡ÂºÂ¡n tĂ¡Â»Â« mĂ¡Â»â€”i phiÄ‚Âªn Ä‚Â´n (trÄ‚Â¡nh quÄ‚Â¡ tĂ¡ÂºÂ£i)
 REVIEW_SESSION_LIMIT = 50
-HEARTS_DEFAULT_MAX = 5
+HEARTS_DEFAULT_MAX = 10
+HEARTS_DEFAULT_REFILL_INTERVAL_MINUTES = 10
 HEARTS_MIN_RESPONSE_STATUS = status.HTTP_429_TOO_MANY_REQUESTS
 STREAK_FREEZE_XP_COST = 50
 ANTI_CHEAT_MIN_RESPONSE_MS = 80
@@ -64,7 +65,7 @@ def _create_level_up_notification(user, new_level: int) -> None:
     Notification.objects.create(
         user=user,
         type=Notification.Type.LEVEL_UP,
-        message=f"ChĂºc má»«ng! Báº¡n Ä‘Ă£ Ä‘áº¡t Level {new_level}.",
+        message=f"Chúc mừng! Bạn đã đạt Level {new_level}.",
     )
 
 
@@ -74,7 +75,7 @@ def _create_streak_notification(user, streak: int) -> None:
         Notification.objects.create(
             user=user,
             type=Notification.Type.STREAK,
-            message=f"Tuyet voi! Ban da hoc {streak} ngay lien tiep!",
+            message=f"Tuyệt vời! Bạn đã học {streak} ngày liên tiếp!",
         )
 
 
@@ -265,6 +266,7 @@ def _get_or_create_hearts(user) -> UserHearts:
         defaults={
             "current_hearts": HEARTS_DEFAULT_MAX,
             "max_hearts": HEARTS_DEFAULT_MAX,
+            "refill_interval_minutes": HEARTS_DEFAULT_REFILL_INTERVAL_MINUTES,
         },
     )
     apply_hearts_experiment(user, hearts)
@@ -329,6 +331,31 @@ def _consume_heart(user, reason: str, cost: int = 1) -> UserHearts:
         meta={"reason": reason[:120]},
     )
     return hearts
+
+
+def _grant_heart_bonus(user, reason: str, amount: int = 1) -> tuple[UserHearts, int]:
+    hearts = _refill_hearts(_get_or_create_hearts(user))
+    if amount <= 0 or hearts.current_hearts >= hearts.max_hearts:
+        return hearts, 0
+    granted = min(amount, hearts.max_hearts - hearts.current_hearts)
+    if granted <= 0:
+        return hearts, 0
+    hearts.current_hearts += granted
+    hearts.save(update_fields=["current_hearts", "updated_at"])
+    HeartTransaction.objects.create(
+        hearts=hearts,
+        transaction_type=HeartTransaction.TxType.BONUS,
+        delta=granted,
+        reason=reason[:120],
+    )
+    track_experiment_metric(
+        user,
+        HEARTS_EXPERIMENT_KEY,
+        metric_key="heart_bonus",
+        metric_value=granted,
+        meta={"reason": reason[:120]},
+    )
+    return hearts, granted
 
 
 def _get_or_create_daily_goal(user) -> DailyGoal:
@@ -467,8 +494,6 @@ def _get_heart_cost(session: LearningSession, is_correct: bool) -> int:
         return 0
     if session.session_type == LearningSession.SessionType.CHECKPOINT:
         return 0
-    if session.difficulty == LearningSession.Difficulty.HARD:
-        return 2
     return 1
 
 
@@ -700,6 +725,15 @@ def _get_consecutive_wrong_streak(session: LearningSession) -> int:
     return streak
 
 
+def _get_consecutive_correct_streak(session: LearningSession) -> int:
+    streak = 0
+    for is_correct in session.attempts.order_by("-created_at").values_list("is_correct", flat=True):
+        if not is_correct:
+            break
+        streak += 1
+    return streak
+
+
 
 __all__ = [
     "XP_NEW_WORD",
@@ -724,6 +758,7 @@ __all__ = [
     "_get_or_create_hearts",
     "_refill_hearts",
     "_consume_heart",
+    "_grant_heart_bonus",
     "_get_or_create_daily_goal",
     "_get_today_goal_log",
     "_apply_learning_rewards",
@@ -743,4 +778,6 @@ __all__ = [
     "_build_session_summary",
     "_count_wrong_attempts_for_word",
     "_get_consecutive_wrong_streak",
+    "_get_consecutive_correct_streak",
 ]
+

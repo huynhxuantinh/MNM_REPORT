@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -20,7 +20,8 @@ import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
-const FEEDBACK_DELAY_MS = 180;
+const FEEDBACK_DELAY_CORRECT_MS = 1200;
+const FEEDBACK_DELAY_WRONG_MS = 1800;
 const SESSION_TYPE_LABELS = {
   lesson: "Bài học",
   checkpoint: "Checkpoint",
@@ -104,6 +105,7 @@ const SessionSummary = ({ session, result, onBack }) => {
 const LearningSessionPage = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [textAnswer, setTextAnswer] = useState("");
@@ -111,6 +113,11 @@ const LearningSessionPage = () => {
   const [finishPayload, setFinishPayload] = useState(null);
   const [frustrationGuard, setFrustrationGuard] = useState(null);
   const stepStartedAtRef = useRef(Date.now());
+  const invalidateLearningCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["learning-recover-session"] });
+    queryClient.invalidateQueries({ queryKey: ["home-recover-session"] });
+    queryClient.invalidateQueries({ queryKey: ["learning-path"] });
+  };
 
   const { data: payload, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["learning-session", sessionId],
@@ -123,7 +130,7 @@ const LearningSessionPage = () => {
   const heartsInfo = payload?.hearts;
   const difficultyHint = payload?.difficulty_hint;
   const currentHearts = feedback?.hearts ?? heartsInfo?.current ?? 0;
-  const maxHearts = heartsInfo?.max ?? 5;
+  const maxHearts = heartsInfo?.max ?? 10;
 
   useEffect(() => {
     const answered = new Set(attempts.map((item) => item.step_index));
@@ -148,6 +155,7 @@ const LearningSessionPage = () => {
     mutationFn: () => learningApi.submitCheckpoint(sessionId).then((response) => response.data),
     onSuccess: (data) => {
       setFinishPayload(data);
+      invalidateLearningCaches();
       refetch();
     },
   });
@@ -156,12 +164,14 @@ const LearningSessionPage = () => {
     mutationFn: () => learningApi.finishLearningSession(sessionId).then((response) => response.data),
     onSuccess: (data) => {
       setFinishPayload(data);
+      invalidateLearningCaches();
       refetch();
     },
   });
   const quitMutation = useMutation({
     mutationFn: () => learningApi.quitLearningSession(sessionId, "user_clicked_quit").then((response) => response.data),
     onSuccess: () => {
+      invalidateLearningCaches();
       navigate("/learning");
     },
   });
@@ -182,6 +192,7 @@ const LearningSessionPage = () => {
       } else {
         setFrustrationGuard(null);
       }
+      const delay = data?.feedback?.is_correct ? FEEDBACK_DELAY_CORRECT_MS : FEEDBACK_DELAY_WRONG_MS;
       setTimeout(() => {
         const isLast = currentStepIndex >= exercises.length - 1;
         if (isLast) {
@@ -195,7 +206,7 @@ const LearningSessionPage = () => {
           refetch();
         }
         setFeedback(null);
-      }, FEEDBACK_DELAY_MS);
+      }, delay);
     },
   });
 
@@ -216,14 +227,35 @@ const LearningSessionPage = () => {
     return textAnswer.trim().length > 0;
   }, [currentExercise, textAnswer, orderedTokens]);
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = useCallback(() => {
     if (!currentExercise || !canSubmit || answerMutation.isPending) return;
     answerMutation.mutate({
       step_index: currentExercise.step_index,
       submitted_answer: buildSubmittedAnswer(),
       response_ms: Math.max(100, Date.now() - stepStartedAtRef.current),
     });
-  };
+  }, [answerMutation, canSubmit, currentExercise, orderedTokens, textAnswer]);
+
+  useEffect(() => {
+    const handleEnterSubmit = (event) => {
+      if (event.key !== "Enter") return;
+      if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.isComposing) return;
+      if (!currentExercise || !canSubmit) return;
+      if (answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending) return;
+      event.preventDefault();
+      handleSubmitAnswer();
+    };
+    window.addEventListener("keydown", handleEnterSubmit);
+    return () => window.removeEventListener("keydown", handleEnterSubmit);
+  }, [
+    answerMutation.isPending,
+    canSubmit,
+    checkpointSubmitMutation.isPending,
+    currentExercise,
+    finishMutation.isPending,
+    handleSubmitAnswer,
+  ]);
 
   const addToken = (token) => {
     setOrderedTokens((prev) => [...prev, token]);
@@ -247,7 +279,16 @@ const LearningSessionPage = () => {
   }
 
   if (session.status === "completed" || finishPayload) {
-    return <SessionSummary session={session} result={finishPayload} onBack={() => navigate("/learning")} />;
+    return (
+      <SessionSummary
+        session={session}
+        result={finishPayload}
+        onBack={() => {
+          invalidateLearningCaches();
+          navigate("/learning");
+        }}
+      />
+    );
   }
 
   if (!currentExercise) {
