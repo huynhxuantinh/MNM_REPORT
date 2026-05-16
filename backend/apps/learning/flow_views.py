@@ -312,8 +312,7 @@ class LearningSessionStartView(APIView):
             return Response(
                 {
                     "detail": "Ban da het hearts. Vui long doi refill.",
-                    "hearts": hearts.current_hearts,
-                    "max_hearts": hearts.max_hearts,
+                    "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
             )
@@ -427,6 +426,10 @@ class LearningPlacementStatusView(APIView):
             meta__step="first_lesson_start",
         ).exists()
         has_pending_draft = bool(cache.get(_placement_cache_key(request.user.id)))
+        has_any_progress = (
+            LearningSession.objects.filter(user=request.user).exists()
+            or UserUnitProgress.objects.filter(user=request.user).exists()
+        )
         if recoverable_session:
             next_action = "continue_session"
         elif latest is None:
@@ -441,7 +444,7 @@ class LearningPlacementStatusView(APIView):
                 "recommended_level": latest.recommended_level if latest else None,
                 "last_taken_at": latest.created_at if latest else None,
                 "score_pct": latest.score_pct if latest else None,
-                "should_show_onboarding": latest is None,
+                "should_show_onboarding": latest is None and not has_any_progress,
                 "placement": {
                     "completed": latest is not None,
                     "recommended_level": latest.recommended_level if latest else None,
@@ -716,8 +719,7 @@ class LearningSessionAnswerView(APIView):
             return Response(
                 {
                     "detail": "Ban da het hearts. Vui long doi refill.",
-                    "hearts": hearts.current_hearts,
-                    "max_hearts": hearts.max_hearts,
+                    "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
             )
@@ -1155,8 +1157,7 @@ class LearningSessionResumeView(APIView):
             return Response(
                 {
                     "detail": "Ban da het hearts. Vui long doi refill.",
-                    "hearts": hearts.current_hearts,
-                    "max_hearts": hearts.max_hearts,
+                    "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
             )
@@ -1262,8 +1263,7 @@ class LearningCheckpointStartView(APIView):
             return Response(
                 {
                     "detail": "Ban da het hearts. Vui long doi refill.",
-                    "hearts": hearts.current_hearts,
-                    "max_hearts": hearts.max_hearts,
+                    "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
             )

@@ -319,17 +319,15 @@ const StudyPage = () => {
     }
   }, [lesson, started, id]);
 
-  // Reset reveal on card change
-  useEffect(() => {
-    setRevealed(false);
-  }, [currentIdx]);
+  // Cleanup speech on unmount
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   const handleComplete = useCallback(async () => {
+    if (isCompleting) return;
     setIsCompleting(true);
     try {
       const { data } = await learningApi.completeLesson(id);
       setCompletionData(data);
-      // Update user XP in Redux state
       if (data.total_xp !== undefined) {
         dispatch(setUser({ xp: data.total_xp, level: data.level }));
       }
@@ -339,12 +337,15 @@ const StudyPage = () => {
       setIsCompleting(false);
       setCompleted(true);
     }
-  }, [id, dispatch]);
+  }, [id, dispatch, isCompleting]);
 
   const goNext = useCallback(() => {
     if (currentIdx >= words.length - 1) {
       handleComplete();
     } else {
+      window.speechSynthesis?.cancel();
+      setSpeaking(false);
+      setRevealed(false);
       setCurrentIdx((i) => i + 1);
     }
   }, [currentIdx, words.length, handleComplete]);
@@ -374,7 +375,7 @@ const StudyPage = () => {
           goNextRef.current?.();
         } else if (e.key === "ArrowLeft") {
           e.preventDefault();
-          if (currentIdxRef.current > 0) setCurrentIdx((i) => i - 1);
+          if (currentIdxRef.current > 0) { window.speechSynthesis?.cancel(); setSpeaking(false); setRevealed(false); setCurrentIdx((i) => i - 1); }
         }
       }
     };
@@ -490,6 +491,7 @@ const StudyPage = () => {
       {/* ── Word card ────────────────────────────────────────────────── */}
       {currentWord ? (
         <FlipCard
+          key={currentIdx}
           flipped={revealed}
           onClick={!revealed ? () => setRevealed(true) : undefined}
           front={<CardFront word={currentWord} speaking={speaking} setSpeaking={setSpeaking} />}
@@ -522,7 +524,7 @@ const StudyPage = () => {
                 <SbButton
                   variant="outlined"
                   size="large"
-                  onClick={() => setCurrentIdx((i) => i - 1)}
+                  onClick={() => { window.speechSynthesis?.cancel(); setSpeaking(false); setRevealed(false); setCurrentIdx((i) => i - 1); }}
                   sx={{ minWidth: 0, px: 2 }}
                 >
                   <ArrowBackRoundedIcon />
@@ -536,7 +538,8 @@ const StudyPage = () => {
             variant="outlined"
             size="large"
             sx={{ flex: 1 }}
-            endIcon={<ArrowForwardRoundedIcon />}
+            endIcon={currentIdx < words.length - 1 ? <ArrowForwardRoundedIcon /> : undefined}
+            loading={isCompleting && currentIdx === words.length - 1}
             onClick={goNext}
           >
             {currentIdx === words.length - 1 ? "Hoàn thành" : "Tiếp theo"}

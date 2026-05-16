@@ -97,7 +97,6 @@ def _build_unlock_map(units, progress_map):
             prev_checkpoint_passed = prev_progress.checkpoint_passed
         unlocked_map[unit.id] = (
             prev_completed >= previous_unit.required_lessons_to_unlock
-            and prev_checkpoint_passed
         )
         previous_unit = unit
     return unlocked_map

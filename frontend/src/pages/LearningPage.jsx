@@ -53,26 +53,26 @@ const UnitCard = ({
             isCompleted ? (
               <Chip
                 icon={<CheckCircleRoundedIcon sx={{ fontSize: "14px !important" }} />}
-                label="Done"
+                label="Hoàn thành"
                 size="small"
                 sx={{ bgcolor: `${colors.greenAccent}20`, color: colors.greenAccent, fontWeight: 700 }}
               />
             ) : (
-              <Chip label="Unlocked" size="small" sx={{ bgcolor: `${colors.gold}20`, color: colors.gold, fontWeight: 700 }} />
+              <Chip label="Đã mở" size="small" sx={{ bgcolor: `${colors.gold}20`, color: colors.gold, fontWeight: 700 }} />
             )
           ) : (
-            <Chip icon={<LockRoundedIcon sx={{ fontSize: "14px !important" }} />} label="Locked" size="small" />
+            <Chip icon={<LockRoundedIcon sx={{ fontSize: "14px !important" }} />} label="Khóa" size="small" />
           )}
         </Stack>
 
         <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
-          {unit.description || "No description."}
+          {unit.description || "Chưa có mô tả."}
         </Typography>
 
         <Box>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-              Progress
+              Tiến độ
             </Typography>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 700 }}>
               {completedLessons}/{totalLessons}
@@ -102,7 +102,7 @@ const UnitCard = ({
             >
               <Box>
                 <Typography sx={{ fontWeight: 700 }}>
-                  Lesson {item.order_index}: {item.lesson?.title}
+                  Bài {item.order_index}: {item.lesson?.title}
                 </Typography>
                 <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
                   {(item.lesson?.level || "A1")} · Đã học {item.lesson?.words_learned ?? 0}/{item.lesson?.words_total ?? 0} từ
@@ -130,7 +130,7 @@ const UnitCard = ({
                   loading={startingLessonId === item.lesson?.id}
                   onClick={() => onStart(item.lesson?.id)}
                 >
-                  Start
+                  Học
                 </SbButton>
               </Stack>
             </Stack>
@@ -145,12 +145,12 @@ const UnitCard = ({
             loading={startingCheckpointUnitId === unit.id}
             onClick={() => onStartCheckpoint(unit.id)}
           >
-            Start Checkpoint
+            Làm kiểm tra unit
           </SbButton>
         )}
         {checkpointPassed && (
           <Alert severity="success" sx={{ py: 0 }}>
-            Checkpoint passed
+            Đã vượt qua kiểm tra unit
           </Alert>
         )}
       </Stack>
@@ -291,12 +291,12 @@ const LearningPage = () => {
   }
 
   if (isError) {
-    const message = error?.response?.data?.detail || "Cannot load learning path.";
+    const message = error?.response?.data?.detail || "Không thể tải lộ trình học.";
     return (
       <Stack spacing={2}>
         <Alert severity="error">{message}</Alert>
         <SbButton variant="outlined" onClick={() => refetch()}>
-          Retry
+          Thử lại
         </SbButton>
       </Stack>
     );
@@ -441,17 +441,17 @@ const LearningPage = () => {
 
       {!!startMutation.error && (
         <Alert severity="error">
-          {startMutation.error?.response?.data?.detail || "Cannot start session."}
+          {startMutation.error?.response?.data?.detail || "Không thể bắt đầu phiên học."}
         </Alert>
       )}
       {!!checkpointStartMutation.error && (
         <Alert severity="error">
-          {checkpointStartMutation.error?.response?.data?.detail || "Cannot start checkpoint."}
+          {checkpointStartMutation.error?.response?.data?.detail || "Không thể bắt đầu kiểm tra unit."}
         </Alert>
       )}
       {!!resumeMutation.error && (
         <Alert severity="error">
-          {resumeMutation.error?.response?.data?.detail || "Cannot resume session."}
+          {resumeMutation.error?.response?.data?.detail || "Không thể tiếp tục phiên học."}
         </Alert>
       )}
       {!!quickStudyError && (

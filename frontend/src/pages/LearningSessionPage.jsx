@@ -286,7 +286,7 @@ const LearningSessionPage = () => {
     },
     onError: (err) => {
       const data = err?.response?.data;
-      if (err?.response?.status === 402 && data?.hearts) {
+      if (err?.response?.status === 429 && data?.hearts) {
         setHeartsState(data.hearts);
       }
     },
@@ -397,7 +397,7 @@ const LearningSessionPage = () => {
 
   const progress = exercises.length ? Math.round(((currentStepIndex + 1) / exercises.length) * 100) : 0;
   const heartsLoaded = heartsState !== null || payload?.hearts !== undefined;
-  const isHeartsEmpty = heartsLoaded && currentHearts <= 0;
+  const isHeartsEmpty = heartsLoaded && currentHearts <= 0 && !feedback;
 
   return (
     <>
@@ -588,7 +588,7 @@ const LearningSessionPage = () => {
               </Alert>
             )}
 
-            {!!answerMutation.error && answerMutation.error?.response?.status !== 402 && (
+            {!!answerMutation.error && answerMutation.error?.response?.status !== 429 && (
               <Alert severity="error">{answerMutation.error?.response?.data?.detail || "Gửi đáp án thất bại."}</Alert>
             )}
             {!!finishMutation.error && <Alert severity="error">{finishMutation.error?.response?.data?.detail || "Kết thúc phiên học thất bại."}</Alert>}

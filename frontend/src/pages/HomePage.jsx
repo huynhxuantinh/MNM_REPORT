@@ -350,7 +350,7 @@ const HomePage = () => {
   });
 
   useEffect(() => {
-    if (!placementLoading && placementStatus && !placementStatus.has_completed_placement) {
+    if (!placementLoading && placementStatus && placementStatus.should_show_onboarding) {
       navigate("/learning/onboarding", { replace: true });
     }
   }, [placementLoading, placementStatus, navigate]);
@@ -417,15 +417,15 @@ const HomePage = () => {
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
             <Box>
               <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
-                Continue Session
+                Tiếp tục phiên học
               </Typography>
               <Typography sx={{ fontSize: "0.86rem", color: "text.secondary" }}>
-                Ban con do lesson {recoverSession.lesson_title} (step {recoverData.next_step_index || 1}).
+                Bạn còn dở bài: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
               <SbButton size="small" variant="outlined" onClick={() => refetchRecover()}>
-                Refresh
+                Làm mới
               </SbButton>
               <SbButton
                 size="small"
@@ -433,7 +433,7 @@ const HomePage = () => {
                 loading={resumeMutation.isPending}
                 onClick={() => resumeMutation.mutate(recoverSession.id)}
               >
-                Continue
+                Tiếp tục
               </SbButton>
             </Box>
           </Box>
