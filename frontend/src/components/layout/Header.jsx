@@ -63,7 +63,7 @@ const Header = ({ onMenuClick }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifAnchor, setNotifAnchor] = useState(null);
 
-  const pageTitle = PAGE_TITLES[location.pathname] ?? "MNM English";
+  const pageTitle = PAGE_TITLES[location.pathname] ?? "NoroStu";
   const unreadCount = 0;
 
   const handleUserMenuOpen = (e) => setAnchorEl(e.currentTarget);

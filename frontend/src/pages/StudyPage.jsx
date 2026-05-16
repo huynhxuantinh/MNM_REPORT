@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
@@ -293,6 +293,13 @@ const StudyPage = () => {
   const [started, setStarted]         = useState(false);
   const [speaking, setSpeaking]       = useState(false);
 
+  const revealedRef   = useRef(revealed);
+  const currentIdxRef = useRef(currentIdx);
+  const goNextRef     = useRef(null);
+  const handleUnderstoodRef = useRef(null);
+  revealedRef.current   = revealed;
+  currentIdxRef.current = currentIdx;
+
   // Fetch lesson detail
   const { data: lesson, isLoading, isError } = useQuery({
     queryKey: ["lesson", id],
@@ -342,10 +349,38 @@ const StudyPage = () => {
     }
   }, [currentIdx, words.length, handleComplete]);
 
-  const handleUnderstood = () => {
+  const handleUnderstood = useCallback(() => {
     setUnderstood((prev) => new Set([...prev, currentWord?.id]));
     goNext();
-  };
+  }, [currentWord, goNext]);
+
+  // Gán refs sau khi các handler đã được khởi tạo
+  goNextRef.current           = goNext;
+  handleUnderstoodRef.current = handleUnderstood;
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.isComposing || e.ctrlKey || e.altKey || e.metaKey) return;
+      if (!revealedRef.current && (e.key === " " || e.key === "Enter")) {
+        e.preventDefault();
+        setRevealed(true);
+      } else if (revealedRef.current) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleUnderstoodRef.current?.();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          goNextRef.current?.();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          if (currentIdxRef.current > 0) setCurrentIdx((i) => i - 1);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // ── Loading / error states ──
 
@@ -428,7 +463,7 @@ const StudyPage = () => {
         </Tooltip>
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary", noWrap: true }}>
+            <Typography noWrap sx={{ fontWeight: 700, fontSize: "0.875rem", color: "text.primary" }}>
               {lesson.title}
             </Typography>
             <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", fontWeight: 600, flexShrink: 0 }}>

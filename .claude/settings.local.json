@@ -28,7 +28,8 @@
       "Bash(docker restart *)",
       "Bash(grep -E \"\\\\.\\(jsx|js\\)$\")",
       "Bash(grep -E \"\\\\.jsx$\")",
-      "Bash(node --input-type=module --eval ' *)"
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(git *)"
     ]
   }
 }

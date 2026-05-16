@@ -73,7 +73,7 @@ const SidebarContent = () => {
         </Box>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#fff", lineHeight: 1.2 }}>
-            MNM English
+            NoroStu
           </Typography>
           <Typography sx={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)", lineHeight: 1 }}>
             Quản trị hệ thống

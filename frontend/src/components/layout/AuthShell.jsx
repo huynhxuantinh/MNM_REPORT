@@ -66,25 +66,14 @@ const LeftPanel = ({ headline, subtext }) => (
 
     <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 6, textDecoration: "none" }}>
       <Box
-        sx={{
-          width: 44,
-          height: 44,
-          borderRadius: "50%",
-          bgcolor: colors.greenAccent,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 900,
-          fontSize: "1.2rem",
-          color: "#fff",
-          flexShrink: 0,
-        }}
-      >
-        M
-      </Box>
+        component="img"
+        src="/logo.png"
+        alt="NoroStu"
+        sx={{ width: 44, height: 44, borderRadius: "10px", objectFit: "contain", flexShrink: 0 }}
+      />
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-          MNM English
+          NoroStu
         </Typography>
         <Typography sx={{ fontSize: "0.7rem", color: colors.textWhiteSoft, lineHeight: 1 }}>
           Học từ vựng hiệu quả
@@ -135,23 +124,13 @@ const MobileLogoBar = () => (
     }}
   >
     <Box
-      sx={{
-        width: 32,
-        height: 32,
-        borderRadius: "50%",
-        bgcolor: colors.greenAccent,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 900,
-        fontSize: "1rem",
-        color: "#fff",
-      }}
-    >
-      M
-    </Box>
+      component="img"
+      src="/logo.png"
+      alt="NoroStu"
+      sx={{ width: 32, height: 32, borderRadius: "8px", objectFit: "contain" }}
+    />
     <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#fff", letterSpacing: "-0.02em" }}>
-      MNM English
+      NoroStu
     </Typography>
   </Box>
 );

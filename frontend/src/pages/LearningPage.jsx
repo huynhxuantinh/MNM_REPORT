@@ -16,6 +16,7 @@ import { PlayArrowRounded as PlayArrowRoundedIcon } from "@mui/icons-material";
 import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
 import { FactCheckRounded as FactCheckRoundedIcon } from "@mui/icons-material";
 import { InfoOutlined as InfoOutlinedIcon } from "@mui/icons-material";
+import { StyleRounded as FlashcardIcon } from "@mui/icons-material";
 import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
@@ -23,6 +24,7 @@ import { colors } from "@/styles/theme";
 const UnitCard = ({
   unit,
   onStart,
+  onStudy,
   onStartCheckpoint,
   startingLessonId,
   startingCheckpointUnitId,
@@ -106,16 +108,31 @@ const UnitCard = ({
                   {(item.lesson?.level || "A1")} · Đã học {item.lesson?.words_learned ?? 0}/{item.lesson?.words_total ?? 0} từ
                 </Typography>
               </Box>
-              <SbButton
-                size="small"
-                variant="primary"
-                startIcon={<PlayArrowRoundedIcon />}
-                disabled={!unit.unlocked || disabled}
-                loading={startingLessonId === item.lesson?.id}
-                onClick={() => onStart(item.lesson?.id)}
-              >
-                Start
-              </SbButton>
+              <Stack direction="row" spacing={0.75}>
+                <Tooltip title="Lật thẻ flashcard" arrow>
+                  <Box>
+                    <SbButton
+                      size="small"
+                      variant="outlined"
+                      disabled={!unit.unlocked}
+                      onClick={() => onStudy(item.lesson?.id)}
+                      sx={{ minWidth: 0, px: 1.5 }}
+                    >
+                      <FlashcardIcon sx={{ fontSize: 18 }} />
+                    </SbButton>
+                  </Box>
+                </Tooltip>
+                <SbButton
+                  size="small"
+                  variant="primary"
+                  startIcon={<PlayArrowRoundedIcon />}
+                  disabled={!unit.unlocked || disabled}
+                  loading={startingLessonId === item.lesson?.id}
+                  onClick={() => onStart(item.lesson?.id)}
+                >
+                  Start
+                </SbButton>
+              </Stack>
             </Stack>
           ))}
         </Stack>
@@ -210,6 +227,10 @@ const LearningPage = () => {
   const handleStartSession = (lessonId) => {
     if (!lessonId) return;
     startMutation.mutate(lessonId);
+  };
+  const handleStudy = (lessonId) => {
+    if (!lessonId) return;
+    navigate(`/learning/${lessonId}/study`);
   };
   const handleStartCheckpoint = (unitId) => {
     if (!unitId) return;
@@ -448,6 +469,7 @@ const LearningPage = () => {
           key={unit.id}
           unit={unit}
           onStart={handleStartSession}
+          onStudy={handleStudy}
           onStartCheckpoint={handleStartCheckpoint}
           startingLessonId={startingLessonId}
           startingCheckpointUnitId={startingCheckpointUnitId}

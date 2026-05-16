@@ -613,6 +613,27 @@ class LearningPlacementSubmitView(APIView):
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
+class LearningPlacementSkipView(APIView):
+    """POST /learning/placement/skip/ - Bỏ qua placement, bắt đầu từ A1."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if PlacementResult.objects.filter(user=request.user).exists():
+            return Response({"detail": "Đã có kết quả placement."}, status=status.HTTP_400_BAD_REQUEST)
+        PlacementResult.objects.create(
+            user=request.user,
+            recommended_level="A1",
+            score_pct=0,
+            total_questions=0,
+            correct_answers=0,
+            answers=[],
+        )
+        _track_onboarding_step(request.user, "placement_skip", meta={"recommended_level": "A1"})
+        return Response({"detail": "Đã bỏ qua placement. Bắt đầu từ A1.", "recommended_level": "A1"})
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class LearningSessionDetailView(APIView):
     """GET /learning/session/{id}/ - Session detail for current learner."""
 

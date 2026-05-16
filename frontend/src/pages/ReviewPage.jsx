@@ -333,6 +333,16 @@ const ReviewPage = () => {
     }
   }, [currentIdx, items.length]);
 
+  // Invalidate các query liên quan chỉ khi session kết thúc, không phải mỗi card
+  useEffect(() => {
+    if (!done) return;
+    queryClient.invalidateQueries({ queryKey: ["review-list"] });
+    queryClient.invalidateQueries({ queryKey: ["review-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["review-history"] });
+    queryClient.invalidateQueries({ queryKey: ["home-daily-goal"] });
+    queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
+  }, [done, queryClient]);
+
   const handleQuality = useCallback(async (quality) => {
     if (!current || submitting) return;
     setSubmitting(true);
@@ -352,13 +362,10 @@ const ReviewPage = () => {
     } catch {
       // Vẫn tiến tiếp dù lỗi mạng
     } finally {
-      queryClient.invalidateQueries({ queryKey: ["review-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["review-history"] });
-      queryClient.invalidateQueries({ queryKey: ["review-list"] });
       setSubmitting(false);
       advance();
     }
-  }, [current, submitting, advance, dispatch, queryClient]);
+  }, [current, submitting, advance, dispatch]);
 
   // Gán ref sau khi handleQuality đã được khởi tạo
   handleQualityRef.current = handleQuality;

@@ -24,6 +24,7 @@ const learningApi = {
   getPlacementQuestions: (count = 12) => axiosClient.get("/learning/placement/questions/", { params: { count } }),
   submitPlacement: (answers, source = "placement_page") =>
     axiosClient.post("/learning/placement/submit/", { answers }, { params: { source } }),
+  skipPlacement: () => axiosClient.post("/learning/placement/skip/"),
   startLearningSession: (lessonId, source = "learning_page") =>
     axiosClient.post("/learning/session/start/", { lesson_id: lessonId }, { params: { source } }),
   getRecoverableSession: () => axiosClient.get("/learning/session/recover/"),

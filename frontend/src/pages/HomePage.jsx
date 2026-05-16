@@ -342,6 +342,19 @@ const HomePage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const { data: placementStatus, isLoading: placementLoading } = useQuery({
+    queryKey: ["placement-status"],
+    queryFn: () => learningApi.getPlacementStatus().then((r) => r.data),
+    staleTime: 0,
+    enabled: user?.role === "user",
+  });
+
+  useEffect(() => {
+    if (!placementLoading && placementStatus && !placementStatus.has_completed_placement) {
+      navigate("/learning/onboarding", { replace: true });
+    }
+  }, [placementLoading, placementStatus, navigate]);
+
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ["review-summary"],
     queryFn: () => learningApi.getReviewSummary().then((r) => r.data),
