@@ -344,9 +344,9 @@ const LearningPage = () => {
         <Alert
           severity="info"
           action={
-            <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/placement")}>
-              Bắt đầu Placement
-            </SbButton>
+              <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/onboarding")}>
+                Tiếp tục onboarding
+              </SbButton>
           }
         >
           Bạn chưa hoàn thành placement. Làm placement trước để hệ thống đề xuất độ khó phù hợp.
@@ -481,8 +481,6 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
-
-
 
 
 

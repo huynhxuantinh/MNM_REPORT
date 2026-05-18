@@ -29,7 +29,9 @@
       "Bash(grep -E \"\\\\.\\(jsx|js\\)$\")",
       "Bash(grep -E \"\\\\.jsx$\")",
       "Bash(node --input-type=module --eval ' *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

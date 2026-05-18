@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { useQuery } from "@tanstack/react-query";
 import { Box, CircularProgress } from "@mui/material";
 import MainLayout from "@/components/layout/MainLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
@@ -36,6 +37,7 @@ const AdminQuizResults = lazy(() => import("@/features/admin/AdminQuizResults"))
 const AdminLearningPath = lazy(() => import("@/features/admin/AdminLearningPath"));
 
 import { initAuth } from "@/features/auth/authSlice";
+import learningApi from "@/api/learningApi";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const PageFallback = () => (
@@ -72,6 +74,40 @@ const HomeRoute = ({ children }) => {
   return children;
 };
 
+const PlacementGateRoute = ({ children }) => {
+  const location = useLocation();
+  const { isAuthenticated, initializing, user } = useSelector((state) => state.auth);
+  const isAdmin = user?.role === "admin";
+
+  const { data: placementStatus, isLoading } = useQuery({
+    queryKey: ["placement-status"],
+    queryFn: () => learningApi.getPlacementStatus().then((response) => response.data),
+    enabled: isAuthenticated && !initializing && !isAdmin,
+    staleTime: 0,
+    retry: 1,
+  });
+
+  if (initializing) return <PageFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (isAdmin) return children;
+
+  const isPlacementRoute =
+    location.pathname.startsWith("/learning/onboarding")
+    || location.pathname.startsWith("/learning/placement");
+
+  if (isLoading) return <PageFallback />;
+
+  const hasCompletedPlacement = !!placementStatus?.has_completed_placement;
+  if (!hasCompletedPlacement && !isPlacementRoute) {
+    return <Navigate to="/learning/onboarding" replace />;
+  }
+  if (hasCompletedPlacement && isPlacementRoute) {
+    return <Navigate to="/learning" replace />;
+  }
+
+  return children;
+};
+
 const App = () => {
   const dispatch = useDispatch();
 
@@ -92,7 +128,9 @@ const App = () => {
           path="/"
           element={
             <PrivateRoute>
-              <MainLayout />
+              <PlacementGateRoute>
+                <MainLayout />
+              </PlacementGateRoute>
             </PrivateRoute>
           }
         >

@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
 import { ErrorRounded as ErrorRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard } from "@/components/ui";
 import authApi from "@/api/authApi";
+import { logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
 
 const VerifyEmailPage = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 
@@ -31,6 +35,16 @@ const VerifyEmailPage = () => {
         );
       });
   }, [token]);
+
+  const handleGoLogin = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore error and still force-clear local auth
+    }
+    dispatch(logout());
+    navigate("/login", { replace: true });
+  };
 
   return (
     <AuthShell headline={"Xác thực\nemail"}>
@@ -55,7 +69,7 @@ const VerifyEmailPage = () => {
             <Typography sx={{ color: "text.secondary", mb: 3, lineHeight: 1.7 }}>
               Tài khoản của bạn đã được kích hoạt. Đăng nhập ngay để bắt đầu học.
             </Typography>
-            <SbButton variant="primary" size="large" component={Link} to="/login" fullWidth>
+            <SbButton variant="primary" size="large" onClick={handleGoLogin} fullWidth>
               Đăng nhập
             </SbButton>
           </>

@@ -1,22 +1,66 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Box, Typography, Stack, Alert, CircularProgress } from "@mui/material";
 import { QuizRounded as QuizIcon } from "@mui/icons-material";
 import { SchoolRounded as SchoolIcon } from "@mui/icons-material";
-import { SbButton, SbCard } from "@/components/ui";
+import { SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
+
+const isPlacementConflictError = (err) => {
+  const detail = String(err?.response?.data?.detail || "").toLowerCase();
+  return (
+    detail.includes("placement")
+    && (
+      detail.includes("kết quả")
+      || detail.includes("ket qua")
+      || detail.includes("đã có")
+      || detail.includes("da co")
+      || detail.includes("already")
+    )
+  );
+};
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  const { data: placementStatus, isLoading: placementLoading } = useQuery({
+    queryKey: ["placement-status"],
+    queryFn: () => learningApi.getPlacementStatus().then((r) => r.data),
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (!placementLoading && placementStatus?.has_completed_placement) {
+      navigate("/learning", { replace: true });
+    }
+  }, [placementLoading, placementStatus, navigate]);
+
   const skipMutation = useMutation({
     mutationFn: () => learningApi.skipPlacement().then((r) => r.data),
     onSuccess: () => {
+      qc.setQueryData(["placement-status"], (prev) => ({
+        ...(prev || {}),
+        has_completed_placement: true,
+        should_show_onboarding: false,
+      }));
       qc.invalidateQueries({ queryKey: ["placement-status"] });
       qc.invalidateQueries({ queryKey: ["learning-path"] });
       navigate("/learning", { replace: true });
+    },
+    onError: (err) => {
+      if (isPlacementConflictError(err)) {
+        qc.setQueryData(["placement-status"], (prev) => ({
+          ...(prev || {}),
+          has_completed_placement: true,
+          should_show_onboarding: false,
+        }));
+        qc.invalidateQueries({ queryKey: ["placement-status"] });
+        qc.invalidateQueries({ queryKey: ["learning-path"] });
+        navigate("/learning", { replace: true });
+      }
     },
   });
 
@@ -32,7 +76,6 @@ const OnboardingPage = () => {
       }}
     >
       <Stack spacing={3} sx={{ maxWidth: 520, width: "100%", textAlign: "center" }}>
-        {/* Header */}
         <Box>
           <Typography
             sx={{ fontWeight: 900, fontSize: { xs: "1.8rem", sm: "2.2rem" }, color: colors.greenStarbucks, lineHeight: 1.2 }}
@@ -44,7 +87,6 @@ const OnboardingPage = () => {
           </Typography>
         </Box>
 
-        {/* Option 1: Placement test */}
         <SbCard
           sx={{
             border: `2px solid ${colors.greenAccent}`,
@@ -80,7 +122,6 @@ const OnboardingPage = () => {
           </Stack>
         </SbCard>
 
-        {/* Option 2: Start from A1 */}
         <SbCard
           sx={{
             border: "2px solid rgba(0,0,0,0.08)",
@@ -119,7 +160,7 @@ const OnboardingPage = () => {
           </Stack>
         </SbCard>
 
-        {skipMutation.isError && (
+        {skipMutation.isError && !isPlacementConflictError(skipMutation.error) && (
           <Alert severity="error">
             {skipMutation.error?.response?.data?.detail ?? "Đã có lỗi xảy ra, thử lại."}
           </Alert>

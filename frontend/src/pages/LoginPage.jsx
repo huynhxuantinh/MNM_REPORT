@@ -89,7 +89,7 @@ const LoginPage = () => {
       try {
         const placementStatus = await learningApi.getPlacementStatus().then((res) => res.data);
         if (placementStatus && !placementStatus.has_completed_placement) {
-          navigate("/learning/placement", { replace: true });
+          navigate("/learning/onboarding", { replace: true });
           return;
         }
       } catch {
