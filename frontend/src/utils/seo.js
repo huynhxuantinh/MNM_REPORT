@@ -5,53 +5,68 @@ const DEFAULT_SEO = {
   description:
     "Nen tang hoc tieng Anh theo self-learning: lesson, SRS, quiz, va theo doi tien trinh.",
   robots: "index,follow",
+  image: `${SITE_URL}/logo.png`,
+  type: "website",
 };
 
 const ROUTE_SEO = [
   {
     test: /^\/$/,
-    title: "NoroStu | Trang chu",
-    description: "Theo doi tien trinh hoc, XP, streak va bat dau buoi hoc moi.",
+    title: "NoroStu | Hoc tu vung tieng Anh voi SRS",
+    description: "NoroStu giup hoc tu vung tieng Anh bang SRS, lesson, quiz, XP, streak va lo trinh ca nhan hoa.",
+  },
+  {
+    test: /^\/about$/,
+    title: "Gioi thieu NoroStu | Hoc tu vung tieng Anh voi SRS",
+    description: "Tim hieu NoroStu: nen tang hoc tu vung tieng Anh self-learning voi SRS, lesson, quiz, XP va streak.",
   },
   {
     test: /^\/vocabulary$/,
-    title: "NoroStu | Tu vung",
-    description: "Duyet danh sach tu vung theo level, tra cuu va luu bookmark.",
+    title: "Tu vung tieng Anh theo cap do | NoroStu",
+    description: "Tra cuu va hoc tu vung tieng Anh theo level A1-A2, TOEIC, IELTS, bookmark va lich on tap.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/wordsets$/,
-    title: "NoroStu | Bo tu",
-    description: "Hoc theo bo tu vung theo chu de va cap do.",
+    title: "Bo tu vung tieng Anh theo chu de | NoroStu",
+    description: "Hoc tu vung tieng Anh theo bo tu, chu de va muc tieu hoc tap ca nhan.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/learning$/,
-    title: "NoroStu | Hoc tap",
-    description: "Hoc theo lo trinh bai hoc va muc tieu hang ngay.",
+    title: "Lo trinh hoc tieng Anh ca nhan hoa | NoroStu",
+    description: "Hoc theo lesson, placement, muc tieu ngay, tim, XP va tien trinh ca nhan.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/review$/,
-    title: "NoroStu | On tap SRS",
-    description: "On tap theo lich SRS (SM-2) de nho tu vung lau hon.",
+    title: "On tap SRS SM-2 cho tu vung | NoroStu",
+    description: "On tap tu vung dung thoi diem bang thuat toan SRS SM-2 de ghi nho lau hon.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/quiz$/,
-    title: "NoroStu | Quiz",
-    description: "Luyen quiz tieng Anh de tang phan xa va do chinh xac.",
+    title: "Quiz tieng Anh luyen phan xa | NoroStu",
+    description: "Luyen quiz tieng Anh theo bo tu va lesson de tang do chinh xac khi hoc.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/leaderboard$/,
-    title: "NoroStu | Xep hang",
+    title: "Bang xep hang hoc vien | NoroStu",
     description: "Xem bang xep hang hoc vien theo XP.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/profile$/,
     title: "NoroStu | Ho so",
     description: "Quan ly thong tin ca nhan va thong ke hoc tap.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/notifications$/,
     title: "NoroStu | Thong bao",
     description: "Xem thong bao lien quan den tien trinh hoc va muc tieu.",
+    robots: "noindex,nofollow",
   },
   {
     test: /^\/admin(?:\/.*)?$/,
@@ -93,29 +108,62 @@ const upsertLink = (rel, href) => {
   node.setAttribute("href", href);
 };
 
+const upsertJsonLd = (id, payload) => {
+  let node = document.head.querySelector(`script[type="application/ld+json"][data-seo-id="${id}"]`);
+  if (!node) {
+    node = document.createElement("script");
+    node.setAttribute("type", "application/ld+json");
+    node.setAttribute("data-seo-id", id);
+    document.head.appendChild(node);
+  }
+  node.textContent = JSON.stringify(payload);
+};
+
 const pickSeo = (pathname) => {
   const found = ROUTE_SEO.find((item) => item.test.test(pathname));
   return found ? { ...DEFAULT_SEO, ...found } : DEFAULT_SEO;
 };
 
+const normalizePathname = (pathname) => {
+  if (!pathname || pathname === "/") return "/";
+  return pathname.replace(/\/+$/, "");
+};
+
+const buildRouteSchema = (seo, canonicalUrl) => ({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": `${canonicalUrl}#webpage`,
+  "url": canonicalUrl,
+  "name": seo.title,
+  "description": seo.description,
+  "isPartOf": { "@id": `${SITE_URL}/#website` },
+  "inLanguage": "vi-VN",
+});
+
 export const applyRouteSeo = (pathname) => {
-  const seo = pickSeo(pathname);
-  const canonicalUrl = `${SITE_URL}${pathname || "/"}`;
+  const normalizedPath = normalizePathname(pathname);
+  const seo = pickSeo(normalizedPath);
+  const canonicalUrl = `${SITE_URL}${normalizedPath}`;
 
   document.title = seo.title;
   upsertMeta("name", "description", seo.description);
   upsertMeta("name", "robots", seo.robots);
+  upsertMeta("name", "application-name", "NoroStu");
+  upsertMeta("name", "author", "NoroStu Contributors");
 
   upsertMeta("property", "og:title", seo.title);
   upsertMeta("property", "og:description", seo.description);
-  upsertMeta("property", "og:type", "website");
+  upsertMeta("property", "og:type", seo.type);
   upsertMeta("property", "og:url", canonicalUrl);
   upsertMeta("property", "og:site_name", "NoroStu");
+  upsertMeta("property", "og:locale", "vi_VN");
+  upsertMeta("property", "og:image", seo.image);
 
   upsertMeta("name", "twitter:card", "summary_large_image");
   upsertMeta("name", "twitter:title", seo.title);
   upsertMeta("name", "twitter:description", seo.description);
+  upsertMeta("name", "twitter:image", seo.image);
 
   upsertLink("canonical", canonicalUrl);
+  upsertJsonLd("route-webpage", buildRouteSchema(seo, canonicalUrl));
 };
-

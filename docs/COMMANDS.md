@@ -8,6 +8,12 @@ docker compose down -v
 docker compose logs -f backend
 ```
 
+Production/Lighthouse:
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml down
+```
+
 ## Backend
 ```bash
 docker compose exec backend python manage.py migrate
@@ -34,6 +40,7 @@ cd frontend
 npm run lint
 npm run test -- --run
 npm run build
+npm run preview -- --host 0.0.0.0
 npm run cy:run
 ```
 

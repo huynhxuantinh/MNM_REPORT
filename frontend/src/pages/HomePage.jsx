@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -13,15 +13,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as ChartTooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
 import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
 import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
@@ -34,12 +25,9 @@ import { SbCard, SbButton, SbBadge } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
 
-const getLevelThreshold = (n) => (100 * n * (n + 1)) / 2;
+const ReviewActivityChart = lazy(() => import("@/components/dashboard/ReviewActivityChart"));
 
-const fmtDate = (iso) => {
-  const d = new Date(iso);
-  return `${d.getDate()}/${d.getMonth() + 1}`;
-};
+const getLevelThreshold = (n) => (100 * n * (n + 1)) / 2;
 
 const greet = () => {
   const h = new Date().getHours();
@@ -253,35 +241,6 @@ const XpCard = ({ user, loading }) => {
         />
       </Box>
     </SbCard>
-  );
-};
-
-const ReviewChart = ({ data, loading }) => {
-  if (loading) return <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />;
-  if (!data?.length) return null;
-
-  const formatted = data.map((d, i) => ({ ...d, label: i % 5 === 0 ? fmtDate(d.date) : "" }));
-
-  return (
-    <ResponsiveContainer width="100%" height={180}>
-      <AreaChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <defs>
-          <linearGradient id="reviewGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={colors.greenAccent} stopOpacity={0.28} />
-            <stop offset="95%" stopColor={colors.greenAccent} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-        <XAxis dataKey="label" tick={{ fontSize: 10, fill: "text.secondary" }} axisLine={false} tickLine={false} />
-        <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "text.secondary" }} axisLine={false} tickLine={false} />
-        <ChartTooltip
-          contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", fontSize: 12 }}
-          formatter={(v) => [v, "Từ đã ôn"]}
-          labelFormatter={(_, payload) => (payload?.[0]?.payload?.date ? fmtDate(payload[0].payload.date) : "")}
-        />
-        <Area type="monotone" dataKey="count" stroke={colors.greenAccent} strokeWidth={2} fill="url(#reviewGrad)" dot={false} activeDot={{ r: 4, fill: colors.greenAccent }} />
-      </AreaChart>
-    </ResponsiveContainer>
   );
 };
 
@@ -547,7 +506,9 @@ const HomePage = () => {
           </Box>
           <SbBadge type="xp" value={`+${totalWords * 5}`} label={`+${totalWords * 5} XP`} />
         </Box>
-        <ReviewChart data={history} loading={histLoading} />
+        <Suspense fallback={<Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />}>
+          <ReviewActivityChart data={history} loading={histLoading} />
+        </Suspense>
       </SbCard>
 
       <Box>

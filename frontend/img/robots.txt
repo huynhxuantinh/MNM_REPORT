@@ -8,6 +8,18 @@ Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /verify-email
+Disallow: /vocabulary
+Disallow: /wordsets
+Disallow: /learning
 Disallow: /learning/session
+Disallow: /review
+Disallow: /quiz
+Disallow: /leaderboard
+Disallow: /profile
+Disallow: /notifications
+
+Allow: /logo.png
+Allow: /favicon.png
+Allow: /site.webmanifest
 
 Sitemap: https://norostu.com/sitemap.xml

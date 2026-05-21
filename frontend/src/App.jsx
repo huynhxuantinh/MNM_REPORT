@@ -12,6 +12,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const VocabularyPage = lazy(() => import("@/pages/VocabularyPage"));
 const WordSetsPage = lazy(() => import("@/pages/WordSetsPage"));
@@ -124,6 +125,7 @@ const App = () => {
   return (
     <ErrorBoundary>
       <Routes>
+        <Route path="/about" element={<Suspense fallback={<PageFallback />}><AboutPage /></Suspense>} />
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />

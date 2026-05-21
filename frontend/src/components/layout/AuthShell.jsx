@@ -64,7 +64,7 @@ const LeftPanel = ({ headline, subtext }) => (
       }}
     />
 
-    <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 6, textDecoration: "none" }}>
+    <Box component={Link} to="/about" sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 6, textDecoration: "none" }}>
       <Box
         component="img"
         src="/logo.png"
@@ -79,6 +79,26 @@ const LeftPanel = ({ headline, subtext }) => (
           Học từ vựng hiệu quả
         </Typography>
       </Box>
+    </Box>
+    <Box
+      component={Link}
+      to="/about"
+      sx={{
+        alignSelf: "flex-start",
+        mb: 4,
+        px: 2.25,
+        py: 1,
+        borderRadius: 999,
+        bgcolor: "#fff",
+        color: colors.greenHouse,
+        fontSize: "0.9rem",
+        fontWeight: 900,
+        textDecoration: "none",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+        "&:hover": { bgcolor: colors.greenLight },
+      }}
+    >
+      Xem giới thiệu
     </Box>
 
     <Typography
@@ -123,15 +143,35 @@ const MobileLogoBar = () => (
       gap: 1.25,
     }}
   >
+    <Box component={Link} to="/about" sx={{ display: "flex", alignItems: "center", gap: 1.25, textDecoration: "none" }}>
+      <Box
+        component="img"
+        src="/logo.png"
+        alt="NoroStu"
+        sx={{ width: 32, height: 32, borderRadius: "8px", objectFit: "contain" }}
+      />
+      <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#fff", letterSpacing: "-0.02em" }}>
+        NoroStu
+      </Typography>
+    </Box>
     <Box
-      component="img"
-      src="/logo.png"
-      alt="NoroStu"
-      sx={{ width: 32, height: 32, borderRadius: "8px", objectFit: "contain" }}
-    />
-    <Typography sx={{ fontWeight: 800, fontSize: "1rem", color: "#fff", letterSpacing: "-0.02em" }}>
-      NoroStu
-    </Typography>
+      component={Link}
+      to="/about"
+      sx={{
+        ml: "auto",
+        px: 1.5,
+        py: 0.7,
+        borderRadius: 999,
+        bgcolor: "#fff",
+        color: colors.greenHouse,
+        fontSize: "0.82rem",
+        fontWeight: 900,
+        textDecoration: "none",
+        "&:hover": { bgcolor: colors.greenLight },
+      }}
+    >
+      Giới thiệu
+    </Box>
   </Box>
 );
 
@@ -155,8 +195,34 @@ const AuthShell = ({
           flexDirection: "column",
           alignItems: "stretch",
           minHeight: "100vh",
+          position: "relative",
         }}
       >
+        {!isMobile && (
+          <Box
+            component={Link}
+            to="/about"
+            sx={{
+              position: "absolute",
+              top: 28,
+              right: 36,
+              zIndex: 1,
+              px: 2,
+              py: 1,
+              borderRadius: 999,
+              bgcolor: colors.greenAccent,
+              color: "#fff",
+              fontWeight: 900,
+              fontSize: "0.92rem",
+              textDecoration: "none",
+              boxShadow: "0 8px 22px rgba(0,117,74,0.24)",
+              "&:hover": { bgcolor: colors.greenStarbucks },
+            }}
+          >
+            Giới thiệu
+          </Box>
+        )}
+
         {isMobile && <MobileLogoBar />}
 
         <Box

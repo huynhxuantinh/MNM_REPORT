@@ -10,9 +10,13 @@
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#006241" />
+    <meta name="application-name" content="NoroStu" />
+    <meta name="author" content="NoroStu Contributors" />
+    <meta name="format-detection" content="telephone=no" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NoroStu" />
+    <meta property="og:locale" content="vi_VN" />
     <meta property="og:title" content="NoroStu | Hoc tu vung tieng Anh hieu qua" />
     <meta
       property="og:description"
@@ -31,12 +35,50 @@
 
     <link rel="canonical" href="https://norostu.com/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://norostu.com/#organization",
+            "name": "NoroStu",
+            "url": "https://norostu.com/",
+            "logo": "https://norostu.com/logo.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://norostu.com/#website",
+            "url": "https://norostu.com/",
+            "name": "NoroStu",
+            "publisher": { "@id": "https://norostu.com/#organization" },
+            "inLanguage": "vi-VN"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://norostu.com/#app",
+            "name": "NoroStu",
+            "url": "https://norostu.com/",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "VND"
+            },
+            "publisher": { "@id": "https://norostu.com/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
