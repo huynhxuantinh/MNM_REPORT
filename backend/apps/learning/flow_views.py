@@ -311,7 +311,7 @@ class LearningSessionStartView(APIView):
         if hearts.current_hearts <= 0:
             return Response(
                 {
-                    "detail": "Ban da het hearts. Vui long doi refill.",
+                    "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
                     "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
@@ -568,7 +568,7 @@ class LearningPlacementSubmitView(APIView):
 
         if total < PLACEMENT_MIN_SUBMIT_QUESTIONS:
             return Response(
-                {"detail": "Khong du cau tra loi hop le de cham diem."},
+                {"detail": "Không đủ câu trả lời hợp lệ để chấm điểm."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -651,7 +651,7 @@ class LearningSessionDetailView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         attempts = session.attempts.order_by("step_index")
         answered_steps = {attempt.step_index for attempt in attempts}
@@ -710,15 +710,15 @@ class LearningSessionAnswerView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         if session.status != LearningSession.Status.STARTED:
-            return Response({"detail": "Phien hoc da ket thuc."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Phiên học đã kết thúc."}, status=status.HTTP_400_BAD_REQUEST)
 
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         if hearts.current_hearts <= 0:
             return Response(
                 {
-                    "detail": "Ban da het hearts. Vui long doi refill.",
+                    "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
                     "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
@@ -731,13 +731,13 @@ class LearningSessionAnswerView(APIView):
         exercise_map = {item["step_index"]: item for item in (session.exercises or [])}
         exercise = exercise_map.get(data["step_index"])
         if not exercise:
-            return Response({"detail": "Buoc bai tap khong hop le."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Bước bài tập không hợp lệ."}, status=status.HTTP_400_BAD_REQUEST)
 
         expected_step = _get_expected_step_index(session)
         if expected_step and data["step_index"] != expected_step:
             return Response(
                 {
-                    "detail": "Ban can tra loi dung thu tu buoc.",
+                    "detail": "Bạn cần trả lời đúng thứ tự bước.",
                     "expected_step_index": expected_step,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -880,10 +880,10 @@ class LearningSessionFinishView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         if session.session_type == LearningSession.SessionType.CHECKPOINT:
             return Response(
-                {"detail": "Dung endpoint checkpoint submit cho phien nay."},
+                {"detail": "Dùng endpoint checkpoint submit cho phiên này."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -897,7 +897,7 @@ class LearningSessionFinishView(APIView):
                 .first()
             )
             if not session:
-                return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
             if session.status == LearningSession.Status.COMPLETED:
                 summary = _build_session_summary(session)
                 return Response(
@@ -908,7 +908,7 @@ class LearningSessionFinishView(APIView):
                     }
                 )
             if session.status != LearningSession.Status.STARTED:
-                return Response({"detail": "Phien hoc khong hop le de ket thuc."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": "Phiên học không hợp lệ để kết thúc."}, status=status.HTTP_400_BAD_REQUEST)
             session.status = LearningSession.Status.COMPLETED
             session.completed_at = now
             session.save(update_fields=["status", "completed_at"])
@@ -1036,11 +1036,11 @@ class LearningSessionQuitView(APIView):
     def post(self, request, session_id):
         session = LearningSession.objects.filter(id=session_id, user=request.user).first()
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         if session.status == LearningSession.Status.COMPLETED:
-            return Response({"detail": "Phien hoc da hoan thanh."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Phiên học đã hoàn thành."}, status=status.HTTP_400_BAD_REQUEST)
         if session.status == LearningSession.Status.ABANDONED:
-            return Response({"detail": "Phien hoc da bo do."}, status=status.HTTP_200_OK)
+            return Response({"detail": "Phiên học đã bỏ dở."}, status=status.HTTP_200_OK)
 
         session.status = LearningSession.Status.ABANDONED
         session.completed_at = timezone.now()
@@ -1122,9 +1122,9 @@ class LearningSessionResumeView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         if session.status == LearningSession.Status.COMPLETED:
-            return Response({"detail": "Phien hoc da hoan thanh."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Phiên học đã hoàn thành."}, status=status.HTTP_400_BAD_REQUEST)
         if session.status == LearningSession.Status.STARTED:
             hearts = _refill_hearts(_get_or_create_hearts(request.user))
             _track_learning_event(
@@ -1156,7 +1156,7 @@ class LearningSessionResumeView(APIView):
         if hearts.current_hearts <= 0:
             return Response(
                 {
-                    "detail": "Ban da het hearts. Vui long doi refill.",
+                    "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
                     "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
@@ -1165,7 +1165,7 @@ class LearningSessionResumeView(APIView):
         if session.completed_at and session.completed_at < timezone.now() - timedelta(hours=SESSION_RECOVER_STALE_HOURS):
             return Response(
                 {
-                    "detail": "Phien hoc bo do da qua han de tiep tuc.",
+                    "detail": "Phiên học bỏ dở đã quá hạn để tiếp tục.",
                     "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -1215,11 +1215,11 @@ class LearningSessionSwitchEasyView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay phien hoc."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
         if session.session_type != LearningSession.SessionType.LESSON:
             return Response({"detail": "Chi ho tro switch easy cho lesson session."}, status=status.HTTP_400_BAD_REQUEST)
         if session.status != LearningSession.Status.STARTED:
-            return Response({"detail": "Chi switch easy khi session dang started."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Chỉ switch easy khi session đang started."}, status=status.HTTP_400_BAD_REQUEST)
         if session.difficulty == LearningSession.Difficulty.EASY:
             return Response(
                 {
@@ -1262,7 +1262,7 @@ class LearningCheckpointStartView(APIView):
         if hearts.current_hearts <= 0:
             return Response(
                 {
-                    "detail": "Ban da het hearts. Vui long doi refill.",
+                    "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
                     "hearts": _build_hearts_payload(hearts),
                 },
                 status=HEARTS_MIN_RESPONSE_STATUS,
@@ -1276,7 +1276,7 @@ class LearningCheckpointStartView(APIView):
         completed_lessons = unit_progress.completed_lessons if unit_progress else 0
         if completed_lessons < total_lessons:
             return Response(
-                {"detail": "Can hoan thanh toan bo bai hoc trong unit truoc khi lam checkpoint."},
+                {"detail": "Cần hoàn thành toàn bộ bài học trong unit trước khi làm checkpoint."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1353,16 +1353,16 @@ class LearningCheckpointSubmitView(APIView):
             .first()
         )
         if not session:
-            return Response({"detail": "Khong tim thay checkpoint session."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Không tìm thấy checkpoint session."}, status=status.HTTP_404_NOT_FOUND)
         if session.session_type != LearningSession.SessionType.CHECKPOINT:
-            return Response({"detail": "Session nay khong phai checkpoint."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Session này không phải checkpoint."}, status=status.HTTP_400_BAD_REQUEST)
 
         total_questions = len(session.exercises or [])
         if total_questions == 0:
-            return Response({"detail": "Checkpoint khong co cau hoi."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Checkpoint không có câu hỏi."}, status=status.HTTP_400_BAD_REQUEST)
         if session.total_answered < total_questions:
             return Response(
-                {"detail": "Ban chua hoan thanh toan bo cau hoi checkpoint."},
+                {"detail": "Bạn chưa hoàn thành toàn bộ câu hỏi checkpoint."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1570,13 +1570,13 @@ class StreakFreezeClaimView(APIView):
         streak = _get_or_create_streak(request.user)
         if streak.streak_freezes >= 5:
             return Response(
-                {"detail": "Ban da dat gioi han streak freeze (5)."},
+                {"detail": "Bạn đã đạt giới hạn streak freeze (5)."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if request.user.xp < STREAK_FREEZE_XP_COST:
             return Response(
                 {
-                    "detail": "Khong du XP de doi streak freeze.",
+                    "detail": "Không đủ XP để đổi streak freeze.",
                     "required_xp": STREAK_FREEZE_XP_COST,
                     "current_xp": request.user.xp,
                 },

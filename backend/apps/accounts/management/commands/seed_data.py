@@ -1,10 +1,11 @@
-"""Management command: tạo dữ liệu mẫu ban đầu.
+"""
+Management command: tạo dữ liệu mẫu ban đầu.
 
 Tạo:
-  - 2 tài khoản mẫu: 1 admin, 1 user
-  - 5 bài học mẫu được công bố, mỗi bài có từ 10-15 từ vựng phù hợp cấp độ
+- 2 tài khoản mẫu: 1 admin, 1 user
+- 5 bài học mẫu được công bố, mỗi bài có 10-15 từ vựng phù hợp cấp độ
 
-Command này idempotent: chạy nhiều lần không tạo trùng (dùng get_or_create).
+Command idempotent: chạy nhiều lần không tạo trùng (dùng get_or_create).
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -12,9 +13,9 @@ from django.db import transaction
 
 SAMPLE_USERS = [
     {
-        "email": "admin@mnm-english.com",
-        "username": "admin_mnm",
-        "full_name": "Admin MNM",
+        "email": "admin@norostu.com",
+        "username": "admin_norostu",
+        "full_name": "Admin NoroStu",
         "password": "Admin@2024!",
         "role": "admin",
         "is_staff": True,
@@ -23,8 +24,8 @@ SAMPLE_USERS = [
         "email_verified": True,
     },
     {
-        "email": "student@mnm-english.com",
-        "username": "student_mnm",
+        "email": "student@norostu.com",
+        "username": "student_norostu",
         "full_name": "Trần Văn Minh",
         "password": "Student@2024!",
         "role": "user",
@@ -35,48 +36,57 @@ SAMPLE_USERS = [
     },
 ]
 
-# Cấu hình 5 bài học: (title, description, level, danh_sach_tu)
 SAMPLE_LESSONS = [
     {
         "title": "Chào hỏi cơ bản",
         "description": "Học các từ vựng thiết yếu để chào hỏi và tự giới thiệu bằng tiếng Anh.",
         "level": "A1",
         "order_index": 1,
-        "words": ["name", "friend", "good", "happy", "family", "morning", "evening",
-                  "smile", "talk", "meet", "voice", "young", "old", "help", "sorry"],
+        "words": [
+            "name", "friend", "good", "happy", "family", "morning", "evening",
+            "smile", "talk", "meet", "voice", "young", "old", "help", "sorry",
+        ],
     },
     {
         "title": "Cuộc sống hàng ngày",
         "description": "Từ vựng về các hoạt động và đồ vật thường gặp trong cuộc sống hàng ngày.",
         "level": "A1",
         "order_index": 2,
-        "words": ["eat", "drink", "sleep", "walk", "run", "book", "house", "table",
-                  "chair", "door", "window", "kitchen", "bathroom", "bedroom", "clock"],
+        "words": [
+            "eat", "drink", "sleep", "walk", "run", "book", "house", "table",
+            "chair", "door", "window", "kitchen", "bathroom", "bedroom", "clock",
+        ],
     },
     {
         "title": "Đi lại và phương tiện",
         "description": "Từ vựng về các phương tiện giao thông và từ chỉ hướng đi.",
         "level": "A2",
         "order_index": 3,
-        "words": ["bus", "train", "airport", "station", "road", "street", "direction",
-                  "map", "travel", "arrive", "leave", "ticket", "drive", "fly", "near"],
+        "words": [
+            "bus", "train", "airport", "station", "road", "street", "direction",
+            "map", "travel", "arrive", "leave", "ticket", "drive", "fly", "near",
+        ],
     },
     {
         "title": "Trường học và học tập",
         "description": "Từ vựng liên quan đến môi trường học đường và quá trình học tập.",
         "level": "A2",
         "order_index": 4,
-        "words": ["school", "teacher", "student", "class", "lesson", "study", "learn",
-                  "read", "write", "question", "answer", "explain", "understand", "desk", "course"],
+        "words": [
+            "school", "teacher", "student", "class", "lesson", "study", "learn",
+            "read", "write", "question", "answer", "explain", "understand", "desk", "course",
+        ],
     },
     {
         "title": "Kỹ năng giao tiếp tiếng Anh",
         "description": "Từ vựng cần thiết để giao tiếp, diễn đạt ý kiến và thảo luận bằng tiếng Anh.",
         "level": "B1",
         "order_index": 5,
-        "words": ["communicate", "express", "discuss", "describe", "suggest", "opinion",
-                  "improve", "concentrate", "participate", "confident", "challenge",
-                  "opportunity", "skill", "progress", "encourage"],
+        "words": [
+            "communicate", "express", "discuss", "describe", "suggest", "opinion",
+            "improve", "concentrate", "participate", "confident", "challenge",
+            "opportunity", "skill", "progress", "encourage",
+        ],
     },
 ]
 
@@ -91,6 +101,12 @@ class Command(BaseCommand):
             default=False,
             help="Đặt lại mật khẩu cho tài khoản mẫu đã tồn tại",
         )
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            default=False,
+            help="Xóa dữ liệu lesson/sample user trước khi seed",
+        )
 
     def handle(self, *args, **options):
         from django.contrib.auth import get_user_model
@@ -99,8 +115,14 @@ class Command(BaseCommand):
 
         User = get_user_model()
 
+        if options["clear"]:
+            self.stdout.write("Đang xóa dữ liệu cũ...")
+            LessonWord.objects.all().delete()
+            Lesson.objects.all().delete()
+            User.objects.filter(is_superuser=False).delete()
+            self.stdout.write(self.style.WARNING("Đã xóa dữ liệu cũ."))
+
         with transaction.atomic():
-            # ── 1. Tạo tài khoản mẫu ─────────────────────────────────
             users = {}
             for entry in SAMPLE_USERS:
                 password = entry["password"]
@@ -108,29 +130,25 @@ class Command(BaseCommand):
                 role = entry["role"]
                 user_fields = {k: v for k, v in entry.items() if k != "password"}
 
-                user, created = User.objects.get_or_create(
-                    email=email,
-                    defaults=user_fields,
-                )
+                user, created = User.objects.get_or_create(email=email, defaults=user_fields)
 
                 if created:
                     user.set_password(password)
                     user.save()
-                    self.stdout.write(f"  ✓ Tạo tài khoản: {email} (role={user.role})")
+                    self.stdout.write(f"  + Tạo tài khoản: {email} (role={user.role})")
                 elif options["reset_passwords"]:
                     for field, value in user_fields.items():
                         setattr(user, field, value)
                     user.set_password(password)
                     user.save()
-                    self.stdout.write(f"  ↺ Cập nhật tài khoản: {email}")
+                    self.stdout.write(f"  ~ Cập nhật tài khoản: {email}")
                 else:
-                    self.stdout.write(f"  – Bỏ qua (đã tồn tại): {email}")
+                    self.stdout.write(f"  - Bỏ qua (đã tồn tại): {email}")
 
                 users[role] = User.objects.get(email=email)
 
             content_owner = users.get("admin") or User.objects.filter(is_superuser=True).first()
 
-            # ── 2. Tạo bài học mẫu ───────────────────────────────────
             for entry in SAMPLE_LESSONS:
                 word_texts = entry["words"]
                 lesson_fields = {k: v for k, v in entry.items() if k != "words"}
@@ -145,19 +163,17 @@ class Command(BaseCommand):
                 )
 
                 if created:
-                    self.stdout.write(f"  ✓ Tạo bài học: [{lesson.level}] {lesson.title}")
+                    self.stdout.write(f"  + Tạo bài học: [{lesson.level}] {lesson.title}")
                 else:
-                    self.stdout.write(f"  – Bỏ qua (đã tồn tại): {lesson.title}")
+                    self.stdout.write(f"  - Bỏ qua (đã tồn tại): {lesson.title}")
 
-                # Gán từ vựng vào bài học (idempotent)
                 added = 0
                 for idx, text in enumerate(word_texts):
                     word = Word.objects.filter(text__iexact=text).first()
                     if not word:
-                        self.stderr.write(
-                            f"    ⚠ Từ '{text}' không tìm thấy trong database, bỏ qua."
-                        )
+                        self.stderr.write(f"    ! Từ '{text}' không tìm thấy trong database, bỏ qua.")
                         continue
+
                     _, word_created = LessonWord.objects.get_or_create(
                         lesson=lesson,
                         word=word,
@@ -167,13 +183,15 @@ class Command(BaseCommand):
                         added += 1
 
                 if added:
-                    self.stdout.write(f"    → Thêm {added} từ vào bài học")
+                    self.stdout.write(f"    -> Thêm {added} từ vào bài học")
 
-        self.stdout.write(self.style.SUCCESS(
-            "\nSeed data hoàn tất! Tài khoản mẫu:\n"
-            "  admin@mnm-english.com   / Admin@2024!\n"
-            "  student@mnm-english.com / Student@2024!\n"
-            "\nLưu ý: Chạy lệnh này sau khi đã import từ vựng:\n"
-            "  python manage.py import_words data/words.csv\n"
-            "  python manage.py seed_data"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                "\nSeed data hoàn tất! Tài khoản mẫu:\n"
+                "  admin@norostu.com   / Admin@2024!\n"
+                "  student@norostu.com / Student@2024!\n"
+                "\nLưu ý: chạy lệnh này sau khi đã import từ vựng:\n"
+                "  python manage.py import_words data/words.csv\n"
+                "  python manage.py seed_data"
+            )
+        )

@@ -71,16 +71,16 @@ def send_review_reminders() -> dict:
         Notification.objects.create(
             user=user,
             type=Notification.Type.REMINDER,
-            message=f"Ban co {due_count} tu can on tap hom nay. Dung bo lo streak cua ban!",
+            message=f"Bạn có {due_count} từ cần ôn tập hôm nay. Đừng bỏ lỡ streak của bạn!",
         )
 
         if user.email:
             send_mail(
-                subject="[MNM English] Nhac nho on tap tu vung",
+                subject="[NoroStu] Nhắc nhở ôn tập từ vựng",
                 message=(
-                    f"Xin chao {user.full_name or user.username},\n\n"
-                    f"Ban co {due_count} tu vung can on tap hom nay.\n"
-                    f"Truy cap: {settings.FRONTEND_URL}/review\n"
+                    f"Xin chào {user.full_name or user.username},\n\n"
+                    f"Bạn có {due_count} từ vựng cần ôn tập hôm nay.\n"
+                    f"Truy cập: {settings.FRONTEND_URL}/review\n"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
@@ -130,18 +130,18 @@ def send_daily_goal_reminders() -> dict:
             user=user,
             type=Notification.Type.REMINDER,
             message=(
-                f"Daily goal {goal.target_minutes} phut: ban da hoc {studied} phut. "
-                "Vao app hoan thanh muc tieu nhe!"
+                f"Daily goal {goal.target_minutes} phút: bạn đã học {studied} phút. "
+                "Vào app hoàn thành mục tiêu nhé!"
             ),
         )
         if user.email:
             send_mail(
-                subject="[MNM English] Reminder daily goal",
+                subject="[NoroStu] Nhắc nhở mục tiêu ngày",
                 message=(
-                    f"Xin chao {user.full_name or user.username},\n\n"
-                    f"Ban dang co daily goal {goal.target_minutes} phut/ngay.\n"
-                    f"Hien tai ban da hoc {studied} phut.\n"
-                    f"Truy cap: {settings.FRONTEND_URL}/learning\n"
+                    f"Xin chào {user.full_name or user.username},\n\n"
+                    f"Bạn đang có daily goal {goal.target_minutes} phút/ngày.\n"
+                    f"Hiện tại bạn đã học {studied} phút.\n"
+                    f"Truy cập: {settings.FRONTEND_URL}/learning\n"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
@@ -208,15 +208,15 @@ def send_onboarding_first_lesson_reminders() -> dict:
         Notification.objects.create(
             user=user,
             type=Notification.Type.REMINDER,
-            message="Ban da xep level xong. Bat dau bai hoc dau tien de mo streak ngay hom nay!",
+            message="Bạn đã xếp level xong. Bắt đầu bài học đầu tiên để mở streak ngay hôm nay!",
         )
         if user.email:
             send_mail(
-                subject="[MNM English] Bat dau bai hoc dau tien",
+                subject="[NoroStu] Bắt đầu bài học đầu tiên",
                 message=(
-                    f"Xin chao {user.full_name or user.username},\n\n"
-                    "Ban da hoan thanh placement test nhung chua bat dau bai hoc dau tien.\n"
-                    f"Vao ngay: {settings.FRONTEND_URL}/learning de tiep tuc nhe.\n"
+                    f"Xin chào {user.full_name or user.username},\n\n"
+                    "Bạn đã hoàn thành placement test nhưng chưa bắt đầu bài học đầu tiên.\n"
+                    f"Vào ngay: {settings.FRONTEND_URL}/learning để tiếp tục nhé.\n"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],

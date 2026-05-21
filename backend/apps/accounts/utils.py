@@ -2,8 +2,12 @@
 Hàm tiện ích cho module accounts: tạo token, gửi email.
 """
 import secrets
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+
+
+BRAND_NAME = "NoroStu"
 
 
 def generate_token(nbytes: int = 48) -> str:
@@ -12,7 +16,10 @@ def generate_token(nbytes: int = 48) -> str:
 
 
 def _build_email_html(title: str, greeting: str, body_lines: list, cta_url: str, cta_label: str, footer: str) -> str:
-    body_html = "".join(f"<p style='margin:0 0 12px 0;color:#444;font-size:15px;line-height:1.6'>{l}</p>" for l in body_lines)
+    body_html = "".join(
+        f"<p style='margin:0 0 12px 0;color:#444;font-size:15px;line-height:1.6'>{line}</p>"
+        for line in body_lines
+    )
     return f"""<!DOCTYPE html>
 <html lang="vi">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -20,16 +27,13 @@ def _build_email_html(title: str, greeting: str, body_lines: list, cta_url: str,
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
-        <!-- Header -->
         <tr><td style="background:#00754a;padding:28px 40px;text-align:center">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.5px">🌿 MNM Learn English</span>
+          <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.5px">🌿 {BRAND_NAME}</span>
         </td></tr>
-        <!-- Body -->
         <tr><td style="padding:36px 40px 28px">
           <h2 style="margin:0 0 20px 0;color:#1a1a1a;font-size:20px">{title}</h2>
           <p style="margin:0 0 12px 0;color:#444;font-size:15px">Xin chào <strong>{greeting}</strong>,</p>
           {body_html}
-          <!-- CTA Button -->
           <table cellpadding="0" cellspacing="0" style="margin:28px 0">
             <tr><td style="border-radius:8px;background:#00754a">
               <a href="{cta_url}" target="_blank"
@@ -43,7 +47,6 @@ def _build_email_html(title: str, greeting: str, body_lines: list, cta_url: str,
             <a href="{cta_url}" style="color:#00754a;word-break:break-all">{cta_url}</a>
           </p>
         </td></tr>
-        <!-- Footer -->
         <tr><td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eee">
           <p style="margin:0;color:#aaa;font-size:12px;text-align:center">{footer}</p>
         </td></tr>
@@ -60,10 +63,10 @@ def send_verification_email(user, token: str) -> None:
     verify_url = f"{frontend_url}/verify-email?token={token}"
     name = user.full_name or user.email
 
-    subject = "[MNM Learn English] Xác thực tài khoản của bạn"
+    subject = f"[{BRAND_NAME}] Xác thực tài khoản của bạn"
     text_body = (
         f"Xin chào {name},\n\n"
-        f"Nhấn vào link bên dưới để kích hoạt tài khoản (hết hạn sau 24h):\n"
+        "Nhấn vào link bên dưới để kích hoạt tài khoản (hết hạn sau 24h):\n"
         f"{verify_url}\n\n"
         "Nếu bạn không đăng ký, hãy bỏ qua email này."
     )
@@ -71,12 +74,12 @@ def send_verification_email(user, token: str) -> None:
         title="Xác thực tài khoản của bạn",
         greeting=name,
         body_lines=[
-            "Cảm ơn bạn đã đăng ký tài khoản tại <strong>MNM Learn English</strong>!",
+            f"Cảm ơn bạn đã đăng ký tài khoản tại <strong>{BRAND_NAME}</strong>!",
             "Nhấn nút bên dưới để kích hoạt tài khoản. Link sẽ hết hạn sau <strong>24 giờ</strong>.",
         ],
         cta_url=verify_url,
         cta_label="✅ Kích hoạt tài khoản",
-        footer="Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email. &nbsp;|&nbsp; © 2025 MNM Learn English",
+        footer=f"Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email. &nbsp;|&nbsp; © 2026 {BRAND_NAME}",
     )
 
     msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email])
@@ -90,10 +93,10 @@ def send_password_reset_email(user, token: str) -> None:
     reset_url = f"{frontend_url}/reset-password?token={token}"
     name = user.full_name or user.email
 
-    subject = "[MNM Learn English] Đặt lại mật khẩu"
+    subject = f"[{BRAND_NAME}] Đặt lại mật khẩu"
     text_body = (
         f"Xin chào {name},\n\n"
-        f"Nhấn vào link bên dưới để đặt lại mật khẩu (hết hạn sau 1h):\n"
+        "Nhấn vào link bên dưới để đặt lại mật khẩu (hết hạn sau 1 giờ):\n"
         f"{reset_url}\n\n"
         "Nếu bạn không yêu cầu, hãy bỏ qua email này.\n"
         "Mật khẩu cũ của bạn vẫn còn hoạt động."
@@ -108,7 +111,7 @@ def send_password_reset_email(user, token: str) -> None:
         ],
         cta_url=reset_url,
         cta_label="🔑 Đặt lại mật khẩu",
-        footer="Vì lý do bảo mật, link chỉ có hiệu lực trong 1 giờ. &nbsp;|&nbsp; © 2025 MNM Learn English",
+        footer=f"Vì lý do bảo mật, link chỉ có hiệu lực trong 1 giờ. &nbsp;|&nbsp; © 2026 {BRAND_NAME}",
     )
 
     msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email])

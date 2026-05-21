@@ -1,12 +1,12 @@
 """
-Celery application entry point cho dự án MNM English.
+Celery application entry point cho dá»± Ă¡n NoroStu.
 
-File này KHÔNG tên là celery.py để tránh shadow package celery của pip.
+File nĂ y KHĂ”NG tĂªn lĂ  celery.py Ä‘á»ƒ trĂ¡nh shadow package celery cá»§a pip.
 
-Khởi động worker:
+Khá»Ÿi Ä‘á»™ng worker:
   celery -A celery_app worker -l info -c 2
 
-Khởi động beat:
+Khá»Ÿi Ä‘á»™ng beat:
   celery -A celery_app beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 """
 import os
@@ -18,17 +18,18 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 
 app = Celery("mnm_english")
 
-# Đọc cấu hình từ CELERY_* trong Django settings
+# Äá»c cáº¥u hĂ¬nh tá»« CELERY_* trong Django settings
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-# Tự phát hiện tasks.py trong mỗi installed app
+# Tá»± phĂ¡t hiá»‡n tasks.py trong má»—i installed app
 app.autodiscover_tasks()
 
-# Lịch chạy task tự động với crontab đúng giờ
+# Lá»‹ch cháº¡y task tá»± Ä‘á»™ng vá»›i crontab Ä‘Ăºng giá»
 app.conf.beat_schedule = {
-    # 20:00 ICT mỗi ngày — nhắc học sinh có từ đến hạn chưa ôn
+    # 20:00 ICT má»—i ngĂ y â€” nháº¯c há»c sinh cĂ³ tá»« Ä‘áº¿n háº¡n chÆ°a Ă´n
     "review-reminders-daily": {
         "task": "learning.send_review_reminders",
         "schedule": crontab(hour=20, minute=0),
     },
 }
+

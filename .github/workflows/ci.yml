@@ -248,7 +248,7 @@ jobs:
 
     environment:
       name: production
-      url: https://mnm-learn-english.com
+      url: https://norostu.com
 
     steps:
       - uses: actions/checkout@v4

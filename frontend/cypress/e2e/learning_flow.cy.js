@@ -22,6 +22,14 @@ describe("Student Learning Flow", () => {
       statusCode: 200,
       body: student,
     }).as("me");
+
+    cy.intercept("GET", "**/api/v1/learning/placement/status/**", {
+      statusCode: 200,
+      body: {
+        has_completed_placement: true,
+        should_show_onboarding: false,
+      },
+    }).as("placementStatus");
   };
 
   beforeEach(() => {
@@ -50,9 +58,26 @@ describe("Student Learning Flow", () => {
       },
     }).as("homeLessons");
 
+    cy.intercept("GET", "**/api/v1/learning/session/recover/**", {
+      statusCode: 200,
+      body: { has_recoverable_session: false },
+    }).as("recoverSession");
+
+    cy.intercept("GET", "**/api/v1/learning/daily-goal/**", {
+      statusCode: 200,
+      body: {
+        target_minutes: 10,
+        reward_xp: 15,
+        today: { studied_minutes: 3, goal_minutes: 10, is_achieved: false, claimed_at: null },
+        hearts: { current: 5, max: 10 },
+        streak: { freeze_count: 0 },
+      },
+    }).as("dailyGoal");
+
     cy.visit("/");
     cy.wait("@refresh");
     cy.wait("@me");
+    cy.wait("@placementStatus");
     cy.wait("@reviewSummary");
     cy.wait("@homeLessons");
     cy.contains("Basic Greetings").should("be.visible");
@@ -72,16 +97,11 @@ describe("Student Learning Flow", () => {
             unlocked: true,
             lesson_count: 1,
             progress: { completed_lessons: 0 },
-            lessons: [{ order_index: 1, lesson: { id: 1, title: "Greetings", level: "A1" } }],
+            lessons: [{ order_index: 1, lesson: { id: 1, title: "Greetings", level: "A1", words_learned: 0, words_total: 10 } }],
           },
         ],
       },
     }).as("learningPath");
-
-    cy.intercept("GET", "**/api/v1/learning/placement/status/**", {
-      statusCode: 200,
-      body: { has_completed_placement: true },
-    }).as("placementStatus");
 
     cy.intercept("GET", "**/api/v1/learning/session/recover/**", {
       statusCode: 200,
@@ -94,7 +114,7 @@ describe("Student Learning Flow", () => {
         target_minutes: 10,
         reward_xp: 20,
         today: { studied_minutes: 3, goal_minutes: 10, is_achieved: false, claimed_at: null },
-        hearts: { current: 5, max: 5 },
+        hearts: { current: 5, max: 10 },
         streak: { freeze_count: 0 },
       },
     }).as("dailyGoal");
@@ -121,15 +141,18 @@ describe("Student Learning Flow", () => {
         exercises: [
           { step_index: 1, exercise_type: "mc_meaning", prompt: "hello means?", choices: ["xin chao", "tam biet"] },
         ],
-        hearts: { current: 5, max: 5 },
+        hearts: { current: 5, max: 10 },
       },
     }).as("session900");
 
     cy.visit("/learning");
+    cy.wait("@refresh");
+    cy.wait("@me");
+    cy.wait("@placementStatus");
     cy.wait("@learningPath");
     cy.wait("@dailyGoal");
-    cy.contains("Lộ trình học").should("be.visible");
-    cy.contains("button", "Start").first().click();
+    cy.contains(/Lộ trình học|Learning Path/i).should("be.visible");
+    cy.contains("button", /^Học$/).first().click();
     cy.wait("@startSession");
     cy.wait("@session900");
     cy.url().should("include", "/learning/session/900");
@@ -146,7 +169,7 @@ describe("Student Learning Flow", () => {
             word: {
               id: 101,
               text: "hello",
-              phonetic: "h??lo?",
+              phonetic: "hello",
               part_of_speech: "interjection",
               definition_vi: "xin chao",
               definition_en: "greeting",
@@ -166,10 +189,13 @@ describe("Student Learning Flow", () => {
     }).as("reviewAnswer");
 
     cy.visit("/review");
+    cy.wait("@refresh");
+    cy.wait("@me");
+    cy.wait("@placementStatus");
     cy.wait("@reviewList");
     cy.contains("hello").should("be.visible");
-    cy.contains("button", /xem/i).click();
-    cy.contains(/^4$/).click({ force: true });
+    cy.contains("button", /Lật thẻ|Xem nghĩa/i).click({ force: true });
+    cy.contains("Tốt").click({ force: true });
     cy.wait("@reviewAnswer");
   });
 
@@ -198,6 +224,9 @@ describe("Student Learning Flow", () => {
     }).as("updateProfile");
 
     cy.visit("/profile");
+    cy.wait("@refresh");
+    cy.wait("@me");
+    cy.wait("@placementStatus");
     cy.wait("@profileStats");
     cy.get('[data-cy="full-name-input"]').clear().type("Updated Student");
     cy.get('[data-cy="full-name-input"]').closest("form").find('button[type="submit"]').click();
@@ -229,8 +258,12 @@ describe("Student Learning Flow", () => {
     }).as("markRead");
 
     cy.visit("/notifications");
+    cy.wait("@refresh");
+    cy.wait("@me");
+    cy.wait("@placementStatus");
     cy.wait("@notifications");
     cy.contains("New assignment available").click();
     cy.wait("@markRead");
   });
 });
+

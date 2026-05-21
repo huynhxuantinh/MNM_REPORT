@@ -39,6 +39,7 @@ const AdminLearningPath = lazy(() => import("@/features/admin/AdminLearningPath"
 import { initAuth } from "@/features/auth/authSlice";
 import learningApi from "@/api/learningApi";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { applyRouteSeo } from "@/utils/seo";
 
 const PageFallback = () => (
   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
@@ -110,10 +111,15 @@ const PlacementGateRoute = ({ children }) => {
 
 const App = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
 
   useEffect(() => {
     dispatch(initAuth());
   }, [dispatch]);
+
+  useEffect(() => {
+    applyRouteSeo(location.pathname);
+  }, [location.pathname]);
 
   return (
     <ErrorBoundary>

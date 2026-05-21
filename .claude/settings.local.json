@@ -31,7 +31,8 @@
       "Bash(node --input-type=module --eval ' *)",
       "Bash(git *)",
       "Bash(pkill -f \"vite\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(del *)"
     ]
   }
 }

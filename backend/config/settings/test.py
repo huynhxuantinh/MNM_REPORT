@@ -20,7 +20,7 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "mnm-test-cache",
+        "LOCATION": "norostu-test-cache",
     }
 }
 

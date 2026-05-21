@@ -1,4 +1,4 @@
-// Utility functions for MNM Learn English
+// Utility functions for NoroStu
 
 // Date formatting
 export {
@@ -28,3 +28,4 @@ export {
   throttle,
   useDebouncedCallback,
 } from "./debounce";
+

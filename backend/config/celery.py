@@ -1,32 +1,32 @@
 """
-Celery application entry point cho dự án MNM English.
+Celery application entry point cho dá»± Ă¡n NoroStu.
 
-Đặt trong package config/ để tránh conflict với package celery của pip.
-  Khởi động worker: celery -A config.celery worker -l info
-  Khởi động beat:   celery -A config.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+Äáº·t trong package config/ Ä‘á»ƒ trĂ¡nh conflict vá»›i package celery cá»§a pip.
+  Khá»Ÿi Ä‘á»™ng worker: celery -A config.celery worker -l info
+  Khá»Ÿi Ä‘á»™ng beat:   celery -A config.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
-Hoặc dùng alias qua backend/celery.py:
+Hoáº·c dĂ¹ng alias qua backend/celery.py:
   celery -A celery worker -l info
 """
 import os
 
 from celery import Celery
-from celery.schedules import crontab  # An toàn: import ở đây KHÔNG gây circular import
+from celery.schedules import crontab  # An toĂ n: import á»Ÿ Ä‘Ă¢y KHĂ”NG gĂ¢y circular import
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 
 app = Celery("mnm_english")
 
-# Đọc cấu hình từ CELERY_* trong Django settings
+# Äá»c cáº¥u hĂ¬nh tá»« CELERY_* trong Django settings
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-# Tự phát hiện tasks.py trong mỗi installed app
+# Tá»± phĂ¡t hiá»‡n tasks.py trong má»—i installed app
 app.autodiscover_tasks()
 
-# Override beat schedule với crontab chuẩn theo từng task
-# base.py dùng timedelta làm fallback; ở đây chúng ta đặt lịch chính xác.
+# Override beat schedule vá»›i crontab chuáº©n theo tá»«ng task
+# base.py dĂ¹ng timedelta lĂ m fallback; á»Ÿ Ä‘Ă¢y chĂºng ta Ä‘áº·t lá»‹ch chĂ­nh xĂ¡c.
 app.conf.beat_schedule = {
-    # 20:00 ICT mỗi ngày — nhắc học sinh có từ đến hạn chưa ôn
+    # 20:00 ICT má»—i ngĂ y â€” nháº¯c há»c sinh cĂ³ tá»« Ä‘áº¿n háº¡n chÆ°a Ă´n
     "review-reminders-daily": {
         "task": "learning.send_review_reminders",
         "schedule": crontab(hour=20, minute=0),
@@ -50,4 +50,5 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=0, minute=10),
     },
 }
+
 

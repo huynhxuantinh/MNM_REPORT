@@ -1,6 +1,6 @@
 ﻿"""
-Lá»‡nh seed dá»¯ liá»‡u máº«u cho mĂ´i trÆ°á»ng development.
-Cháº¡y: python manage.py seed_data
+Lệnh seed dữ liệu mẫu cho môi trường development.
+Chạy: python manage.py seed_full_catalog
 """
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -11,7 +11,34 @@ from apps.learning.models import Lesson, LessonWord
 
 User = get_user_model()
 
-# â”€â”€ Tá»« vá»±ng máº«u â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def _fix_mojibake(value):
+    """Tự động sửa chuỗi bị lỗi encoding UTF-8 -> Latin-1/CP1252."""
+    if not isinstance(value, str):
+        return value
+
+    # Chỉ thử decode lại khi có dấu hiệu mojibake.
+    if not any(token in value for token in ("Ã", "á»", "áº", "Æ", "Ä", "â€“", "â€”", "âœ")):
+        return value
+
+    for source_encoding in ("latin1", "cp1252"):
+        try:
+            repaired = value.encode(source_encoding).decode("utf-8")
+            return repaired
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            continue
+    return value
+
+
+def _fix_payload(payload):
+    """Sửa mojibake cho dict/list lồng nhau."""
+    if isinstance(payload, dict):
+        return {k: _fix_payload(v) for k, v in payload.items()}
+    if isinstance(payload, list):
+        return [_fix_payload(item) for item in payload]
+    return _fix_mojibake(payload)
+
+# Dữ liệu từ vựng mẫu
 
 WORDS = [
     # â”€â”€ A1 (40 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -268,21 +295,21 @@ LESSONS = [
 
 
 class Command(BaseCommand):
-    help = "Äáº©y dá»¯ liá»‡u máº«u vĂ o database (development only)"
+    help = "Đẩy dữ liệu mẫu vào database (development only)"
 
     def add_arguments(self, parser):
-        parser.add_argument("--clear", action="store_true", help="XĂ³a dá»¯ liá»‡u cÅ© trÆ°á»›c khi seed")
+        parser.add_argument("--clear", action="store_true", help="Xóa dữ liệu cũ trước khi seed")
 
     def handle(self, *args, **options):
         if options["clear"]:
-            self.stdout.write("Äang xĂ³a dá»¯ liá»‡u cÅ©...")
+            self.stdout.write("Đang xóa dữ liệu cũ...")
             WordSetWord.objects.all().delete()
             LessonWord.objects.all().delete()
             WordSet.objects.all().delete()
             Lesson.objects.all().delete()
             Word.objects.all().delete()
             User.objects.filter(is_superuser=False).delete()
-            self.stdout.write(self.style.WARNING("ÄĂ£ xĂ³a dá»¯ liá»‡u cÅ©."))
+            self.stdout.write(self.style.WARNING("Đã xóa dữ liệu cũ."))
 
         with transaction.atomic():
             admin = self._seed_users()
@@ -291,22 +318,23 @@ class Command(BaseCommand):
             self._seed_lessons(admin, words)
 
         self.stdout.write(self.style.SUCCESS(
-            f"\nâœ… Seed hoĂ n táº¥t!"
-            f"\n   Admin:    admin@mnm.com  /  Admin@123456"
-            f"\n   Student:  student@mnm.com  /  Student@123456"
-            f"\n   Tá»« vá»±ng:  {len(WORDS)} tá»«"
-            f"\n   Bá»™ tá»«:    {len(WORDSETS)} bá»™"
-            f"\n   BĂ i há»c:  {len(LESSONS)} bĂ i"
+            f"\n✅ Seed hoàn tất!"
+            f"\n   Admin:    admin@norostu.com  /  Admin@123456"
+            f"\n   Student:  student@norostu.com  /  Student@123456"
+            f"\n   Từ vựng:  {len(WORDS)} từ"
+            f"\n   Bộ từ:    {len(WORDSETS)} bộ"
+            f"\n   Bài học:  {len(LESSONS)} bài"
         ))
 
     def _seed_users(self):
-        self.stdout.write("Äang táº¡o users...")
+        self.stdout.write("Đang tạo users...")
         users_data = [
-            {"email": "admin@mnm.com",   "username": "admin",   "full_name": "Quáº£n trá»‹ viĂªn", "password": "Admin@123456",   "role": "admin",   "is_staff": True,  "is_superuser": True},
-            {"email": "student@mnm.com", "username": "student", "full_name": "Há»c sinh Nam",  "password": "Student@123456", "role": "user",    "is_staff": False, "is_superuser": False},
+            {"email": "admin@norostu.com",   "username": "admin",   "full_name": "Quản trị viên", "password": "Admin@123456",   "role": "admin",   "is_staff": True,  "is_superuser": True},
+            {"email": "student@norostu.com", "username": "student", "full_name": "Học sinh Nam",  "password": "Student@123456", "role": "user",    "is_staff": False, "is_superuser": False},
         ]
         admin = None
         for data in users_data:
+            data = _fix_payload(data)
             user, created = User.objects.get_or_create(
                 email=data["email"],
                 defaults={
@@ -322,18 +350,19 @@ class Command(BaseCommand):
             if created:
                 user.set_password(data["password"])
                 user.save()
-                self.stdout.write(f"   + Táº¡o user: {user.email}")
+                self.stdout.write(f"   + Tạo user: {user.email}")
             else:
-                self.stdout.write(f"   ~ ÄĂ£ tá»“n táº¡i: {user.email}")
+                self.stdout.write(f"   ~ Đã tồn tại: {user.email}")
             if data["role"] == "admin":
                 admin = user
         return admin
 
     def _seed_words(self, admin):
-        self.stdout.write("Äang táº¡o tá»« vá»±ng...")
+        self.stdout.write("Đang tạo từ vựng...")
         word_map = {}
         for data in WORDS:
-            # Bá» qua tá»« trĂ¹ng láº·p (text + level giá»‘ng nhau)
+            data = _fix_payload(data)
+            # Bỏ qua từ trùng lặp (text + level giống nhau)
             word, created = Word.objects.get_or_create(
                 text=data["text"],
                 level=data["level"],
@@ -345,8 +374,9 @@ class Command(BaseCommand):
         return word_map
 
     def _seed_wordsets(self, admin, word_map):
-        self.stdout.write("Äang táº¡o bá»™ tá»«...")
+        self.stdout.write("Đang tạo bộ từ...")
         for data in WORDSETS:
+            data = _fix_payload(data)
             ws, created = WordSet.objects.get_or_create(
                 name=data["name"],
                 defaults={"description": data["description"], "level": data["level"], "created_by": admin},
@@ -355,11 +385,12 @@ class Command(BaseCommand):
                 for i, text in enumerate(data["word_texts"]):
                     if text in word_map:
                         WordSetWord.objects.get_or_create(wordset=ws, word=word_map[text], defaults={"order_index": i})
-                self.stdout.write(f"   + Bá»™ tá»«: {ws.name}")
+                self.stdout.write(f"   + Bộ từ: {ws.name}")
 
     def _seed_lessons(self, admin, word_map):
-        self.stdout.write("Äang táº¡o bĂ i há»c...")
+        self.stdout.write("Đang tạo bài học...")
         for data in LESSONS:
+            data = _fix_payload(data)
             lesson, created = Lesson.objects.get_or_create(
                 title=data["title"],
                 defaults={
@@ -374,5 +405,4 @@ class Command(BaseCommand):
                 for i, text in enumerate(data["word_texts"]):
                     if text in word_map:
                         LessonWord.objects.get_or_create(lesson=lesson, word=word_map[text], defaults={"order_index": i})
-                self.stdout.write(f"   + BĂ i há»c: {lesson.title}")
-
+                self.stdout.write(f"   + Bài học: {lesson.title}")

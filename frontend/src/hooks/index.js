@@ -1,4 +1,4 @@
-// Custom hooks for MNM Learn English
+// Custom hooks for NoroStu
 
 // Vocabulary hooks
 export {
@@ -27,3 +27,4 @@ export {
   useDueCount,
   useReviewSession,
 } from "./useReview";
+

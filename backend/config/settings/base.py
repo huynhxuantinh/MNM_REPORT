@@ -197,7 +197,7 @@ EMAIL_PORT         = config("EMAIL_PORT",     default=2525, cast=int)
 EMAIL_USE_TLS      = config("EMAIL_USE_TLS",  default=True, cast=bool)
 EMAIL_HOST_USER    = config("EMAIL_HOST_USER",     default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="MNM Learn English <noreply@mnm-english.com>")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NoroStu <noreply@norostu.com>")
 
 # ── Frontend ──────────────────────────────────────────────────────
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
@@ -241,8 +241,8 @@ CELERY_BEAT_SCHEDULE = {
 
 # ── API Docs (drf-spectacular) ────────────────────────────────────
 SPECTACULAR_SETTINGS = {
-    "TITLE": "MNM Learn English API",
-    "DESCRIPTION": "API cho ứng dụng học từ vựng tiếng Anh MNM",
+    "TITLE": "NoroStu API",
+    "DESCRIPTION": "API cho ứng dụng học từ vựng tiếng Anh NoroStu",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {

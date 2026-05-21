@@ -8,17 +8,26 @@ import { SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 import learningApi from "@/api/learningApi";
 
+const normalize = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase();
+
 const isPlacementConflictError = (err) => {
-  const detail = String(err?.response?.data?.detail || "").toLowerCase();
+  const statusCode = Number(err?.response?.status || 0);
+  const detail = normalize(err?.response?.data?.detail);
+  if (!detail.includes("placement")) return false;
+
+  const placementConflictKeywords = [
+    "ket qua",
+    "da co",
+    "already",
+    "completed",
+  ];
+
   return (
-    detail.includes("placement")
-    && (
-      detail.includes("kết quả")
-      || detail.includes("ket qua")
-      || detail.includes("đã có")
-      || detail.includes("da co")
-      || detail.includes("already")
-    )
+    [400, 409].includes(statusCode)
+    && placementConflictKeywords.some((keyword) => detail.includes(keyword))
   );
 };
 

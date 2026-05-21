@@ -42,7 +42,7 @@ XP_LESSON_BONUS = 20
 XP_REVIEW_CORRECT = 5   # q >= 3
 XP_REVIEW_WRONG = 2     # q < 3
 
-# GiĂ¡Â»â€ºi hĂ¡ÂºÂ¡n tĂ¡Â»Â« mĂ¡Â»â€”i phiÄ‚Âªn Ä‚Â´n (trÄ‚Â¡nh quÄ‚Â¡ tĂ¡ÂºÂ£i)
+# Giới hạn từ mới mỗi phiên ôn (tránh quá tải)
 REVIEW_SESSION_LIMIT = 50
 HEARTS_DEFAULT_MAX = 10
 HEARTS_DEFAULT_REFILL_INTERVAL_MINUTES = 10
@@ -618,7 +618,7 @@ def _build_placement_questions(count: int = PLACEMENT_DEFAULT_QUESTION_COUNT) ->
         random.shuffle(distractors)
         choices = [correct] + distractors[:3]
         while len(choices) < 4:
-            choices.append(f"Nghia gan dung {len(choices)}")
+            choices.append(f"Nghĩa gần đúng {len(choices)}")
         random.shuffle(choices)
         questions.append(
             {
@@ -626,7 +626,7 @@ def _build_placement_questions(count: int = PLACEMENT_DEFAULT_QUESTION_COUNT) ->
                 "word_id": word.id,
                 "word_text": word.text,
                 "word_level": (word.level or "A1").upper(),
-                "prompt": f'Chon nghia dung cua "{word.text}"',
+                "prompt": f'Chọn nghĩa đúng của "{word.text}"',
                 "choices": choices,
                 "correct_option": correct,
             }
@@ -790,4 +790,3 @@ __all__ = [
     "_get_consecutive_wrong_streak",
     "_get_consecutive_correct_streak",
 ]
-
