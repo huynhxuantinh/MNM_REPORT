@@ -43,6 +43,9 @@ Policy:
 Implemented in:
 - `frontend/nginx.conf`
 
+Not implemented in:
+- `nginx/nginx.conf` (this file is dev reverse-proxy style, not production frontend static serving)
+
 Rules already applied:
 - API/Admin: no-store
 - Assets: long immutable cache

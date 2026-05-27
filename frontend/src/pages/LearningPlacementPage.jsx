@@ -85,7 +85,7 @@ const LearningPlacementPage = () => {
       const pathData = await learningApi.getLearningPath().then((response) => response.data);
       const firstLesson = getFirstUnlockedLesson(pathData);
       if (!firstLesson?.id) {
-        throw new Error("Khong tim thay lesson mo khoa de bat dau.");
+        throw new Error("Không tìm thấy bài học đã mở khóa để bắt đầu.");
       }
       return learningApi.startLearningSession(firstLesson.id, "placement_result_cta").then((response) => response.data);
     },

@@ -370,7 +370,7 @@ const LearningSessionPage = () => {
   if (isError || !session) {
     return (
       <Stack spacing={2}>
-        <Alert severity="error">{error?.response?.data?.detail || "Cannot load session."}</Alert>
+        <Alert severity="error">{error?.response?.data?.detail || "Không tải được phiên học."}</Alert>
         <SbButton variant="outlined" onClick={() => refetch()}>Thử lại</SbButton>
       </Stack>
     );
@@ -389,7 +389,7 @@ const LearningSessionPage = () => {
   if (!currentExercise) {
     return (
       <Stack spacing={2}>
-        <Alert severity="warning">No exercise found for this session.</Alert>
+        <Alert severity="warning">Không tìm thấy câu hỏi cho phiên học này.</Alert>
         <SbButton variant="outlined" onClick={() => navigate("/learning")}>Quay lại</SbButton>
       </Stack>
     );

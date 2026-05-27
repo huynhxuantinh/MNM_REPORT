@@ -228,7 +228,7 @@ export const PageHeaderSkeleton = () => (
   </Box>
 );
 
-// ── Dashboard Skeleton (Teacher/Admin) ────────────────────────────────────────
+// ── Dashboard Skeleton (Admin) ───────────────────────────────────────────────
 
 export const DashboardSkeleton = () => (
   <Box>

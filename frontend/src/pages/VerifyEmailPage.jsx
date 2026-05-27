@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Box, Typography, CircularProgress } from "@mui/material";
@@ -16,7 +16,7 @@ const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 
-  const [status, setStatus] = useState("loading"); // loading | success | error
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -30,9 +30,7 @@ const VerifyEmailPage = () => {
       .then(() => setStatus("success"))
       .catch((err) => {
         setStatus("error");
-        setMessage(
-          err?.response?.data?.detail || "Link đã hết hạn hoặc không hợp lệ."
-        );
+        setMessage(err?.response?.data?.detail || "Link đã hết hạn hoặc không hợp lệ.");
       });
   }, [token]);
 
@@ -40,7 +38,7 @@ const VerifyEmailPage = () => {
     try {
       await authApi.logout();
     } catch {
-      // ignore error and still force-clear local auth
+      // ignore
     }
     dispatch(logout());
     navigate("/login", { replace: true });
@@ -52,9 +50,7 @@ const VerifyEmailPage = () => {
         {status === "loading" && (
           <>
             <CircularProgress sx={{ color: colors.greenAccent, mb: 2 }} />
-            <Typography sx={{ color: "text.secondary" }}>
-              Đang xác thực tài khoản...
-            </Typography>
+            <Typography sx={{ color: "text.secondary" }}>Đang xác thực tài khoản...</Typography>
           </>
         )}
 

@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+﻿import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Box, Typography, IconButton,
-  Alert, LinearProgress,
+  Alert,
 } from "@mui/material";
 import { VisibilityRounded as VisibilityRoundedIcon } from "@mui/icons-material";
 import { VisibilityOffRounded as VisibilityOffRoundedIcon } from "@mui/icons-material";
@@ -15,8 +15,6 @@ import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import authApi from "@/api/authApi";
 import { colors } from "@/styles/theme";
-
-// ── Validators ────────────────────────────────────────────────────────────────
 
 const validate = {
   username: (v) => {
@@ -45,54 +43,8 @@ const validate = {
   },
 };
 
-// ── Password strength bar ─────────────────────────────────────────────────────
-
-const strengthConfig = [
-  { label: "Rất yếu",   color: "#c82014" },
-  { label: "Yếu",       color: "#e06c00" },
-  { label: "Trung bình",color: "#f5a623" },
-  { label: "Mạnh",      color: "#7ed321" },
-  { label: "Rất mạnh",  color: colors.greenAccent },
-];
-
-const getScore = (pw) => [
-  pw.length >= 8,
-  /[A-Z]/.test(pw),
-  /[0-9]/.test(pw),
-  /[!@#$%^&*(),.?":{}|<>_\-]/.test(pw),
-].filter(Boolean).length;
-
-const PasswordStrength = ({ password }) => {
-  if (!password) return null;
-  const score = getScore(password);
-  const cfg = strengthConfig[score] ?? strengthConfig[0];
-  return (
-    <Box sx={{ mt: -0.5 }}>
-      <Box sx={{ display: "flex", gap: 0.5, mb: 0.5 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <Box
-            key={i}
-            sx={{
-              flex: 1, height: 4, borderRadius: 2,
-              bgcolor: i < score ? cfg.color : "rgba(0,0,0,0.12)",
-              transition: "background-color 0.3s ease",
-            }}
-          />
-        ))}
-      </Box>
-      <Typography sx={{ fontSize: "0.72rem", color: cfg.color, fontWeight: 700 }}>
-        {cfg.label}
-      </Typography>
-    </Box>
-  );
-};
-
-// ── Server error parser ───────────────────────────────────────────────────────
-
 const parseFieldErrors = (err) => {
   const data = err?.response?.data;
-
-  // Lỗi mạng hoặc response không phải JSON
   if (!data || typeof data !== "object") {
     return { _general: "Không thể kết nối đến server. Vui lòng thử lại." };
   }
@@ -103,20 +55,15 @@ const parseFieldErrors = (err) => {
   });
   if (data.detail) result._general = data.detail;
   if (data.non_field_errors) {
-    result._general = Array.isArray(data.non_field_errors)
-      ? data.non_field_errors[0]
-      : data.non_field_errors;
+    result._general = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
   }
 
-  // Fallback nếu không parse được lỗi cụ thể
   if (Object.keys(result).length === 0) {
     result._general = "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.";
   }
 
   return result;
 };
-
-// ── Success state ─────────────────────────────────────────────────────────────
 
 const RegisterSuccess = ({ email }) => {
   const [resendLoading, setResendLoading] = useState(false);
@@ -158,16 +105,8 @@ const RegisterSuccess = ({ email }) => {
         . Nhấn vào link trong email để kích hoạt tài khoản.
       </Typography>
 
-      {resendMsg && (
-        <Alert severity="success" sx={{ mb: 2, textAlign: "left" }}>
-          {resendMsg}
-        </Alert>
-      )}
-      {resendError && (
-        <Alert severity="error" sx={{ mb: 2, textAlign: "left" }}>
-          {resendError}
-        </Alert>
-      )}
+      {resendMsg && <Alert severity="success" sx={{ mb: 2, textAlign: "left" }}>{resendMsg}</Alert>}
+      {resendError && <Alert severity="error" sx={{ mb: 2, textAlign: "left" }}>{resendError}</Alert>}
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <SbButton variant="outlined" component={Link} to="/login" fullWidth>
@@ -187,11 +126,7 @@ const RegisterSuccess = ({ email }) => {
   );
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 const RegisterPage = () => {
-  const navigate = useNavigate();
-
   const [form, setForm] = useState({ username: "", email: "", password: "", confirmPassword: "" });
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -201,18 +136,18 @@ const RegisterPage = () => {
   const [success, setSuccess] = useState(false);
 
   const clientErrors = {
-    username:        touched.username        ? validate.username(form.username)                    : "",
-    email:           touched.email           ? validate.email(form.email)                          : "",
-    password:        touched.password        ? validate.password(form.password)                    : "",
+    username: touched.username ? validate.username(form.username) : "",
+    email: touched.email ? validate.email(form.email) : "",
+    password: touched.password ? validate.password(form.password) : "",
     confirmPassword: touched.confirmPassword ? validate.confirmPassword(form.confirmPassword, form.password) : "",
   };
 
   const fieldError = (f) => serverErrors[f] || clientErrors[f];
 
   const isFormValid = !Object.values({
-    username:        validate.username(form.username),
-    email:           validate.email(form.email),
-    password:        validate.password(form.password),
+    username: validate.username(form.username),
+    email: validate.email(form.email),
+    password: validate.password(form.password),
     confirmPassword: validate.confirmPassword(form.confirmPassword, form.password),
   }).some(Boolean);
 
@@ -221,8 +156,7 @@ const RegisterPage = () => {
     setServerErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  const handleBlur = (field) => () =>
-    setTouched((prev) => ({ ...prev, [field]: true }));
+  const handleBlur = (field) => () => setTouched((prev) => ({ ...prev, [field]: true }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -233,9 +167,9 @@ const RegisterPage = () => {
     setServerErrors({});
     try {
       await authApi.register({
-        username:         form.username,
-        email:            form.email,
-        password:         form.password,
+        username: form.username,
+        email: form.email,
+        password: form.password,
         password_confirm: form.confirmPassword,
       });
       setSuccess(true);
@@ -273,14 +207,9 @@ const RegisterPage = () => {
           </Box>
         </Typography>
 
-        {serverErrors._general && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: "10px", fontSize: "0.875rem" }}>
-            {serverErrors._general}
-          </Alert>
-        )}
+        {serverErrors._general && <Alert severity="error" sx={{ mb: 2, borderRadius: "10px", fontSize: "0.875rem" }}>{serverErrors._general}</Alert>}
 
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Username */}
           <SbInput
             label="Tên đăng nhập"
             value={form.username}
@@ -293,7 +222,6 @@ const RegisterPage = () => {
             startAdornment={<PersonRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
-          {/* Email */}
           <SbInput
             label="Email"
             type="email"
@@ -306,30 +234,23 @@ const RegisterPage = () => {
             startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
-          {/* Password */}
-          <Box>
-            <SbInput
-              label="Mật khẩu"
-              type={showPassword ? "text" : "password"}
-              value={form.password}
-              onChange={handleChange("password")}
-              onBlur={handleBlur("password")}
-              error={!!fieldError("password")}
-              helperText={fieldError("password")}
-              autoComplete="new-password"
-              startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
-              endAdornment={
-                <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1}>
-                  {showPassword
-                    ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} />
-                    : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
-                </IconButton>
-              }
-            />
-            <PasswordStrength password={form.password} />
-          </Box>
+          <SbInput
+            label="Mật khẩu"
+            type={showPassword ? "text" : "password"}
+            value={form.password}
+            onChange={handleChange("password")}
+            onBlur={handleBlur("password")}
+            error={!!fieldError("password")}
+            helperText={fieldError("password")}
+            autoComplete="new-password"
+            startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
+            endAdornment={
+              <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1}>
+                {showPassword ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
+              </IconButton>
+            }
+          />
 
-          {/* Confirm password */}
           <SbInput
             label="Nhập lại mật khẩu"
             type={showConfirm ? "text" : "password"}
@@ -346,22 +267,13 @@ const RegisterPage = () => {
                 <CheckCircleRoundedIcon sx={{ fontSize: 20, color: colors.greenAccent }} />
               ) : (
                 <IconButton onClick={() => setShowConfirm((v) => !v)} edge="end" size="small" tabIndex={-1}>
-                  {showConfirm
-                    ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} />
-                    : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
+                  {showConfirm ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
                 </IconButton>
               )
             }
           />
 
-          <SbButton
-            type="submit"
-            variant="primary"
-            size="large"
-            loading={loading}
-            fullWidth
-            sx={{ mt: 0.5 }}
-          >
+          <SbButton type="submit" variant="primary" size="large" loading={loading} fullWidth sx={{ mt: 0.5 }}>
             Tạo tài khoản
           </SbButton>
         </Box>

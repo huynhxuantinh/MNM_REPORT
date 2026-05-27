@@ -5,33 +5,39 @@ import { createSlice } from "@reduxjs/toolkit";
  * Bao gồm: study session, review session, progress tracking
  */
 
+const createInitialStudyStats = () => ({
+  wordsLearned: 0,
+  xpEarned: 0,
+  startTime: null,
+  endTime: null,
+});
+
+const createInitialReviewStats = () => ({
+  total: 0,
+  correct: 0,
+  wrong: 0,
+  xpEarned: 0,
+  startTime: null,
+  endTime: null,
+});
+
+const countStudiedWords = (studiedWordIds) => Object.keys(studiedWordIds || {}).length;
+
 const initialState = {
   // ── Study Session ─────────────────────────────────────────────────────────
   currentLesson: null,        // Lesson đang học
   studyWords: [],             // Danh sách từ trong bài học
   currentWordIndex: 0,        // Index từ hiện tại
-  studiedWordIds: new Set(),  // Các từ đã xem qua
+  studiedWordIds: {},         // Các từ đã xem qua (serializable map)
   studyComplete: false,       // Hoàn thành bài học chưa
-  studyStats: {
-    wordsLearned: 0,
-    xpEarned: 0,
-    startTime: null,
-    endTime: null,
-  },
+  studyStats: createInitialStudyStats(),
 
   // ── Review Session (SRS) ─────────────────────────────────────────────────
   reviewQueue: [],            // Danh sách từ cần ôn
   currentReviewIndex: 0,    // Index từ đang ôn
   reviewResults: [],          // Kết quả các lần ôn (quality 0-5)
   reviewComplete: false,      // Hoàn thành phiên ôn chưa
-  reviewStats: {
-    total: 0,
-    correct: 0,             // q >= 3
-    wrong: 0,               // q < 3
-    xpEarned: 0,
-    startTime: null,
-    endTime: null,
-  },
+  reviewStats: createInitialReviewStats(),
 
   // ── UI State ─────────────────────────────────────────────────────────────
   isFlipped: false,           // Card đang flip chưa (study/review)
@@ -53,13 +59,11 @@ const learningSlice = createSlice({
       state.currentLesson = lesson;
       state.studyWords = words || [];
       state.currentWordIndex = 0;
-      state.studiedWordIds = new Set();
+      state.studiedWordIds = {};
       state.studyComplete = false;
       state.studyStats = {
-        wordsLearned: 0,
-        xpEarned: 0,
+        ...createInitialStudyStats(),
         startTime: Date.now(),
-        endTime: null,
       };
       state.isFlipped = false;
       state.isSpeaking = false;
@@ -69,7 +73,7 @@ const learningSlice = createSlice({
       // Đánh dấu từ hiện tại đã học
       const currentWord = state.studyWords[state.currentWordIndex];
       if (currentWord) {
-        state.studiedWordIds.add(currentWord.id);
+        state.studiedWordIds[currentWord.id] = true;
       }
       // Reset flip state
       state.isFlipped = false;
@@ -81,7 +85,7 @@ const learningSlice = createSlice({
       } else {
         state.studyComplete = true;
         state.studyStats.endTime = Date.now();
-        state.studyStats.wordsLearned = state.studiedWordIds.size;
+        state.studyStats.wordsLearned = countStudiedWords(state.studiedWordIds);
       }
     },
 
@@ -104,7 +108,7 @@ const learningSlice = createSlice({
 
     markWordStudied: (state, action) => {
       const wordId = action.payload;
-      state.studiedWordIds.add(wordId);
+      state.studiedWordIds[wordId] = true;
     },
 
     addStudyXp: (state, action) => {
@@ -115,21 +119,16 @@ const learningSlice = createSlice({
     completeStudySession: (state) => {
       state.studyComplete = true;
       state.studyStats.endTime = Date.now();
-      state.studyStats.wordsLearned = state.studiedWordIds.size;
+      state.studyStats.wordsLearned = countStudiedWords(state.studiedWordIds);
     },
 
     resetStudySession: (state) => {
       state.currentLesson = null;
       state.studyWords = [];
       state.currentWordIndex = 0;
-      state.studiedWordIds = new Set();
+      state.studiedWordIds = {};
       state.studyComplete = false;
-      state.studyStats = {
-        wordsLearned: 0,
-        xpEarned: 0,
-        startTime: null,
-        endTime: null,
-      };
+      state.studyStats = createInitialStudyStats();
       state.isFlipped = false;
       state.isSpeaking = false;
     },
@@ -143,12 +142,9 @@ const learningSlice = createSlice({
       state.reviewComplete = false;
       state.showAnswer = false;
       state.reviewStats = {
+        ...createInitialReviewStats(),
         total: words?.length || 0,
-        correct: 0,
-        wrong: 0,
-        xpEarned: 0,
         startTime: Date.now(),
-        endTime: null,
       };
       state.isFlipped = false;
       state.isSpeaking = false;
@@ -195,14 +191,7 @@ const learningSlice = createSlice({
       state.reviewResults = [];
       state.reviewComplete = false;
       state.showAnswer = false;
-      state.reviewStats = {
-        total: 0,
-        correct: 0,
-        wrong: 0,
-        xpEarned: 0,
-        startTime: null,
-        endTime: null,
-      };
+      state.reviewStats = createInitialReviewStats();
       state.isFlipped = false;
       state.isSpeaking = false;
     },
@@ -229,8 +218,13 @@ const learningSlice = createSlice({
     },
 
     // ── Reset All ───────────────────────────────────────────────────────────
-    resetAll: (state) => {
-      return initialState;
+    resetAll: () => {
+      return {
+        ...initialState,
+        studiedWordIds: {},
+        studyStats: createInitialStudyStats(),
+        reviewStats: createInitialReviewStats(),
+      };
     },
   },
 });
@@ -252,7 +246,7 @@ export const selectStudyProgress = (state) => {
     percentage: studyWords.length > 0
       ? Math.round(((currentWordIndex + 1) / studyWords.length) * 100)
       : 0,
-    studiedCount: studiedWordIds.size,
+    studiedCount: countStudiedWords(studiedWordIds),
   };
 };
 
@@ -321,4 +315,3 @@ export const {
 } = learningSlice.actions;
 
 export default learningSlice.reducer;
-

@@ -215,6 +215,7 @@ const LearningPage = () => {
   });
 
   const units = useMemo(() => data?.units || [], [data]);
+  const shouldShowOnboarding = !!placementStatus?.should_show_onboarding;
   const startingLessonId = startMutation.variables;
   const startingCheckpointUnitId = checkpointStartMutation.variables;
   const studiedMinutes = dailyGoalData?.today?.studied_minutes ?? 0;
@@ -340,7 +341,7 @@ const LearningPage = () => {
         </Alert>
       )}
 
-      {!!placementStatus && !placementStatus.has_completed_placement && (
+      {!!placementStatus && shouldShowOnboarding && (
         <Alert
           severity="info"
           action={
@@ -350,6 +351,19 @@ const LearningPage = () => {
           }
         >
           Bạn chưa hoàn thành placement. Làm placement trước để hệ thống đề xuất độ khó phù hợp.
+        </Alert>
+      )}
+
+      {!!placementStatus && !placementStatus.has_completed_placement && !shouldShowOnboarding && (
+        <Alert
+          severity="info"
+          action={(
+            <SbButton size="small" variant="outlined" onClick={() => navigate("/learning/placement")}>
+              Làm placement
+            </SbButton>
+          )}
+        >
+          Bạn đang học theo lộ trình cơ bản. Có thể làm placement bất kỳ lúc nào để tối ưu độ khó.
         </Alert>
       )}
 
@@ -379,7 +393,7 @@ const LearningPage = () => {
               </Typography>
             )}
             <Typography sx={{ fontSize: "0.9rem" }}>
-              Hearts: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 10}
+              Tim: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 10}
             </Typography>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Typography sx={{ fontSize: "0.9rem" }}>
@@ -414,7 +428,7 @@ const LearningPage = () => {
             </SbButton>
             {isGoalClaimed && (
               <Alert severity="success" sx={{ py: 0 }}>
-                Bạn đã nhận thưởng daily goal hôm nay.
+                Bạn đã nhận thưởng mục tiêu ngày hôm nay.
               </Alert>
             )}
             <SbButton
@@ -427,7 +441,7 @@ const LearningPage = () => {
             </SbButton>
             {!!claimDailyGoalMutation.error && (
               <Alert severity="error">
-                {claimDailyGoalMutation.error?.response?.data?.detail || "Không thể nhận thưởng daily goal."}
+                {claimDailyGoalMutation.error?.response?.data?.detail || "Không thể nhận thưởng mục tiêu ngày."}
               </Alert>
             )}
             {!!claimFreezeMutation.error && (
@@ -481,8 +495,6 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
-
-
 
 
 

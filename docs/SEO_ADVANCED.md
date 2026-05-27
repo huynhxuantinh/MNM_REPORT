@@ -20,9 +20,9 @@ NoroStu la SPA can dang nhap cho phan lon tinh nang hoc tap. Vi vay SEO nang cao
   - `WebSite`
   - `WebApplication`
   - `WebPage` theo route
-- `site.webmanifest` cho PWA metadata.
-- `robots.txt` chan cac trang private.
-- `sitemap.xml` chi liet ke URL public co the index.
+- `site.webmanifest` cho PWA metadata (hien dang luu tai `frontend/img/site.webmanifest`).
+- `robots.txt` chan cac trang private (file that: `frontend/public/robots.txt`).
+- `sitemap.xml` chi liet ke URL public co the index (file that: `frontend/public/sitemap.xml`).
 
 ## Nguyen tac index
 
@@ -63,6 +63,7 @@ Kiem tra:
 
 - `https://norostu.com/robots.txt`
 - `https://norostu.com/sitemap.xml`
+- Neu domain khac `norostu.com`, cap nhat lai URL trong 2 file tren truoc khi deploy.
 - View source co title, description, canonical, JSON-LD.
 - Rich Results Test khong bao loi schema nghiem trong.
 - Lighthouse SEO >= 95.

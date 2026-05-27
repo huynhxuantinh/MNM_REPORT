@@ -8,10 +8,20 @@ docker compose down -v
 docker compose logs -f backend
 ```
 
+Nginx config:
+- Dev proxy: `nginx/nginx.conf`
+- Production frontend: `frontend/nginx.conf`
+
 Production/Lighthouse:
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml logs -f frontend
+```
+
+Check config frontend Nginx trong production container:
+```bash
+docker compose -f docker-compose.prod.yml exec frontend cat /etc/nginx/conf.d/default.conf
 ```
 
 ## Backend

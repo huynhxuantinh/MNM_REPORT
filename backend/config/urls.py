@@ -15,7 +15,7 @@ urlpatterns = [
     path("api/v1/quiz/", include("apps.quiz.urls")),
 ]
 
-# API Docs — chỉ expose khi DEBUG=True (dev/staging).
+# API Docs - chỉ expose khi DEBUG=True (dev/staging).
 # Trên production: Swagger/Redoc ẩn theo mặc định; bật lại bằng ENABLE_API_DOCS=True.
 if settings.DEBUG or getattr(settings, "ENABLE_API_DOCS", False):
     urlpatterns += [

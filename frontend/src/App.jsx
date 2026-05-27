@@ -58,8 +58,11 @@ const GuestRoute = ({ children }) => {
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, initializing } = useSelector((state) => state.auth);
+  const location = useLocation();
   if (initializing) return <PageFallback />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return isAuthenticated
+    ? children
+    : <Navigate to="/login" replace state={{ from: location }} />;
 };
 
 const AdminRoute = ({ children }) => {
@@ -99,11 +102,16 @@ const PlacementGateRoute = ({ children }) => {
 
   if (isLoading) return <PageFallback />;
 
-  const hasCompletedPlacement = !!placementStatus?.has_completed_placement;
-  if (!hasCompletedPlacement && !isPlacementRoute) {
+  const shouldShowOnboarding = !!placementStatus?.should_show_onboarding;
+  const isOnboardingRoute = location.pathname.startsWith("/learning/onboarding");
+
+  // New users: force onboarding choice first.
+  if (shouldShowOnboarding && !isPlacementRoute) {
     return <Navigate to="/learning/onboarding" replace />;
   }
-  if (hasCompletedPlacement && isPlacementRoute) {
+
+  // Existing users: onboarding choice page is only for first-time entry.
+  if (!shouldShowOnboarding && isOnboardingRoute) {
     return <Navigate to="/learning" replace />;
   }
 

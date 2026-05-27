@@ -40,12 +40,14 @@ docker compose exec backend python manage.py seed_full_catalog --clear
 - Student: `student@norostu.com` / `Student@2024!`
 
 ## Test gate (latest)
-- Backend: `335 passed`
-- Frontend unit/integration: `43 passed`
-- Cypress E2E: `9 passed`
-- Date: `2026-05-21`
+- Backend: `335 passed` (verified `2026-05-27`)
+- Frontend unit/integration: `43 passed` (verified `2026-05-27`)
+- Frontend lint: `PASS` (verified `2026-05-27`)
+- Frontend build: `PASS` (verified `2026-05-27`)
+- Cypress E2E: `9 passed` (last verified `2026-05-21`)
 
 ## Tai lieu
 - Setup: [docs/SETUP.md](docs/SETUP.md)
 - Commands: [docs/COMMANDS.md](docs/COMMANDS.md)
 - API reference: [docs/api-reference.md](docs/api-reference.md)
+- Release sign-off: [docs/RELEASE_SIGNOFF.md](docs/RELEASE_SIGNOFF.md)

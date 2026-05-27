@@ -2,17 +2,12 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 import net from "node:net";
 
-const mode = process.argv[2] ?? "run";
-const extraArgs = process.argv.slice(3);
+const HOST = "127.0.0.1";
+const START_PORT = 5182;
+
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([, value]) => value !== undefined),
 );
-
-delete env.ELECTRON_RUN_AS_NODE;
-env.CYPRESS_SKIP_VERIFY = "true";
-
-const HOST = "127.0.0.1";
-const START_PORT = 5173;
 
 const findAvailablePort = async (port, maxTries = 20) => {
   const canUsePort = (candidate) =>
@@ -61,9 +56,8 @@ const waitForServer = (url, timeoutMs = 60_000) => new Promise((resolve, reject)
   probe();
 });
 
-let child;
 let devServer;
-let fallbackStarted = false;
+let child;
 
 const stopDevServer = () => {
   if (devServer && !devServer.killed) {
@@ -71,26 +65,12 @@ const stopDevServer = () => {
   }
 };
 
-const runPlaywrightFallback = () => {
-  if (fallbackStarted) return;
-  fallbackStarted = true;
-  console.warn("[run-cypress] Cypress runtime failed, fallback to Playwright admin smoke...");
-
-  const fallback = spawn("npm.cmd run pw:admin", {
-    stdio: "inherit",
-    shell: true,
-    env,
-  });
-
-  fallback.on("exit", (fallbackCode) => {
-    process.exit(fallbackCode ?? 1);
-  });
-};
-
 findAvailablePort(START_PORT)
   .then((port) => {
     const appUrl = `http://${HOST}:${port}`;
     const devCommand = `npm.cmd run dev -- --host ${HOST} --port ${port} --strictPort`;
+
+    env.PLAYWRIGHT_BASE_URL = appUrl;
 
     devServer = spawn(devCommand, {
       stdio: "inherit",
@@ -98,14 +78,10 @@ findAvailablePort(START_PORT)
       env,
     });
 
-    return waitForServer(appUrl).then(() => ({ appUrl, port }));
+    return waitForServer(appUrl).then(() => appUrl);
   })
-  .then(({ appUrl }) => {
-    const cypressArgs = [mode, `--config`, `baseUrl=${appUrl}`, ...extraArgs]
-      .map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg))
-      .join(" ");
-
-    child = spawn(`npx cypress ${cypressArgs}`, {
+  .then(() => {
+    child = spawn("npx playwright test tests/admin.smoke.spec.js", {
       stdio: "inherit",
       shell: true,
       env,
@@ -113,14 +89,11 @@ findAvailablePort(START_PORT)
 
     child.on("exit", (code) => {
       stopDevServer();
-      if (code === 0 || mode !== "run") {
-        process.exit(code ?? 1);
-      }
-      runPlaywrightFallback();
+      process.exit(code ?? 1);
     });
   })
   .catch((err) => {
-    console.error(`[run-cypress] ${err.message}`);
+    console.error(`[run-playwright-admin] ${err.message}`);
     stopDevServer();
     process.exit(1);
   });
@@ -130,3 +103,4 @@ process.on("SIGINT", () => {
   stopDevServer();
   process.exit(130);
 });
+

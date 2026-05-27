@@ -57,8 +57,9 @@ Swagger:
 ## Learning - Management (`/learning/`)
 - `GET|POST /lessons/`
 - `GET|PATCH|DELETE /lessons/{id}/`
-- `GET|POST /notifications/`
-- `GET|PATCH|DELETE /notifications/{id}/`
+- `GET /notifications/`
+- `PUT /notifications/{id}/read/`
+- `PUT /notifications/read-all/`
 - `GET /profile/stats/`
 - `GET /leaderboard/`
 - `GET /league/current/`
@@ -70,11 +71,12 @@ Swagger:
 - `GET|PATCH|DELETE /admin/units/{id}/`
 
 ## Quiz (`/quiz/`)
-- `GET|POST /sessions/`
-- `GET|PATCH|DELETE /sessions/{id}/`
-- `POST /generate/`
+- `GET /sessions/`
+- `GET /sessions/{id}/`
+- `GET /generate/`
 - `POST /submit/`
 - `GET /admin/results/`
+- `GET /admin/results/{id}/`
 
 Notes:
 - This is a short route-level reference synced with current backend URL config.

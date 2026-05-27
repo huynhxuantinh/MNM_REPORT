@@ -66,6 +66,16 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: "./src/test/setup.js",
       css: false,
+      include: [
+        "src/**/*.{test,spec}.{js,jsx}",
+        "src/**/__tests__/**/*.{js,jsx}",
+      ],
+      exclude: [
+        "tests/**",
+        "cypress/**",
+        "node_modules/**",
+        "dist/**",
+      ],
       coverage: {
         provider: "v8",
         reporter: ["text", "lcov"],

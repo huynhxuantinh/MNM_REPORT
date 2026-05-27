@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -15,8 +15,6 @@ import { login, clearError } from "@/features/auth/authSlice";
 import learningApi from "@/api/learningApi";
 import { colors } from "@/styles/theme";
 
-// ── Validation ───────────────────────────────────────────────────────────────
-
 const validate = {
   email: (v) => {
     if (!v?.trim()) return "Email là bắt buộc";
@@ -26,24 +24,19 @@ const validate = {
   password: (v) => (!v ? "Mật khẩu là bắt buộc" : ""),
 };
 
-// ── Parse server errors ───────────────────────────────────────────────────────
-
 const parseServerError = (err) => {
   if (!err) return "";
   if (typeof err === "string") return err;
   if (err.detail) return err.detail;
   if (err.non_field_errors) {
     const msg = err.non_field_errors.join(" ");
-    // Highlight email verification error
     if (msg.includes("chưa được xác thực") || msg.includes("kích hoạt")) {
-      return msg + " (Kiểm tra hộp thư và spam folder)";
+      return `${msg} (Kiểm tra hộp thư và spam folder)`;
     }
     return msg;
   }
   return "Đã có lỗi xảy ra. Vui lòng thử lại.";
 };
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 const LoginPage = () => {
   const dispatch = useDispatch();
@@ -58,7 +51,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const errors = {
-    email:    touched.email    ? validate.email(form.email)       : "",
+    email: touched.email ? validate.email(form.email) : "",
     password: touched.password ? validate.password(form.password) : "",
   };
 
@@ -85,15 +78,14 @@ const LoginPage = () => {
         return;
       }
 
-      // User chưa placement: bắt buộc làm placement ngay sau login.
       try {
         const placementStatus = await learningApi.getPlacementStatus().then((res) => res.data);
-        if (placementStatus && !placementStatus.has_completed_placement) {
+        if (placementStatus && placementStatus.should_show_onboarding) {
           navigate("/learning/onboarding", { replace: true });
           return;
         }
       } catch {
-        // fallback luồng cũ nếu API placement lỗi
+        // fallback if placement API fails
       }
 
       if (from !== "/") navigate(from, { replace: true });
@@ -109,7 +101,6 @@ const LoginPage = () => {
       subtext="Tiếp tục hành trình học từ vựng của bạn."
     >
       <SbCard sx={{ px: { xs: 3, sm: 4 }, py: 4 }}>
-        {/* Title */}
         <Typography
           component="h1"
           sx={{ fontWeight: 800, fontSize: "1.6rem", color: colors.greenStarbucks, mb: 0.5, letterSpacing: "-0.02em" }}
@@ -123,7 +114,6 @@ const LoginPage = () => {
           </Box>
         </Typography>
 
-        {/* Server error */}
         {serverError && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: "10px", fontSize: "0.875rem" }}>
             {serverError}
@@ -131,7 +121,6 @@ const LoginPage = () => {
         )}
 
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Email */}
           <SbInput
             label="Email"
             type="email"
@@ -145,7 +134,6 @@ const LoginPage = () => {
             startAdornment={<EmailRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
           />
 
-          {/* Password */}
           <SbInput
             label="Mật khẩu"
             type={showPassword ? "text" : "password"}
@@ -170,7 +158,6 @@ const LoginPage = () => {
             }
           />
 
-          {/* Forgot password link */}
           <Box sx={{ textAlign: "right", mt: -1 }}>
             <Box
               component={Link}
@@ -181,7 +168,6 @@ const LoginPage = () => {
             </Box>
           </Box>
 
-          {/* Submit */}
           <SbButton
             type="submit"
             variant="primary"

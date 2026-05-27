@@ -71,6 +71,11 @@ Service chinh:
 - `celery_beat`
 - `frontend`
 
+Nginx config luu y:
+- Dev reverse proxy (neu dung): `nginx/nginx.conf`
+- Production frontend Nginx (duoc copy trong Dockerfile.prod): `frontend/nginx.conf`
+- Khong deploy production bang file `nginx/nginx.conf`.
+
 ## 5) Migrate va seed data
 
 ```bash
@@ -91,6 +96,10 @@ docker compose exec backend python manage.py seed_full_catalog --clear
 - Backend API: `http://localhost:8000/api/v1/`
 - Swagger: `http://localhost:8000/api/docs/`
 - Django Admin: `http://localhost:8000/admin/`
+
+Neu chay production compose (`docker-compose.prod.yml`):
+- Frontend mac dinh: `http://localhost` (hoac `http://localhost:${FRONTEND_PORT}`)
+- Frontend phuc vu bang `frontend/nginx.conf`
 
 ## 7) Chay thu cong (khong Docker)
 

@@ -622,8 +622,16 @@ class LearningPlacementSkipView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if PlacementResult.objects.filter(user=request.user).exists():
-            return Response({"detail": "Đã có kết quả placement."}, status=status.HTTP_400_BAD_REQUEST)
+        existing = PlacementResult.objects.filter(user=request.user).first()
+        if existing:
+            return Response(
+                {
+                    "already_completed": True,
+                    "detail": "Đã có kết quả placement.",
+                    "recommended_level": existing.recommended_level,
+                },
+                status=status.HTTP_200_OK,
+            )
         PlacementResult.objects.create(
             user=request.user,
             recommended_level="A1",
@@ -633,7 +641,13 @@ class LearningPlacementSkipView(APIView):
             answers=[],
         )
         _track_onboarding_step(request.user, "placement_skip", meta={"recommended_level": "A1"})
-        return Response({"detail": "Đã bỏ qua placement. Bắt đầu từ A1.", "recommended_level": "A1"})
+        return Response(
+            {
+                "already_completed": False,
+                "detail": "Đã bỏ qua placement. Bắt đầu từ A1.",
+                "recommended_level": "A1",
+            }
+        )
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -1756,4 +1770,3 @@ __all__ = [
     "ReviewHistoryView",
     "ReviewAnswerView",
 ]
-

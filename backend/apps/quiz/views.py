@@ -85,7 +85,7 @@ class QuizGenerateView(APIView):
         quiz = Quiz.objects.filter(**filter_kwargs).first()
         if not quiz:
             create_kwargs = {
-                "title": f"Quiz – {title}",
+                "title": f"Quiz - {title}",
                 "quiz_type": q_type_enum,
                 "created_by": request.user,
             }
@@ -97,7 +97,7 @@ class QuizGenerateView(APIView):
 
         sample_size = min(10 if quiz_type == "mc" else 8, len(words))
         sample = random.sample(words, sample_size)
-        
+
         if quiz_type == "match":
             questions = sample
         else:
@@ -158,8 +158,8 @@ class QuizSubmitView(APIView):
 
 class QuizViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    GET /api/v1/quiz/sessions/       — Lịch sử quiz của user
-    GET /api/v1/quiz/sessions/{id}/  — Chi tiết kết quả
+    GET /api/v1/quiz/sessions/       - Lịch sử quiz của user
+    GET /api/v1/quiz/sessions/{id}/  - Chi tiết kết quả
     """
 
     permission_classes = [IsAuthenticated]
@@ -177,8 +177,8 @@ class QuizViewSet(viewsets.ReadOnlyModelViewSet):
 
 class AdminQuizResultListView(viewsets.ReadOnlyModelViewSet):
     """
-    GET /api/v1/quiz/admin/results/      — Tất cả kết quả quiz (admin only)
-    GET /api/v1/quiz/admin/results/{id}/ — Chi tiết 1 kết quả
+    GET /api/v1/quiz/admin/results/      - Tất cả kết quả quiz (admin only)
+    GET /api/v1/quiz/admin/results/{id}/ - Chi tiết 1 kết quả
     Filter: ?search=email/name  ?quiz=id  ?page=N
     """
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Box, Typography, Stack, Alert, CircularProgress } from "@mui/material";
@@ -18,17 +18,9 @@ const isPlacementConflictError = (err) => {
   const detail = normalize(err?.response?.data?.detail);
   if (!detail.includes("placement")) return false;
 
-  const placementConflictKeywords = [
-    "ket qua",
-    "da co",
-    "already",
-    "completed",
-  ];
+  const placementConflictKeywords = ["ket qua", "da co", "already", "completed"];
 
-  return (
-    [400, 409].includes(statusCode)
-    && placementConflictKeywords.some((keyword) => detail.includes(keyword))
-  );
+  return [400, 409].includes(statusCode) && placementConflictKeywords.some((keyword) => detail.includes(keyword));
 };
 
 const OnboardingPage = () => {
@@ -42,7 +34,7 @@ const OnboardingPage = () => {
   });
 
   useEffect(() => {
-    if (!placementLoading && placementStatus?.has_completed_placement) {
+    if (!placementLoading && !placementStatus?.should_show_onboarding) {
       navigate("/learning", { replace: true });
     }
   }, [placementLoading, placementStatus, navigate]);
@@ -139,7 +131,9 @@ const OnboardingPage = () => {
             "&:hover": { boxShadow: "0 4px 20px rgba(0,0,0,0.08)", transform: "translateY(-2px)" },
             opacity: skipMutation.isPending ? 0.7 : 1,
           }}
-          onClick={() => { if (!skipMutation.isPending) skipMutation.mutate(); }}
+          onClick={() => {
+            if (!skipMutation.isPending) skipMutation.mutate();
+          }}
         >
           <Stack direction="row" spacing={2.5} alignItems="center" sx={{ textAlign: "left" }}>
             <Box
@@ -154,9 +148,7 @@ const OnboardingPage = () => {
                 flexShrink: 0,
               }}
             >
-              {skipMutation.isPending
-                ? <CircularProgress size={24} sx={{ color: "text.secondary" }} />
-                : <SchoolIcon sx={{ fontSize: 28, color: "text.secondary" }} />}
+              {skipMutation.isPending ? <CircularProgress size={24} sx={{ color: "text.secondary" }} /> : <SchoolIcon sx={{ fontSize: 28, color: "text.secondary" }} />}
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: "text.primary" }}>
@@ -170,9 +162,7 @@ const OnboardingPage = () => {
         </SbCard>
 
         {skipMutation.isError && !isPlacementConflictError(skipMutation.error) && (
-          <Alert severity="error">
-            {skipMutation.error?.response?.data?.detail ?? "Đã có lỗi xảy ra, thử lại."}
-          </Alert>
+          <Alert severity="error">{skipMutation.error?.response?.data?.detail ?? "Đã có lỗi xảy ra, thử lại."}</Alert>
         )}
       </Stack>
     </Box>

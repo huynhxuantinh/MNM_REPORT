@@ -1,4 +1,4 @@
-describe("Student Learning Flow", () => {
+﻿describe("Student Learning Flow", () => {
   const student = {
     id: 10,
     email: "student@test.com",
@@ -79,7 +79,7 @@ describe("Student Learning Flow", () => {
     cy.wait("@me");
     cy.wait("@placementStatus");
     cy.location("pathname").should("eq", "/");
-    cy.contains(/Ch�o|Chao/i).should("be.visible");
+    cy.contains(/trang chủ|home/i).should("be.visible");
   });
 
   it("opens learning path and starts a lesson session", () => {
@@ -150,8 +150,8 @@ describe("Student Learning Flow", () => {
     cy.wait("@placementStatus");
     cy.wait("@learningPath");
     cy.location("pathname").should("eq", "/learning");
-    cy.contains(/Learning Path|L? tr?nh h?c/i).should("be.visible");
-    cy.contains("button", /H?c|Start/i).first().click();
+    cy.contains(/lộ trình học|learning path/i).should("be.visible");
+    cy.contains("button", /học|start/i).first().click();
     cy.wait("@startSession");
     cy.wait("@session900");
     cy.url().should("include", "/learning/session/900");
@@ -193,13 +193,13 @@ describe("Student Learning Flow", () => {
     cy.wait("@placementStatus");
 
     cy.get("body").then(($body) => {
-      const text = $body.text();
+      const text = $body.text().toLowerCase();
       if (text.includes("hello")) {
-        cy.contains("button", /L?t th?|Xem ngh?a|Lat the|Xem nghia/i).click({ force: true });
-        cy.contains(/T?t|Tot/i).click({ force: true });
+        cy.contains("button", /lật thẻ|xem nghĩa|lat the|xem nghia/i).click({ force: true });
+        cy.contains(/tốt|tot/i).click({ force: true });
         cy.wait("@reviewAnswer");
       } else {
-        cy.contains(/T?t c? �? �n xong|Tat ca da on xong/i).should("be.visible");
+        cy.contains(/tất cả đã ôn xong|tat ca da on xong/i).should("be.visible");
       }
     });
   });
