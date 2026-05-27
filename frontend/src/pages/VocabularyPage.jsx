@@ -283,7 +283,7 @@ const CsvImportSetDialog = ({ open, onClose }) => {
 
 // ── Words tab ─────────────────────────────────────────────────────────────────
 
-const WordsTab = ({ isTeacher }) => {
+const WordsTab = ({ isAdmin }) => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch]     = useState("");
@@ -341,7 +341,7 @@ const WordsTab = ({ isTeacher }) => {
             {LEVELS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
           </Select>
         </FormControl>
-        {isTeacher && (
+        {isAdmin && (
           <>
             <SbButton variant="primary" size="small" startIcon={<AddRoundedIcon />}
               onClick={() => setWordDialog({ open: true, word: null })}>Thêm từ</SbButton>
@@ -404,7 +404,7 @@ const WordsTab = ({ isTeacher }) => {
                             {w.is_bookmarked ? <BookmarkRoundedIcon fontSize="small" /> : <BookmarkBorderRoundedIcon fontSize="small" />}
                           </IconButton>
                         </Tooltip>
-                        {isTeacher && (
+                        {isAdmin && (
                           <>
                             <Tooltip title="Sửa" arrow>
                               <IconButton size="small" sx={{ color: colors.greenAccent }}
@@ -455,7 +455,7 @@ const WordsTab = ({ isTeacher }) => {
 
 // ── WordSets tab ──────────────────────────────────────────────────────────────
 
-const SetsTab = ({ isTeacher }) => {
+const SetsTab = ({ isAdmin }) => {
   const qc = useQueryClient();
   const [setDialog, setSetDialog] = useState({ open: false, set: null });
   const [csvSetOpen, setCsvSetOpen] = useState(false);
@@ -484,7 +484,7 @@ const SetsTab = ({ isTeacher }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {isTeacher && (
+      {isAdmin && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
           <SbButton variant="outlined" size="small" startIcon={<FileUploadRoundedIcon />}
             onClick={() => setCsvSetOpen(true)}>
@@ -525,7 +525,7 @@ const SetsTab = ({ isTeacher }) => {
                 <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mb: 1.5 }}>
                   {s.word_count ?? 0} từ · {s.created_by_name}
                 </Typography>
-                {isTeacher && (
+                {isAdmin && (
                   <Box sx={{ display: "flex", gap: 1 }}>
                     <SbButton variant="outlined" size="small" startIcon={<EditRoundedIcon />}
                       onClick={() => { setError(null); setSetDialog({ open: true, set: s }); }}>Sửa</SbButton>
@@ -558,16 +558,16 @@ const SetsTab = ({ isTeacher }) => {
 const VocabularyPage = () => {
   const [tab, setTab] = useState(0);
   const { user } = useSelector((s) => s.auth);
-  const isTeacher = user?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: colors.greenStarbucks, letterSpacing: "-0.02em" }}>
-          {isTeacher ? "Quản lý từ vựng" : "Từ vựng"}
+          {isAdmin ? "Quản lý từ vựng" : "Từ vựng"}
         </Typography>
         <Typography sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
-          {isTeacher ? "Tạo, sửa, xóa từ và bộ từ" : "Khám phá kho từ vựng"}
+          {isAdmin ? "Tạo, sửa, xóa từ và bộ từ" : "Khám phá kho từ vựng"}
         </Typography>
       </Box>
 
@@ -582,9 +582,10 @@ const VocabularyPage = () => {
         <Tab label="Bộ từ" />
       </Tabs>
 
-      {tab === 0 ? <WordsTab isTeacher={isTeacher} /> : <SetsTab isTeacher={isTeacher} />}
+      {tab === 0 ? <WordsTab isAdmin={isAdmin} /> : <SetsTab isAdmin={isAdmin} />}
     </Box>
   );
 };
 
 export default VocabularyPage;
+

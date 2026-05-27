@@ -46,6 +46,6 @@ npm run cy:run
 
 ## Celery
 ```bash
-docker compose exec backend celery -A celery worker -l info
-docker compose exec backend celery -A celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+docker compose exec backend celery -A config.celery worker -l info
+docker compose exec backend celery -A config.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 ```
