@@ -1,9 +1,15 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const runningInDocker = fs.existsSync("/.dockerenv");
+  const proxyTarget = env.VITE_API_PROXY_TARGET
+    || (env.VITE_API_BASE_URL
+      ? env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, "")
+      : (runningInDocker ? "http://backend:8000" : "http://127.0.0.1:8000"));
   return {
     plugins: [react({ disableOxcRecommendation: true })],
     publicDir: "img",
@@ -56,7 +62,7 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         "/api": {
-          target: env.VITE_API_BASE_URL?.replace("/api/v1", "") || "http://backend:8000",
+          target: proxyTarget,
           changeOrigin: true,
         },
       },

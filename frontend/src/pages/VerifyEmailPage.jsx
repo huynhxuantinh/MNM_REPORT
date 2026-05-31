@@ -29,8 +29,20 @@ const VerifyEmailPage = () => {
     authApi.verifyEmail({ token })
       .then(() => setStatus("success"))
       .catch((err) => {
+        const detail = err?.response?.data?.detail || "Link đã hết hạn hoặc không hợp lệ.";
+        const normalized = String(detail).toLowerCase();
+        if (
+          normalized.includes("đã được sử dụng")
+          || normalized.includes("da duoc su dung")
+          || normalized.includes("đã xác thực email trước đó")
+          || normalized.includes("da xac thuc email truoc do")
+        ) {
+          setStatus("already_verified");
+          setMessage("Email này đã được xác thực trước đó. Bạn có thể đăng nhập bình thường.");
+          return;
+        }
         setStatus("error");
-        setMessage(err?.response?.data?.detail || "Link đã hết hạn hoặc không hợp lệ.");
+        setMessage(detail);
       });
   }, [token]);
 
@@ -84,6 +96,23 @@ const VerifyEmailPage = () => {
             </Typography>
             <SbButton variant="outlined" component={Link} to="/register" fullWidth>
               Đăng ký lại
+            </SbButton>
+          </>
+        )}
+
+        {status === "already_verified" && (
+          <>
+            <Box sx={{ mb: 2, color: colors.greenAccent }}>
+              <CheckCircleRoundedIcon sx={{ fontSize: 56 }} />
+            </Box>
+            <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: colors.greenStarbucks, mb: 1 }}>
+              Email đã xác thực
+            </Typography>
+            <Typography sx={{ color: "text.secondary", mb: 3, lineHeight: 1.7 }}>
+              {message}
+            </Typography>
+            <SbButton variant="primary" size="large" onClick={handleGoLogin} fullWidth>
+              Đăng nhập ngay
             </SbButton>
           </>
         )}

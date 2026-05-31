@@ -5,17 +5,17 @@ const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
-  withCredentials: true, // Gửi cookie (refresh token) trong mọi request
+  withCredentials: true, // Send refresh-token cookie in every request
 });
 
-// Đính kèm access token vào mọi request
+// Attach access token to each request.
 axiosClient.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Queue để xử lý concurrent refresh requests
+// Queue for concurrent refresh requests.
 let isRefreshing = false;
 let refreshSubscribers = [];
 
@@ -28,36 +28,33 @@ function onTokenRefreshed(newToken) {
   refreshSubscribers = [];
 }
 
-// Tự động refresh token khi nhận 401
+// Auto-refresh access token when API returns 401.
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
 
-    // Nếu không phải 401 hoặc là request refresh token thì reject
+    // Reject non-401 errors or refresh endpoint errors directly.
     if (error.response?.status !== 401 || original.url?.includes("/token/refresh/")) {
       return Promise.reject(error);
     }
 
     if (!isRefreshing) {
       isRefreshing = true;
-
       try {
-        // Refresh token nằm trong HTTP-only cookie
+        // Refresh token is stored in HTTP-only cookie.
         const { data } = await axios.post(
           `${axiosClient.defaults.baseURL}/auth/token/refresh/`,
           {},
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const newToken = data.access;
         setToken(newToken);
         onTokenRefreshed(newToken);
 
-        // Retry original request với token mới
         original.headers.Authorization = `Bearer ${newToken}`;
         return axiosClient(original);
       } catch (refreshError) {
-        // Refresh thất bại → logout
         clearToken();
         window.location.href = "/login";
         return Promise.reject(refreshError);
@@ -66,14 +63,14 @@ axiosClient.interceptors.response.use(
       }
     }
 
-    // Nếu đang refresh, queue request này và đợi token mới
+    // If a refresh is in-flight, queue this request.
     return new Promise((resolve) => {
       subscribeTokenRefresh((newToken) => {
         original.headers.Authorization = `Bearer ${newToken}`;
         resolve(axiosClient(original));
       });
     });
-  }
+  },
 );
 
 export default axiosClient;

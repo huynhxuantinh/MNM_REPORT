@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+﻿import { lazy, Suspense, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -31,9 +31,9 @@ const getLevelThreshold = (n) => (100 * n * (n + 1)) / 2;
 
 const greet = () => {
   const h = new Date().getHours();
-  if (h < 12) return "Chào buổi sáng";
-  if (h < 18) return "Chào buổi chiều";
-  return "Chào buổi tối";
+  if (h < 12) return "ChĂ o buá»•i sĂ¡ng";
+  if (h < 18) return "ChĂ o buá»•i chiá»u";
+  return "ChĂ o buá»•i tá»‘i";
 };
 
 const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
@@ -51,7 +51,8 @@ const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
     );
   }
 
-  if (allDone && reviewedToday > 0) {
+  if (allDone) {
+    const isCompletedToday = reviewedToday > 0;
     return (
       <Box
         sx={{
@@ -83,10 +84,12 @@ const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
           </Box>
           <Box>
             <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", lineHeight: 1.2 }}>
-              Tuyệt vời! Bạn đã ôn xong hôm nay
+              {isCompletedToday ? "Tuyệt vời! Bạn đã ôn xong hôm nay" : "Hôm nay chưa có từ cần ôn"}
             </Typography>
             <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.8)", mt: 0.25 }}>
-              {reviewedToday} từ đã ôn. Quay lại ngày mai nhé.
+              {isCompletedToday
+                ? `${reviewedToday} từ đã ôn. Quay lại ngày mai nhé.`
+                : "Hãy học bài mới để tạo tiến độ cho ngày mai."}
             </Typography>
           </Box>
         </Box>
@@ -139,11 +142,11 @@ const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
                 {dueToday}
               </Typography>
               <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "rgba(255,255,255,0.85)" }}>
-                từ cần ôn hôm nay
+                tá»« cáº§n Ă´n hĂ´m nay
               </Typography>
             </Box>
             <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.75)", mt: 0.25 }}>
-              {reviewedToday > 0 ? `Đã ôn ${reviewedToday}. Còn ${dueToday} từ nữa.` : "Bắt đầu buổi ôn tập nhé."}
+              {reviewedToday > 0 ? `ÄĂ£ Ă´n ${reviewedToday}. CĂ²n ${dueToday} tá»« ná»¯a.` : "Báº¯t Ä‘áº§u buá»•i Ă´n táº­p nhĂ©."}
             </Typography>
           </Box>
         </Box>
@@ -163,7 +166,7 @@ const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
             whiteSpace: "nowrap",
           }}
         >
-          Ôn ngay
+          Ă”n ngay
         </SbButton>
       </Box>
 
@@ -171,7 +174,7 @@ const ReviewBanner = ({ summary, loading, onStart, onLearn }) => {
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
             <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.75)" }}>
-              Tiến độ hôm nay
+              Tiáº¿n Ä‘á»™ hĂ´m nay
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.9)", fontWeight: 700 }}>
               {reviewedToday}/{total} ({pct}%)
@@ -232,7 +235,7 @@ const XpCard = ({ user, loading }) => {
           </Typography>
         )}
         <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-          Còn {Math.max(0, next - xp)} XP lên Level {level + 1}
+          CĂ²n {Math.max(0, next - xp)} XP lĂªn Level {level + 1}
         </Typography>
         <LinearProgress
           variant="determinate"
@@ -244,8 +247,7 @@ const XpCard = ({ user, loading }) => {
   );
 };
 
-const LessonCard = ({ lesson }) => {
-  const navigate = useNavigate();
+const LessonCard = ({ lesson, onStartSession, isStarting }) => {
   const isCompleted = !!lesson.user_progress?.completed_at;
   const isStarted = !!lesson.user_progress?.started_at;
 
@@ -265,7 +267,7 @@ const LessonCard = ({ lesson }) => {
               {isCompleted && (
                 <Chip
                   icon={<CheckCircleRoundedIcon sx={{ fontSize: "12px !important" }} />}
-                  label="Hoàn thành"
+                  label="HoĂ n thĂ nh"
                   size="small"
                   sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }}
                 />
@@ -278,17 +280,18 @@ const LessonCard = ({ lesson }) => {
           <MenuBookRoundedIcon sx={{ color: colors.greenLight, fontSize: 22, flexShrink: 0, mt: 0.25 }} />
         </Box>
 
-        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{lesson.word_count} từ</Typography>
+        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{lesson.word_count} tá»«</Typography>
 
         <SbButton
           variant={isCompleted ? "outlined" : "primary"}
           size="small"
           fullWidth
-          onClick={() => navigate(`/learning/${lesson.id}/study`)}
+          loading={isStarting}
+          onClick={() => onStartSession?.(lesson.id)}
           endIcon={<ArrowForwardRoundedIcon />}
           sx={{ mt: 0.5 }}
         >
-          {isCompleted ? "Học lại" : isStarted ? "Tiếp tục" : "Học ngay"}
+          {isCompleted ? "Há»c láº¡i" : isStarted ? "Tiáº¿p tá»¥c" : "Há»c ngay"}
         </SbButton>
       </Box>
     </SbCard>
@@ -341,6 +344,10 @@ const HomePage = () => {
     mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId, "home_page").then((r) => r.data),
     onSuccess: (payload) => navigate(`/learning/session/${payload.session?.id}`),
   });
+  const startSessionMutation = useMutation({
+    mutationFn: (lessonId) => learningApi.startLearningSession(lessonId, "home_page").then((r) => r.data),
+    onSuccess: (session) => navigate(`/learning/session/${session.id}`),
+  });
   const { data: dailyGoalData, isLoading: goalLoading } = useQuery({
     queryKey: ["home-daily-goal"],
     queryFn: () => learningApi.getDailyGoal().then((r) => r.data),
@@ -354,6 +361,11 @@ const HomePage = () => {
   const lessons = lessonsData?.results ?? [];
   const totalWords = history?.reduce((s, d) => s + d.count, 0) ?? 0;
   const totalReviewDays = history?.filter((d) => d.count > 0).length ?? 0;
+
+  const handleStartLessonSession = (lessonId) => {
+    if (!lessonId) return;
+    startSessionMutation.mutate(lessonId);
+  };
   const recoverSession = recoverData?.session;
 
   return (
@@ -365,9 +377,13 @@ const HomePage = () => {
         <Typography sx={{ color: "text.secondary", fontSize: "0.9rem", mt: 0.25 }}>
           {sumLoading
             ? "Đang tải..."
-            : reviewDue > 0
-              ? `Hôm nay bạn đã ôn ${reviewDue} từ. ${dueToday > 0 ? "Hãy tiếp tục." : "Xuất sắc."}`
-              : "Chưa ôn tập hôm nay. Bắt đầu ngay."}
+            : dueToday === 0
+              ? (reviewDue > 0
+                ? `Hôm nay bạn đã ôn ${reviewDue} từ. Xuất sắc.`
+                : "Hôm nay chưa có từ cần ôn. Học bài mới nhé.")
+              : (reviewDue > 0
+                ? `Hôm nay bạn đã ôn ${reviewDue} từ. Hãy tiếp tục.`
+                : `Bạn có ${dueToday} từ cần ôn hôm nay.`)}
         </Typography>
       </Box>
 
@@ -376,15 +392,15 @@ const HomePage = () => {
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
             <Box>
               <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>
-                Tiếp tục phiên học
+                Tiáº¿p tá»¥c phiĂªn há»c
               </Typography>
               <Typography sx={{ fontSize: "0.86rem", color: "text.secondary" }}>
-                Bạn còn dở bài: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
+                bạn cĂ²n dá»Ÿ bĂ i: {recoverSession.lesson_title} (bÆ°á»›c {recoverData.next_step_index || 1}).
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
               <SbButton size="small" variant="outlined" onClick={() => refetchRecover()}>
-                Làm mới
+                LĂ m má»›i
               </SbButton>
               <SbButton
                 size="small"
@@ -392,7 +408,7 @@ const HomePage = () => {
                 loading={resumeMutation.isPending}
                 onClick={() => resumeMutation.mutate(recoverSession.id)}
               >
-                Tiếp tục
+                Tiáº¿p tá»¥c
               </SbButton>
             </Box>
           </Box>
@@ -415,7 +431,7 @@ const HomePage = () => {
             icon={<LocalFireDepartmentRoundedIcon sx={{ fontSize: 24 }} />}
             color={streak > 0 ? colors.gold : "text.secondary"}
             value={streak}
-            label="Ngày học liên tiếp"
+            label="NgĂ y há»c liĂªn tiáº¿p"
             sub={streak >= 7 ? "Milestone" : undefined}
             loading={sumLoading}
           />
@@ -425,8 +441,8 @@ const HomePage = () => {
             icon={<RepeatRoundedIcon sx={{ fontSize: 24 }} />}
             color={colors.greenStarbucks}
             value={reviewDue}
-            label="Từ đã ôn hôm nay"
-            sub={dueToday > 0 ? `Còn ${dueToday}` : undefined}
+            label="Tá»« Ä‘Ă£ Ă´n hĂ´m nay"
+            sub={dueToday > 0 ? `CĂ²n ${dueToday}` : undefined}
             loading={sumLoading}
           />
         </Grid>
@@ -435,7 +451,7 @@ const HomePage = () => {
             icon={<CheckCircleRoundedIcon sx={{ fontSize: 24 }} />}
             color={colors.greenHouse}
             value={totalReviewDays}
-            label="Ngày có ôn tập (30 ngày)"
+            label="NgĂ y cĂ³ Ă´n táº­p (30 ngĂ y)"
             loading={histLoading}
           />
         </Grid>
@@ -498,10 +514,10 @@ const HomePage = () => {
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
           <Box>
             <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
-              Hoạt động ôn tập
+              Hoáº¡t Ä‘á»™ng Ă´n táº­p
             </Typography>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-              30 ngày qua. {totalWords} từ đã ôn
+              30 ngĂ y qua. {totalWords} tá»« Ä‘Ă£ Ă´n
             </Typography>
           </Box>
           <SbBadge type="xp" value={`+${totalWords * 5}`} label={`+${totalWords * 5} XP`} />
@@ -514,10 +530,10 @@ const HomePage = () => {
       <Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
-            Bài học của tôi
+            BĂ i há»c cá»§a tĂ´i
           </Typography>
           <SbButton variant="outlined" size="small" endIcon={<ArrowForwardRoundedIcon />} onClick={() => navigate("/learning")}>
-            Xem tất cả
+            Xem táº¥t cáº£
           </SbButton>
         </Box>
 
@@ -533,17 +549,21 @@ const HomePage = () => {
           <SbCard variant="cream" sx={{ textAlign: "center", py: 4 }}>
             <MenuBookRoundedIcon sx={{ fontSize: 40, color: colors.greenLight, mb: 1 }} />
             <Typography sx={{ color: "text.secondary" }}>
-              Chưa có bài học nào. Hãy khám phá thư viện bài học.
+              ChÆ°a cĂ³ bĂ i há»c nĂ o. HĂ£y khĂ¡m phĂ¡ thÆ° viá»‡n bĂ i há»c.
             </Typography>
             <SbButton variant="primary" sx={{ mt: 2 }} onClick={() => navigate("/learning")}>
-              Khám phá bài học
+              KhĂ¡m phĂ¡ bĂ i há»c
             </SbButton>
           </SbCard>
         ) : (
           <Grid container spacing={2}>
             {lessons.map((lesson) => (
               <Grid item xs={12} sm={6} md={4} key={lesson.id}>
-                <LessonCard lesson={lesson} />
+                <LessonCard
+                  lesson={lesson}
+                  onStartSession={handleStartLessonSession}
+                  isStarting={startSessionMutation.isPending && startSessionMutation.variables === lesson.id}
+                />
               </Grid>
             ))}
           </Grid>

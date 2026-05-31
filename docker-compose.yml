@@ -45,6 +45,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: mnm_report-backend-dev
     container_name: mnm_backend
     restart: unless-stopped
     env_file: .env
@@ -73,6 +74,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: mnm_report-backend-dev
     container_name: mnm_celery_worker
     restart: unless-stopped
     env_file: .env
@@ -94,6 +96,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: mnm_report-backend-dev
     container_name: mnm_celery_beat
     restart: unless-stopped
     env_file: .env
@@ -115,6 +118,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: mnm_report-frontend-dev
     container_name: mnm_frontend
     restart: unless-stopped
     env_file: .env

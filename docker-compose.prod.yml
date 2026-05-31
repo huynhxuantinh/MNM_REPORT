@@ -37,6 +37,7 @@ services:
       dockerfile: Dockerfile
       args:
         REQUIREMENTS_FILE: production.txt
+    image: mnm_report-backend-prod
     restart: unless-stopped
     env_file: .env
     environment:
@@ -62,6 +63,7 @@ services:
       dockerfile: Dockerfile
       args:
         REQUIREMENTS_FILE: production.txt
+    image: mnm_report-backend-prod
     restart: unless-stopped
     env_file: .env
     environment:
@@ -81,6 +83,7 @@ services:
       dockerfile: Dockerfile
       args:
         REQUIREMENTS_FILE: production.txt
+    image: mnm_report-backend-prod
     restart: unless-stopped
     env_file: .env
     environment:
@@ -100,6 +103,7 @@ services:
       dockerfile: Dockerfile.prod
       args:
         VITE_API_BASE_URL: /api/v1
+    image: mnm_report-frontend-prod
     restart: unless-stopped
     env_file: .env
     ports:

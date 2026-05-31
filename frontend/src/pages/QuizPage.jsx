@@ -198,6 +198,7 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
   };
 
   const handleNext = () => {
+    if (submitMutation.isPending) return;
     if (current < total - 1) {
       setCurrent((c) => c + 1);
     } else {
@@ -208,6 +209,31 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
       onFinish({ type: "mc", questions, answers, correct, total, score, sourceTitle: data.source_title });
     }
   };
+
+  useEffect(() => {
+    const handleKeyboardShortcuts = (event) => {
+      if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.isComposing) return;
+      if (submitMutation.isPending) return;
+      const currentQuestion = questions[current];
+
+      const digit = Number(event.key);
+      if (Number.isInteger(digit) && digit >= 1 && digit <= 4) {
+        const option = currentQuestion?.options?.[digit - 1];
+        if (!option) return;
+        event.preventDefault();
+        handleSelect(digit - 1);
+        return;
+      }
+
+      if (event.key !== "Enter") return;
+      if (!isRevealed) return;
+      event.preventDefault();
+      handleNext();
+    };
+    window.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
+  }, [current, isRevealed, questions, submitMutation.isPending, total]);
 
   if (isLoading) return <LinearProgress sx={{ maxWidth: 400, mx: "auto", mt: 10, borderRadius: 2 }} />;
   if (isError) return <Alert severity="error">Lỗi khi tạo câu hỏi.</Alert>;
@@ -224,6 +250,9 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
           <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>Câu {current + 1} / {total}</Typography>
           <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: colors.greenStarbucks }}>{data.source_title}</Typography>
         </Box>
+        <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mb: 0.75 }}>
+          Phím tắt: 1-4 chọn đáp án, Enter qua câu tiếp theo.
+        </Typography>
         <LinearProgress variant="determinate" value={((current + 1) / total) * 100} sx={{ height: 6, borderRadius: 3, bgcolor: "rgba(0,0,0,0.08)", "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent } }} />
       </Box>
 

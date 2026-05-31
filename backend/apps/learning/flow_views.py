@@ -44,6 +44,7 @@ from .serializers import (
     LearningSessionAnswerSerializer,
     LearningSessionSerializer,
     LearningSessionStartSerializer,
+    PlacementSkipResponseSerializer,
     PlacementResultSerializer,
     PlacementSubmitSerializer,
     ReviewAnswerSerializer,
@@ -533,7 +534,7 @@ class LearningPlacementSubmitView(APIView):
         questions = cache.get(_placement_cache_key(request.user.id))
         if not questions:
             return Response(
-                {"detail": "Placement da het han. Vui long tai lai bo cau hoi."},
+                {"detail": "Placement đã hết hạn. Vui lòng tải lại bộ câu hỏi."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -621,6 +622,7 @@ class LearningPlacementSkipView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses=PlacementSkipResponseSerializer)
     def post(self, request):
         existing = PlacementResult.objects.filter(user=request.user).first()
         if existing:

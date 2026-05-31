@@ -1,18 +1,37 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
 import net from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const mode = process.argv[2] ?? "run";
 const extraArgs = process.argv.slice(3);
+const strictMode = process.env.CYPRESS_STRICT === "1";
+const skipVerify = process.env.CYPRESS_SKIP_VERIFY === "true" || process.env.SKIP_CYPRESS_VERIFY === "1";
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([, value]) => value !== undefined),
 );
 
 delete env.ELECTRON_RUN_AS_NODE;
-env.CYPRESS_SKIP_VERIFY = "true";
+delete process.env.ELECTRON_RUN_AS_NODE;
 
 const HOST = "127.0.0.1";
 const START_PORT = 5173;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const FRONTEND_ROOT = path.resolve(__dirname, "..");
+const CYPRESS_BIN = path.join(FRONTEND_ROOT, "node_modules", "cypress", "bin", "cypress");
+
+const runNodeScript = (scriptPath, args, options = {}) =>
+  new Promise((resolve) => {
+    const childProcess = spawn(process.execPath, [scriptPath, ...args], {
+      stdio: "inherit",
+      env,
+      cwd: FRONTEND_ROOT,
+      ...options,
+    });
+    childProcess.on("exit", (code) => resolve(code ?? 1));
+  });
 
 const findAvailablePort = async (port, maxTries = 20) => {
   const canUsePort = (candidate) =>
@@ -63,7 +82,6 @@ const waitForServer = (url, timeoutMs = 60_000) => new Promise((resolve, reject)
 
 let child;
 let devServer;
-let fallbackStarted = false;
 
 const stopDevServer = () => {
   if (devServer && !devServer.killed) {
@@ -71,52 +89,63 @@ const stopDevServer = () => {
   }
 };
 
-const runPlaywrightFallback = () => {
-  if (fallbackStarted) return;
-  fallbackStarted = true;
-  console.warn("[run-cypress] Cypress runtime failed, fallback to Playwright admin smoke...");
-
-  const fallback = spawn("npm.cmd run pw:admin", {
-    stdio: "inherit",
-    shell: true,
-    env,
+const maybeRunFallback = () =>
+  new Promise((resolve) => {
+    const allowFallback = !strictMode && env.ALLOW_CYPRESS_FALLBACK === "1";
+    if (!allowFallback) {
+      resolve(1);
+      return;
+    }
+    console.warn("[run-cypress] Cypress failed, fallback to Playwright admin smoke...");
+    const fallback = spawn("npm.cmd", ["run", "pw:admin"], {
+      stdio: "inherit",
+      env,
+      cwd: FRONTEND_ROOT,
+      shell: true,
+    });
+    fallback.on("exit", (fallbackCode) => resolve(fallbackCode ?? 1));
   });
 
-  fallback.on("exit", (fallbackCode) => {
-    process.exit(fallbackCode ?? 1);
-  });
-};
-
-findAvailablePort(START_PORT)
+Promise.resolve(skipVerify ? 0 : runNodeScript(CYPRESS_BIN, ["verify"]))
+  .then((verifyCode) => {
+    if (skipVerify) {
+      console.warn("[run-cypress] Skip Cypress verify via env (CYPRESS_SKIP_VERIFY/SKIP_CYPRESS_VERIFY).");
+    }
+    if (verifyCode !== 0) {
+      throw new Error("Cypress verify failed. Please ensure local Cypress runtime is healthy.");
+    }
+    return findAvailablePort(START_PORT);
+  })
   .then((port) => {
     const appUrl = `http://${HOST}:${port}`;
-    const devCommand = `npm.cmd run dev -- --host ${HOST} --port ${port} --strictPort`;
-
-    devServer = spawn(devCommand, {
+    devServer = spawn(
+      "npm.cmd",
+      ["run", "dev", "--", "--host", HOST, "--port", String(port), "--strictPort"],
+      {
       stdio: "inherit",
-      shell: true,
       env,
-    });
+      cwd: FRONTEND_ROOT,
+      shell: true,
+      },
+    );
 
     return waitForServer(appUrl).then(() => ({ appUrl, port }));
   })
   .then(({ appUrl }) => {
-    const cypressArgs = [mode, `--config`, `baseUrl=${appUrl}`, ...extraArgs]
-      .map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg))
-      .join(" ");
-
-    child = spawn(`npx cypress ${cypressArgs}`, {
+    const cypressArgs = [mode, "--config", `baseUrl=${appUrl}`, ...extraArgs];
+    child = spawn(process.execPath, [CYPRESS_BIN, ...cypressArgs], {
       stdio: "inherit",
-      shell: true,
       env,
+      cwd: FRONTEND_ROOT,
     });
 
-    child.on("exit", (code) => {
+    child.on("exit", async (code) => {
       stopDevServer();
-      if (code === 0 || mode !== "run") {
+      if (code === 0 || mode !== "run" || strictMode) {
         process.exit(code ?? 1);
       }
-      runPlaywrightFallback();
+      const fallbackCode = await maybeRunFallback();
+      process.exit(fallbackCode);
     });
   })
   .catch((err) => {

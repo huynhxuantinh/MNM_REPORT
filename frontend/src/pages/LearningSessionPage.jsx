@@ -52,6 +52,12 @@ const getDifficultyReasonLabel = (value) => {
   return value.replaceAll("_", " ");
 };
 
+const isTypingTarget = (target) => {
+  if (!target || typeof target !== "object") return false;
+  const tagName = target.tagName?.toLowerCase?.();
+  return tagName === "input" || tagName === "textarea" || !!target.isContentEditable;
+};
+
 const SessionSummary = ({ session, result, onBack }) => {
   const passed = !!result?.passed;
   const isCheckpoint = session?.session_type === "checkpoint";
@@ -318,36 +324,66 @@ const LearningSessionPage = () => {
     });
   }, [answerMutation, canSubmit, currentExercise, orderedTokens, textAnswer]);
 
+  const addToken = useCallback((token, index) => {
+    setOrderedTokens((prev) => [...prev, token]);
+    setUsedTokenIndexes((prev) => new Set([...prev, index]));
+  }, []);
+
+  const resetTokens = useCallback(() => {
+    setOrderedTokens([]);
+    setUsedTokenIndexes(new Set());
+  }, []);
+
   useEffect(() => {
-    const handleEnterSubmit = (event) => {
-      if (event.key !== "Enter") return;
+    const handleKeyboardShortcuts = (event) => {
       if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.isComposing) return;
-      if (!currentExercise || !canSubmit) return;
+      if (!currentExercise) return;
+      if (feedback) return;
       if (answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending) return;
+
+      const digit = Number(event.key);
+      if (Number.isInteger(digit) && digit >= 1 && digit <= 4) {
+        if (isTypingTarget(event.target) && currentExercise.exercise_type === "fill_blank") return;
+
+        if (currentExercise.exercise_type === "mc_meaning" || currentExercise.exercise_type === "listen_choose_word") {
+          const option = (currentExercise.choices || [])[digit - 1];
+          if (!option) return;
+          event.preventDefault();
+          setTextAnswer(option);
+          return;
+        }
+
+        if (currentExercise.exercise_type === "word_order") {
+          const availableTokens = (currentExercise.tokens || [])
+            .map((token, index) => ({ token, index }))
+            .filter((item) => !usedTokenIndexes.has(item.index));
+          const selected = availableTokens[digit - 1];
+          if (!selected) return;
+          event.preventDefault();
+          addToken(selected.token, selected.index);
+        }
+        return;
+      }
+
+      if (event.key !== "Enter") return;
+      if (!canSubmit) return;
       event.preventDefault();
       handleSubmitAnswer();
     };
-    window.addEventListener("keydown", handleEnterSubmit);
-    return () => window.removeEventListener("keydown", handleEnterSubmit);
+    window.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
   }, [
+    addToken,
     answerMutation.isPending,
     canSubmit,
     checkpointSubmitMutation.isPending,
     currentExercise,
+    feedback,
     finishMutation.isPending,
     handleSubmitAnswer,
+    usedTokenIndexes,
   ]);
-
-  const addToken = (token, index) => {
-    setOrderedTokens((prev) => [...prev, token]);
-    setUsedTokenIndexes((prev) => new Set([...prev, index]));
-  };
-
-  const resetTokens = () => {
-    setOrderedTokens([]);
-    setUsedTokenIndexes(new Set());
-  };
 
   const handleQuitConfirm = () => {
     setQuitDialogOpen(false);
@@ -487,6 +523,9 @@ const LearningSessionPage = () => {
             <SbCard>
               <Stack spacing={2}>
                 <Typography sx={{ fontWeight: 700, fontSize: "1.05rem" }}>{currentExercise.prompt}</Typography>
+                <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                  Phím tắt: 1-4 để chọn nhanh, Enter để gửi đáp án.
+                </Typography>
 
                 {currentExercise.exercise_type === "mc_meaning" && (
                   <Stack spacing={1}>
@@ -568,14 +607,19 @@ const LearningSessionPage = () => {
                   </Stack>
                 )}
 
-                <SbButton
-                  variant="primary"
-                  disabled={!canSubmit}
-                  loading={answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending}
-                  onClick={handleSubmitAnswer}
-                >
-                  Gửi đáp án
-                </SbButton>
+                <Stack spacing={0.75}>
+                  <SbButton
+                    variant="primary"
+                    disabled={!canSubmit}
+                    loading={answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending}
+                    onClick={handleSubmitAnswer}
+                  >
+                    Gửi đáp án
+                  </SbButton>
+                  <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", textAlign: "center" }}>
+                    Phím tắt: <strong>1-4</strong> chọn đáp án · <strong>Enter</strong> gửi nhanh
+                  </Typography>
+                </Stack>
               </Stack>
             </SbCard>
 
@@ -625,3 +669,6 @@ const LearningSessionPage = () => {
 };
 
 export default LearningSessionPage;
+
+
+

@@ -80,27 +80,6 @@ const LeftPanel = ({ headline, subtext }) => (
         </Typography>
       </Box>
     </Box>
-    <Box
-      component={Link}
-      to="/about"
-      sx={{
-        alignSelf: "flex-start",
-        mb: 4,
-        px: 2.25,
-        py: 1,
-        borderRadius: 999,
-        bgcolor: "#fff",
-        color: colors.greenHouse,
-        fontSize: "0.9rem",
-        fontWeight: 900,
-        textDecoration: "none",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
-        "&:hover": { bgcolor: colors.greenLight },
-      }}
-    >
-      Xem giới thiệu
-    </Box>
-
     <Typography
       sx={{
         fontSize: { md: "2rem", lg: "2.4rem" },

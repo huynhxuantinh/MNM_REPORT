@@ -40,6 +40,7 @@ const LearningPlacementPage = () => {
   const [answers, setAnswers] = useState({});
   const [placementResult, setPlacementResult] = useState(null);
   const [submitHint, setSubmitHint] = useState("");
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
 
   const { data: statusData } = useQuery({
     queryKey: ["placement-status"],
@@ -105,6 +106,12 @@ const LearningPlacementPage = () => {
   );
 
   useEffect(() => {
+    if (!questions.length) return;
+    const firstUnansweredIndex = questions.findIndex((q) => !answers[q.question_id]);
+    setActiveQuestionIndex(firstUnansweredIndex >= 0 ? firstUnansweredIndex : Math.max(questions.length - 1, 0));
+  }, [answers, questions]);
+
+  useEffect(() => {
     if (typeof window === "undefined" || questions.length === 0) return;
     const raw = window.localStorage.getItem(PLACEMENT_DRAFT_KEY);
     if (!raw) return;
@@ -144,6 +151,34 @@ const LearningPlacementPage = () => {
       .filter((item) => item.option);
     submitMutation.mutate(payload);
   };
+
+  useEffect(() => {
+    const handleKeyboardShortcuts = (event) => {
+      if (placementResult) return;
+      if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.isComposing) return;
+      if (!questions.length) return;
+      if (submitMutation.isPending) return;
+
+      const digit = Number(event.key);
+      if (Number.isInteger(digit) && digit >= 1 && digit <= 4) {
+        const question = questions[activeQuestionIndex];
+        const option = question?.choices?.[digit - 1];
+        if (!question || !option) return;
+        event.preventDefault();
+        handleAnswerChange(question.question_id, option);
+        setActiveQuestionIndex((prev) => Math.min(prev + 1, Math.max(questions.length - 1, 0)));
+        return;
+      }
+
+      if (event.key === "Enter" && answeredCount >= 5) {
+        event.preventDefault();
+        handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
+  }, [activeQuestionIndex, answeredCount, placementResult, questions, submitMutation.isPending]);
 
   if (isLoading) {
     return (
@@ -216,6 +251,9 @@ const LearningPlacementPage = () => {
         </Typography>
         <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
           Hoàn thành bài xếp lớp để tối ưu độ khó. Đã trả lời {answeredCount}/{questions.length}.
+        </Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.82rem", mt: 0.5 }}>
+          Phím tắt: 1-4 để chọn đáp án cho câu hiện tại, Enter để nộp nhanh.
         </Typography>
         {!!statusData?.has_completed_placement && (
           <Alert severity="info" sx={{ mt: 1.5 }}>

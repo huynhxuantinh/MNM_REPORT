@@ -311,3 +311,9 @@ class PlacementResultSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
+
+
+class PlacementSkipResponseSerializer(serializers.Serializer):
+    already_completed = serializers.BooleanField()
+    detail = serializers.CharField()
+    recommended_level = serializers.CharField()

@@ -21,6 +21,8 @@ import learningApi from "@/api/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
+const LEARNING_UX_HINT_KEY = "learning_ux_hint_dismissed_v1";
+
 const UnitCard = ({
   unit,
   onStart,
@@ -138,15 +140,22 @@ const UnitCard = ({
         </Stack>
 
         {canStartCheckpoint && (
-          <SbButton
-            variant="outlined"
-            startIcon={<FactCheckRoundedIcon />}
-            disabled={disabled}
-            loading={startingCheckpointUnitId === unit.id}
-            onClick={() => onStartCheckpoint(unit.id)}
+          <Tooltip
+            title="Checkpoint giúp xác nhận bạn nắm chắc unit trước khi mở khóa unit tiếp theo."
+            arrow
           >
-            Làm kiểm tra unit
-          </SbButton>
+            <Box>
+              <SbButton
+                variant="outlined"
+                startIcon={<FactCheckRoundedIcon />}
+                disabled={disabled}
+                loading={startingCheckpointUnitId === unit.id}
+                onClick={() => onStartCheckpoint(unit.id)}
+              >
+                Làm kiểm tra unit
+              </SbButton>
+            </Box>
+          </Tooltip>
         )}
         {checkpointPassed && (
           <Alert severity="success" sx={{ py: 0 }}>
@@ -162,6 +171,10 @@ const LearningPage = () => {
   const navigate = useNavigate();
   const [quickStudyLoading, setQuickStudyLoading] = useState(false);
   const [quickStudyError, setQuickStudyError] = useState("");
+  const [showUxHint, setShowUxHint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(LEARNING_UX_HINT_KEY) !== "1";
+  });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["learning-path"],
@@ -231,7 +244,7 @@ const LearningPage = () => {
   };
   const handleStudy = (lessonId) => {
     if (!lessonId) return;
-    navigate(`/learning/${lessonId}/study`);
+    startMutation.mutate(lessonId);
   };
   const handleStartCheckpoint = (unitId) => {
     if (!unitId) return;
@@ -280,6 +293,13 @@ const LearningPage = () => {
       setQuickStudyError(err?.response?.data?.detail || "Không thể bắt đầu học nhanh.");
     } finally {
       setQuickStudyLoading(false);
+    }
+  };
+
+  const dismissUxHint = () => {
+    setShowUxHint(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LEARNING_UX_HINT_KEY, "1");
     }
   };
 
@@ -367,6 +387,32 @@ const LearningPage = () => {
         </Alert>
       )}
 
+      {showUxHint && (
+        <Alert
+          severity="info"
+          action={(
+            <SbButton size="small" variant="text" onClick={dismissUxHint}>
+              Ẩn
+            </SbButton>
+          )}
+        >
+          <Stack spacing={0.5}>
+            <Typography sx={{ fontSize: "0.86rem", fontWeight: 700 }}>
+              Hướng dẫn nhanh
+            </Typography>
+            <Typography sx={{ fontSize: "0.82rem" }}>
+              Tim: sai đáp án sẽ mất tim, tim sẽ tự hồi theo thời gian.
+            </Typography>
+            <Typography sx={{ fontSize: "0.82rem" }}>
+              Streak Freeze: tự dùng 1 freeze để giữ streak khi bạn nghỉ học 1 ngày.
+            </Typography>
+            <Typography sx={{ fontSize: "0.82rem" }}>
+              Checkpoint: hoàn thành checkpoint để xác nhận kiến thức và mở khóa tiến độ chắc chắn hơn.
+            </Typography>
+          </Stack>
+        </Alert>
+      )}
+
       {!!dailyGoalData && (
         <SbCard>
           <Stack spacing={1}>
@@ -392,9 +438,14 @@ const LearningPage = () => {
                 Đã hoàn thành mục tiêu hôm nay
               </Typography>
             )}
-            <Typography sx={{ fontSize: "0.9rem" }}>
-              Tim: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 10}
-            </Typography>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Typography sx={{ fontSize: "0.9rem" }}>
+                Tim: {dailyGoalData.hearts?.current ?? 0}/{dailyGoalData.hearts?.max ?? 10}
+              </Typography>
+              <Tooltip arrow title="Mỗi câu sai thường trừ 1 tim. Hết tim cần chờ hồi hoặc quay lại sau.">
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }} />
+              </Tooltip>
+            </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Typography sx={{ fontSize: "0.9rem" }}>
                 Streak Freeze: {dailyGoalData.streak?.freeze_count ?? 0}
@@ -408,6 +459,9 @@ const LearningPage = () => {
             </Stack>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
               Dùng để bảo vệ streak khi lỡ nghỉ học 1 ngày.
+            </Typography>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+              Phím tắt khi làm bài: nhấn 1-4 để chọn đáp án, Enter để gửi nhanh.
             </Typography>
             <SbButton
               size="small"
@@ -495,7 +549,5 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
-
-
 
 

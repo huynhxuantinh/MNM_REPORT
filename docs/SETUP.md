@@ -26,8 +26,8 @@ git --version
 ## 2) Clone du an
 
 ```bash
-git clone https://github.com/huynhxuantinh/MNM_REPORT
-cd MNM_REPORT
+git clone <your-repo-url>
+cd <your-repo-folder>
 ```
 
 ## 3) Tao file moi truong
@@ -47,6 +47,12 @@ Bat buoc kiem tra cac bien trong `.env`:
 - `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
 - `JWT_SIGNING_KEY`
 - `VITE_API_BASE_URL`
+
+Tao `SECRET_KEY` manh (toi thieu 50 ky tu, random) neu chua co:
+
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
 ## 4) Chay bang Docker
 

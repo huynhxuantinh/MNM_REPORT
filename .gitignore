@@ -34,6 +34,9 @@ node_modules/
 frontend/dist/
 frontend/.env
 *.local
+frontend/cypress/screenshots/
+frontend/cypress/videos/
+frontend/test-results/
 
 # ── Docker ────────────────────────────────────────────────────────
 docker-compose.override.yml
@@ -49,3 +52,7 @@ Thumbs.db
 # ── Logs ──────────────────────────────────────────────────────────
 *.log
 logs/
+
+# Office / export docs
+*.doc
+*.docx

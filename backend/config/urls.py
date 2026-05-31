@@ -1,13 +1,12 @@
-"""URL gốc của dự án."""
-from django.contrib import admin
-from django.urls import path, include
+"""Root URL configuration."""
 from django.conf import settings
 from django.conf.urls.static import static
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from django.contrib import admin
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
     # API v1
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/vocabulary/", include("apps.vocabulary.urls")),
@@ -15,8 +14,8 @@ urlpatterns = [
     path("api/v1/quiz/", include("apps.quiz.urls")),
 ]
 
-# API Docs - chỉ expose khi DEBUG=True (dev/staging).
-# Trên production: Swagger/Redoc ẩn theo mặc định; bật lại bằng ENABLE_API_DOCS=True.
+# API docs: expose in development by default.
+# In production, enable only when ENABLE_API_DOCS=True.
 if settings.DEBUG or getattr(settings, "ENABLE_API_DOCS", False):
     urlpatterns += [
         path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -26,6 +25,7 @@ if settings.DEBUG or getattr(settings, "ENABLE_API_DOCS", False):
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     import debug_toolbar
+
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
 if settings.DEBUG:

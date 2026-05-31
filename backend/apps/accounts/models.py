@@ -1,6 +1,4 @@
-"""
-Models cho module xác thực và tài khoản người dùng.
-"""
+"""Models for account and authentication domain."""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import F
@@ -8,25 +6,23 @@ from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
-    """Custom user model theo bảng User trong tài liệu đặc tả chương 3."""
+    """Custom user model."""
 
     class Role(models.TextChoices):
-        USER = "user", "Học sinh"
-        ADMIN = "admin", "Quản trị viên"
+        USER = "user", "Hoc sinh"
+        ADMIN = "admin", "Quan tri vien"
 
-    # Dùng email làm username chính để đăng nhập
+    # Use email as primary login identifier.
     email = models.EmailField(_("email address"), max_length=254, unique=True)
-    full_name = models.CharField("Họ và tên", max_length=200, blank=True)
-    role = models.CharField(
-        "Vai trò", max_length=10, choices=Role.choices, default=Role.USER
-    )
-    xp = models.IntegerField("Điểm kinh nghiệm", default=0)
-    level = models.IntegerField("Cấp độ", default=1)
-    avatar_url = models.CharField("Ảnh đại diện", max_length=500, blank=True)
-    # is_active = False cho đến khi xác thực email
-    is_active = models.BooleanField("Hoạt động", default=False)
-    email_verified = models.BooleanField("Email đã xác thực", default=False)
-    notification_enabled = models.BooleanField("Bật thông báo", default=True)
+    full_name = models.CharField("Ho va ten", max_length=200, blank=True)
+    role = models.CharField("Vai tro", max_length=10, choices=Role.choices, default=Role.USER)
+    xp = models.IntegerField("Diem kinh nghiem", default=0)
+    level = models.IntegerField("Cap do", default=1)
+    avatar_url = models.CharField("Anh dai dien", max_length=500, blank=True)
+    # Keep inactive until email verification succeeds.
+    is_active = models.BooleanField("Hoat dong", default=False)
+    email_verified = models.BooleanField("Email da xac thuc", default=False)
+    notification_enabled = models.BooleanField("Bat thong bao", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -34,8 +30,8 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ["username"]
 
     class Meta:
-        verbose_name = "Người dùng"
-        verbose_name_plural = "Người dùng"
+        verbose_name = "Nguoi dung"
+        verbose_name_plural = "Nguoi dung"
         db_table = "users"
 
     def __str__(self):
@@ -46,7 +42,7 @@ class User(AbstractUser):
         return self.role == self.Role.ADMIN
 
     def add_xp(self, amount: int) -> bool:
-        """Cộng XP và tự động nâng level. Trả về True nếu vừa lên level."""
+        """Add XP and auto level-up. Returns True when user leveled up."""
         type(self).objects.filter(pk=self.pk).update(xp=F("xp") + amount)
         self.refresh_from_db(fields=["xp"])
         new_level = self._calculate_level(self.xp)
@@ -57,7 +53,7 @@ class User(AbstractUser):
 
     @staticmethod
     def _calculate_level(xp: int) -> int:
-        """Công thức cấp độ: cần 100×N×(N+1)/2 XP để đạt level N."""
+        """Level formula: need 100*N*(N+1)/2 XP to reach level N."""
         level = 1
         while xp >= 100 * level * (level + 1) // 2:
             level += 1
@@ -65,39 +61,35 @@ class User(AbstractUser):
 
 
 class EmailVerificationToken(models.Model):
-    """Token xác thực email – hạn sử dụng 24 giờ."""
+    """Email verification token, expires in 24 hours."""
 
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="email_verification"
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="email_verification")
     token = models.CharField(max_length=64, unique=True, db_index=True)
-    expires_at = models.DateTimeField("Hết hạn lúc")
+    expires_at = models.DateTimeField("Het han luc")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Token xác thực email"
-        verbose_name_plural = "Token xác thực email"
+        verbose_name = "Token xac thuc email"
+        verbose_name_plural = "Token xac thuc email"
         db_table = "email_verification_tokens"
 
     def __str__(self):
-        return f"EmailVerify – {self.user.email}"
+        return f"EmailVerify - {self.user.email}"
 
 
 class PasswordResetToken(models.Model):
-    """Token reset mật khẩu – hạn sử dụng 1 giờ."""
+    """Password reset token, expires in 1 hour."""
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="password_resets"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_resets")
     token = models.CharField(max_length=64, unique=True, db_index=True)
-    expires_at = models.DateTimeField("Hết hạn lúc")
-    is_used = models.BooleanField("Đã dùng", default=False)
+    expires_at = models.DateTimeField("Het han luc")
+    is_used = models.BooleanField("Da dung", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Token reset mật khẩu"
-        verbose_name_plural = "Token reset mật khẩu"
+        verbose_name = "Token reset mat khau"
+        verbose_name_plural = "Token reset mat khau"
         db_table = "password_reset_tokens"
 
     def __str__(self):
-        return f"PasswordReset – {self.user.email}"
+        return f"PasswordReset - {self.user.email}"

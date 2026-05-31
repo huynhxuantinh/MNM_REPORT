@@ -1,315 +1,101 @@
-﻿"""
-Lệnh seed dữ liệu mẫu cho môi trường development.
-Chạy: python manage.py seed_full_catalog
 """
+Seed full catalog for local development.
+Run:
+  python manage.py seed_full_catalog
+  python manage.py seed_full_catalog --clear
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.vocabulary.models import Word, WordSet, WordSetWord
 from apps.learning.models import Lesson, LessonWord
+from apps.vocabulary.models import Word, WordSet, WordSetWord
 
 User = get_user_model()
 
-
-def _fix_mojibake(value):
-    """Tự động sửa chuỗi bị lỗi encoding UTF-8 -> Latin-1/CP1252."""
-    if not isinstance(value, str):
-        return value
-
-    # Chỉ thử decode lại khi có dấu hiệu mojibake.
-    if not any(token in value for token in ("Ã", "á»", "áº", "Æ", "Ä", "â€“", "â€”", "âœ")):
-        return value
-
-    for source_encoding in ("latin1", "cp1252"):
-        try:
-            repaired = value.encode(source_encoding).decode("utf-8")
-            return repaired
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            continue
-    return value
-
-
-def _fix_payload(payload):
-    """Sửa mojibake cho dict/list lồng nhau."""
-    if isinstance(payload, dict):
-        return {k: _fix_payload(v) for k, v in payload.items()}
-    if isinstance(payload, list):
-        return [_fix_payload(item) for item in payload]
-    return _fix_mojibake(payload)
-
-# Dữ liệu từ vựng mẫu
-
-WORDS = [
-    # â”€â”€ A1 (40 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "hello",       "phonetic": "/hÉ™ËˆloÊ/",      "part_of_speech": "exclamation", "definition_en": "Used as a greeting",                          "definition_vi": "Xin chĂ o",              "example_en": "Hello, how are you?",                    "example_vi": "Xin chĂ o, báº¡n khá»e khĂ´ng?",             "level": "A1"},
-    {"text": "goodbye",     "phonetic": "/ËŒÉ¡ÊdËˆbaÉª/",    "part_of_speech": "exclamation", "definition_en": "Used when leaving or parting",                "definition_vi": "Táº¡m biá»‡t",              "example_en": "Goodbye, see you tomorrow!",              "example_vi": "Táº¡m biá»‡t, háº¹n gáº·p láº¡i ngĂ y mai!",      "level": "A1"},
-    {"text": "book",        "phonetic": "/bÊk/",          "part_of_speech": "noun",        "definition_en": "A written or printed work",                   "definition_vi": "Cuá»‘n sĂ¡ch",             "example_en": "I read a book every week.",               "example_vi": "TĂ´i Ä‘á»c má»™t cuá»‘n sĂ¡ch má»—i tuáº§n.",       "level": "A1"},
-    {"text": "water",       "phonetic": "/ËˆwÉ”ËtÉ™r/",      "part_of_speech": "noun",        "definition_en": "A clear liquid essential for life",            "definition_vi": "NÆ°á»›c",                  "example_en": "Please give me a glass of water.",        "example_vi": "Vui lĂ²ng cho tĂ´i má»™t ly nÆ°á»›c.",          "level": "A1"},
-    {"text": "eat",         "phonetic": "/iËt/",          "part_of_speech": "verb",        "definition_en": "To put food in your mouth and swallow it",     "definition_vi": "Ä‚n",                    "example_en": "We eat dinner at 7pm.",                   "example_vi": "ChĂºng tĂ´i Äƒn tá»‘i lĂºc 7 giá» tá»‘i.",       "level": "A1"},
-    {"text": "sleep",       "phonetic": "/sliËp/",        "part_of_speech": "verb",        "definition_en": "To rest in a state of sleep",                  "definition_vi": "Ngá»§",                   "example_en": "I sleep eight hours a night.",            "example_vi": "TĂ´i ngá»§ tĂ¡m tiáº¿ng má»—i Ä‘Ăªm.",            "level": "A1"},
-    {"text": "house",       "phonetic": "/haÊs/",         "part_of_speech": "noun",        "definition_en": "A building for people to live in",             "definition_vi": "NgĂ´i nhĂ ",              "example_en": "They live in a big house.",               "example_vi": "Há» sá»‘ng trong má»™t ngĂ´i nhĂ  lá»›n.",        "level": "A1"},
-    {"text": "family",      "phonetic": "/ËˆfĂ¦mÉ™li/",      "part_of_speech": "noun",        "definition_en": "A group of people related to each other",      "definition_vi": "Gia Ä‘Ă¬nh",              "example_en": "My family has four members.",             "example_vi": "Gia Ä‘Ă¬nh tĂ´i cĂ³ bá»‘n thĂ nh viĂªn.",        "level": "A1"},
-    {"text": "school",      "phonetic": "/skuËl/",        "part_of_speech": "noun",        "definition_en": "A place where children are educated",          "definition_vi": "TrÆ°á»ng há»c",             "example_en": "She goes to school by bus.",              "example_vi": "CĂ´ áº¥y Ä‘i há»c báº±ng xe buĂ½t.",             "level": "A1"},
-    {"text": "friend",      "phonetic": "/frend/",        "part_of_speech": "noun",        "definition_en": "A person you like and enjoy being with",       "definition_vi": "Báº¡n bĂ¨",                "example_en": "He is my best friend.",                   "example_vi": "Anh áº¥y lĂ  ngÆ°á»i báº¡n thĂ¢n nháº¥t cá»§a tĂ´i.", "level": "A1"},
-    {"text": "cat",         "phonetic": "/kĂ¦t/",          "part_of_speech": "noun",        "definition_en": "A small furry domestic animal",                "definition_vi": "Con mĂ¨o",               "example_en": "My cat sleeps all day.",                  "example_vi": "Con mĂ¨o cá»§a tĂ´i ngá»§ cáº£ ngĂ y.",           "level": "A1"},
-    {"text": "dog",         "phonetic": "/dÉ’É¡/",          "part_of_speech": "noun",        "definition_en": "A common domesticated carnivore kept as a pet", "definition_vi": "Con chĂ³",               "example_en": "The dog barks loudly.",                   "example_vi": "Con chĂ³ sá»§a to.",                        "level": "A1"},
-    {"text": "apple",       "phonetic": "/ËˆĂ¦pÉ™l/",        "part_of_speech": "noun",        "definition_en": "A round fruit with red or green skin",         "definition_vi": "Quáº£ tĂ¡o",               "example_en": "She eats an apple every morning.",        "example_vi": "CĂ´ áº¥y Äƒn má»™t quáº£ tĂ¡o má»—i sĂ¡ng.",        "level": "A1"},
-    {"text": "milk",        "phonetic": "/mÉªlk/",         "part_of_speech": "noun",        "definition_en": "A white liquid produced by cows",              "definition_vi": "Sá»¯a",                   "example_en": "Children drink milk every day.",          "example_vi": "Tráº» em uá»‘ng sá»¯a má»—i ngĂ y.",              "level": "A1"},
-    {"text": "sun",         "phonetic": "/sÊŒn/",          "part_of_speech": "noun",        "definition_en": "The star at the centre of the solar system",   "definition_vi": "Máº·t trá»i",              "example_en": "The sun rises in the east.",              "example_vi": "Máº·t trá»i má»c á»Ÿ phĂ­a Ä‘Ă´ng.",              "level": "A1"},
-    {"text": "chair",       "phonetic": "/tÊƒeÉ™r/",        "part_of_speech": "noun",        "definition_en": "A separate seat for one person",               "definition_vi": "CĂ¡i gháº¿",               "example_en": "Please sit on the chair.",                "example_vi": "Vui lĂ²ng ngá»“i vĂ o gháº¿.",                 "level": "A1"},
-    {"text": "table",       "phonetic": "/ËˆteÉªbÉ™l/",      "part_of_speech": "noun",        "definition_en": "A piece of furniture with a flat surface",     "definition_vi": "CĂ¡i bĂ n",               "example_en": "The books are on the table.",             "example_vi": "Nhá»¯ng cuá»‘n sĂ¡ch á»Ÿ trĂªn bĂ n.",            "level": "A1"},
-    {"text": "happy",       "phonetic": "/ËˆhĂ¦pi/",        "part_of_speech": "adjective",   "definition_en": "Feeling pleasure and satisfaction",            "definition_vi": "Háº¡nh phĂºc / vui váº»",    "example_en": "She looks happy today.",                  "example_vi": "HĂ´m nay cĂ´ áº¥y trĂ´ng vui váº».",            "level": "A1"},
-    {"text": "big",         "phonetic": "/bÉªÉ¡/",          "part_of_speech": "adjective",   "definition_en": "Of considerable size",                         "definition_vi": "To / lá»›n",              "example_en": "That is a very big tree.",                "example_vi": "ÄĂ³ lĂ  má»™t cĂ¡i cĂ¢y ráº¥t to.",               "level": "A1"},
-    {"text": "small",       "phonetic": "/smÉ”Ël/",        "part_of_speech": "adjective",   "definition_en": "Of limited size or amount",                    "definition_vi": "Nhá»",                   "example_en": "He has a small room.",                    "example_vi": "Anh áº¥y cĂ³ má»™t cÄƒn phĂ²ng nhá».",            "level": "A1"},
-    {"text": "run",         "phonetic": "/rÊŒn/",          "part_of_speech": "verb",        "definition_en": "To move at a speed faster than a walk",        "definition_vi": "Cháº¡y",                  "example_en": "I run every morning.",                    "example_vi": "TĂ´i cháº¡y bá»™ má»—i sĂ¡ng.",                  "level": "A1"},
-    {"text": "walk",        "phonetic": "/wÉ”Ëk/",         "part_of_speech": "verb",        "definition_en": "To move on foot at a regular pace",            "definition_vi": "Äi bá»™",                 "example_en": "We walk to school every day.",            "example_vi": "ChĂºng tĂ´i Ä‘i bá»™ Ä‘áº¿n trÆ°á»ng má»—i ngĂ y.",   "level": "A1"},
-    {"text": "open",        "phonetic": "/ËˆoÊpÉ™n/",       "part_of_speech": "verb",        "definition_en": "To move so as to allow access",                "definition_vi": "Má»Ÿ",                    "example_en": "Please open the window.",                 "example_vi": "Vui lĂ²ng má»Ÿ cá»­a sá»•.",                    "level": "A1"},
-    {"text": "close",       "phonetic": "/kloÊz/",        "part_of_speech": "verb",        "definition_en": "To move so as to block an opening",            "definition_vi": "ÄĂ³ng",                  "example_en": "Please close the door.",                  "example_vi": "Vui lĂ²ng Ä‘Ă³ng cá»­a láº¡i.",                 "level": "A1"},
-    {"text": "red",         "phonetic": "/red/",          "part_of_speech": "adjective",   "definition_en": "Having the colour of blood",                   "definition_vi": "MĂ u Ä‘á»",                "example_en": "She wears a red dress.",                  "example_vi": "CĂ´ áº¥y máº·c vĂ¡y Ä‘á».",                      "level": "A1"},
-    {"text": "blue",        "phonetic": "/bluË/",         "part_of_speech": "adjective",   "definition_en": "Having the colour of the sky",                 "definition_vi": "MĂ u xanh da trá»i",      "example_en": "The sky is blue today.",                  "example_vi": "HĂ´m nay báº§u trá»i mĂ u xanh.",             "level": "A1"},
-    {"text": "one",         "phonetic": "/wÊŒn/",          "part_of_speech": "number",      "definition_en": "The number 1",                                 "definition_vi": "Sá»‘ má»™t",                "example_en": "I have one sister.",                      "example_vi": "TĂ´i cĂ³ má»™t ngÆ°á»i chá»‹.",                   "level": "A1"},
-    {"text": "pen",         "phonetic": "/pen/",          "part_of_speech": "noun",        "definition_en": "An instrument for writing with ink",           "definition_vi": "CĂ¡i bĂºt",               "example_en": "Give me a pen, please.",                  "example_vi": "Vui lĂ²ng Ä‘Æ°a cho tĂ´i má»™t cĂ¡i bĂºt.",      "level": "A1"},
-    {"text": "bag",         "phonetic": "/bĂ¦É¡/",          "part_of_speech": "noun",        "definition_en": "A flexible container for carrying things",     "definition_vi": "CĂ¡i tĂºi",               "example_en": "Her bag is heavy.",                       "example_vi": "TĂºi cá»§a cĂ´ áº¥y ráº¥t náº·ng.",                 "level": "A1"},
-    {"text": "mother",      "phonetic": "/ËˆmÊŒĂ°É™r/",       "part_of_speech": "noun",        "definition_en": "A female parent",                              "definition_vi": "Máº¹",                    "example_en": "My mother cooks every day.",              "example_vi": "Máº¹ tĂ´i náº¥u Äƒn má»—i ngĂ y.",                "level": "A1"},
-    {"text": "father",      "phonetic": "/ËˆfÉ‘ËĂ°É™r/",      "part_of_speech": "noun",        "definition_en": "A male parent",                                "definition_vi": "Bá»‘ / cha",              "example_en": "My father works in an office.",           "example_vi": "Bá»‘ tĂ´i lĂ m viá»‡c á»Ÿ vÄƒn phĂ²ng.",           "level": "A1"},
-    {"text": "yes",         "phonetic": "/jes/",          "part_of_speech": "exclamation", "definition_en": "Used to give a positive answer",               "definition_vi": "VĂ¢ng / cĂ³",             "example_en": "Yes, I understand.",                      "example_vi": "VĂ¢ng, tĂ´i hiá»ƒu.",                         "level": "A1"},
-    {"text": "no",          "phonetic": "/noÊ/",          "part_of_speech": "exclamation", "definition_en": "Used to give a negative answer",               "definition_vi": "KhĂ´ng",                 "example_en": "No, that is not right.",                  "example_vi": "KhĂ´ng, Ä‘iá»u Ä‘Ă³ khĂ´ng Ä‘Ăºng.",              "level": "A1"},
-    {"text": "food",        "phonetic": "/fuËd/",         "part_of_speech": "noun",        "definition_en": "Substances we eat to give us energy",          "definition_vi": "Thá»©c Äƒn",               "example_en": "This food tastes delicious.",             "example_vi": "Thá»©c Äƒn nĂ y ráº¥t ngon.",                   "level": "A1"},
-    {"text": "shirt",       "phonetic": "/ÊƒÉœËrt/",        "part_of_speech": "noun",        "definition_en": "A garment worn on the upper body",             "definition_vi": "Ăo sÆ¡ mi",              "example_en": "He wears a white shirt to work.",         "example_vi": "Anh áº¥y máº·c Ă¡o sÆ¡ mi tráº¯ng Ä‘i lĂ m.",      "level": "A1"},
-    {"text": "car",         "phonetic": "/kÉ‘Ër/",         "part_of_speech": "noun",        "definition_en": "A road vehicle powered by an engine",          "definition_vi": "Xe Ă´ tĂ´",               "example_en": "He drives a red car.",                    "example_vi": "Anh áº¥y lĂ¡i xe Ă´ tĂ´ mĂ u Ä‘á».",             "level": "A1"},
-    {"text": "bus",         "phonetic": "/bÊŒs/",          "part_of_speech": "noun",        "definition_en": "A large motor vehicle for passengers",         "definition_vi": "Xe buĂ½t",               "example_en": "I take the bus to work.",                 "example_vi": "TĂ´i Ä‘i xe buĂ½t Ä‘áº¿n chá»— lĂ m.",            "level": "A1"},
-    {"text": "fish",        "phonetic": "/fÉªÊƒ/",          "part_of_speech": "noun",        "definition_en": "A cold-blooded creature that lives in water",  "definition_vi": "Con cĂ¡",                "example_en": "We eat fish on Fridays.",                 "example_vi": "ChĂºng tĂ´i Äƒn cĂ¡ vĂ o ngĂ y thá»© SĂ¡u.",      "level": "A1"},
-    {"text": "bird",        "phonetic": "/bÉœËrd/",        "part_of_speech": "noun",        "definition_en": "A feathered animal with wings",                "definition_vi": "Con chim",              "example_en": "A bird is singing outside.",              "example_vi": "Má»™t con chim Ä‘ang hĂ³t bĂªn ngoĂ i.",        "level": "A1"},
-    {"text": "hat",         "phonetic": "/hĂ¦t/",          "part_of_speech": "noun",        "definition_en": "A covering worn on the head",                  "definition_vi": "CĂ¡i mÅ©",                "example_en": "He wears a hat in summer.",               "example_vi": "Anh áº¥y Ä‘á»™i mÅ© vĂ o mĂ¹a hĂ¨.",              "level": "A1"},
-
-    # â”€â”€ A2 (40 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "travel",         "phonetic": "/ËˆtrĂ¦vÉ™l/",       "part_of_speech": "verb",        "definition_en": "To make a journey",                                "definition_vi": "Du lá»‹ch",               "example_en": "I love to travel to new places.",          "example_vi": "TĂ´i thĂ­ch du lá»‹ch Ä‘áº¿n nhá»¯ng nÆ¡i má»›i.",      "level": "A2"},
-    {"text": "weather",        "phonetic": "/ËˆweĂ°É™r/",        "part_of_speech": "noun",        "definition_en": "The state of the atmosphere at a time",             "definition_vi": "Thá»i tiáº¿t",             "example_en": "The weather today is sunny.",               "example_vi": "Thá»i tiáº¿t hĂ´m nay náº¯ng Ä‘áº¹p.",               "level": "A2"},
-    {"text": "shopping",       "phonetic": "/ËˆÊƒÉ’pÉªÅ‹/",        "part_of_speech": "noun",        "definition_en": "The activity of buying goods",                      "definition_vi": "Mua sáº¯m",               "example_en": "She enjoys shopping on weekends.",           "example_vi": "CĂ´ áº¥y thĂ­ch mua sáº¯m vĂ o cuá»‘i tuáº§n.",        "level": "A2"},
-    {"text": "hospital",       "phonetic": "/ËˆhÉ’spÉªtl/",      "part_of_speech": "noun",        "definition_en": "A place where sick people receive treatment",        "definition_vi": "Bá»‡nh viá»‡n",             "example_en": "He works at the local hospital.",            "example_vi": "Anh áº¥y lĂ m viá»‡c táº¡i bá»‡nh viá»‡n Ä‘á»‹a phÆ°Æ¡ng.", "level": "A2"},
-    {"text": "doctor",         "phonetic": "/ËˆdÉ’ktÉ™r/",       "part_of_speech": "noun",        "definition_en": "A person qualified to practise medicine",            "definition_vi": "BĂ¡c sÄ©",                "example_en": "The doctor examined the patient.",           "example_vi": "BĂ¡c sÄ© khĂ¡m bá»‡nh cho bá»‡nh nhĂ¢n.",            "level": "A2"},
-    {"text": "market",         "phonetic": "/ËˆmÉ‘ËrkÉªt/",      "part_of_speech": "noun",        "definition_en": "A place where goods are bought and sold",            "definition_vi": "Chá»£ / thá»‹ trÆ°á»ng",      "example_en": "We buy vegetables at the market.",           "example_vi": "ChĂºng tĂ´i mua rau á»Ÿ chá»£.",                   "level": "A2"},
-    {"text": "restaurant",     "phonetic": "/ËˆrestrÉ’nt/",     "part_of_speech": "noun",        "definition_en": "A place where meals are cooked and served",          "definition_vi": "NhĂ  hĂ ng",              "example_en": "Let's have dinner at that restaurant.",      "example_vi": "HĂ£y Äƒn tá»‘i á»Ÿ nhĂ  hĂ ng Ä‘Ă³.",                  "level": "A2"},
-    {"text": "holiday",        "phonetic": "/ËˆhÉ’lÉªdeÉª/",      "part_of_speech": "noun",        "definition_en": "A period of time spent away from work",             "definition_vi": "Ká»³ nghá»‰",               "example_en": "We are going on holiday next week.",         "example_vi": "ChĂºng tĂ´i sáº½ Ä‘i nghá»‰ tuáº§n tá»›i.",             "level": "A2"},
-    {"text": "telephone",      "phonetic": "/ËˆtelÉªfoÊn/",     "part_of_speech": "noun",        "definition_en": "A device used for voice communication",             "definition_vi": "Äiá»‡n thoáº¡i",            "example_en": "Can I use your telephone?",                  "example_vi": "TĂ´i cĂ³ thá»ƒ dĂ¹ng Ä‘iá»‡n thoáº¡i cá»§a báº¡n khĂ´ng?",  "level": "A2"},
-    {"text": "money",          "phonetic": "/ËˆmÊŒni/",         "part_of_speech": "noun",        "definition_en": "Currency used in transactions",                     "definition_vi": "Tiá»n",                  "example_en": "I don't have enough money.",                 "example_vi": "TĂ´i khĂ´ng cĂ³ Ä‘á»§ tiá»n.",                       "level": "A2"},
-    {"text": "question",       "phonetic": "/ËˆkwestÊƒÉ™n/",     "part_of_speech": "noun",        "definition_en": "A sentence that asks for information",              "definition_vi": "CĂ¢u há»i",               "example_en": "Do you have any questions?",                 "example_vi": "Báº¡n cĂ³ cĂ¢u há»i nĂ o khĂ´ng?",                  "level": "A2"},
-    {"text": "answer",         "phonetic": "/ËˆÉ‘ËnsÉ™r/",       "part_of_speech": "noun",        "definition_en": "A response to a question",                          "definition_vi": "CĂ¢u tráº£ lá»i",           "example_en": "Please give me your answer.",                "example_vi": "Vui lĂ²ng cho tĂ´i cĂ¢u tráº£ lá»i cá»§a báº¡n.",      "level": "A2"},
-    {"text": "city",           "phonetic": "/ËˆsÉªti/",         "part_of_speech": "noun",        "definition_en": "A large human settlement",                          "definition_vi": "ThĂ nh phá»‘",             "example_en": "I live in a big city.",                      "example_vi": "TĂ´i sá»‘ng á»Ÿ má»™t thĂ nh phá»‘ lá»›n.",               "level": "A2"},
-    {"text": "country",        "phonetic": "/ËˆkÊŒntri/",       "part_of_speech": "noun",        "definition_en": "A nation with its own government",                  "definition_vi": "Äáº¥t nÆ°á»›c / quá»‘c gia",   "example_en": "Vietnam is a beautiful country.",            "example_vi": "Viá»‡t Nam lĂ  má»™t Ä‘áº¥t nÆ°á»›c tÆ°Æ¡i Ä‘áº¹p.",          "level": "A2"},
-    {"text": "music",          "phonetic": "/ËˆmjuËzÉªk/",      "part_of_speech": "noun",        "definition_en": "Sounds arranged to be pleasant to hear",            "definition_vi": "Ă‚m nháº¡c",               "example_en": "I love listening to music.",                 "example_vi": "TĂ´i thĂ­ch nghe nháº¡c.",                        "level": "A2"},
-    {"text": "sport",          "phonetic": "/spÉ”Ërt/",        "part_of_speech": "noun",        "definition_en": "An activity requiring physical effort",              "definition_vi": "Thá»ƒ thao",              "example_en": "Football is my favourite sport.",            "example_vi": "BĂ³ng Ä‘Ă¡ lĂ  mĂ´n thá»ƒ thao yĂªu thĂ­ch cá»§a tĂ´i.", "level": "A2"},
-    {"text": "colour",         "phonetic": "/ËˆkÊŒlÉ™r/",        "part_of_speech": "noun",        "definition_en": "Visual property of light wavelength",               "definition_vi": "MĂ u sáº¯c",               "example_en": "What is your favourite colour?",             "example_vi": "MĂ u sáº¯c yĂªu thĂ­ch cá»§a báº¡n lĂ  gĂ¬?",           "level": "A2"},
-    {"text": "number",         "phonetic": "/ËˆnÊŒmbÉ™r/",       "part_of_speech": "noun",        "definition_en": "A mathematical value used to count",                "definition_vi": "Con sá»‘ / sá»‘",           "example_en": "What is your phone number?",                 "example_vi": "Sá»‘ Ä‘iá»‡n thoáº¡i cá»§a báº¡n lĂ  gĂ¬?",                "level": "A2"},
-    {"text": "week",           "phonetic": "/wiËk/",          "part_of_speech": "noun",        "definition_en": "A period of seven days",                            "definition_vi": "Tuáº§n",                  "example_en": "I study five days a week.",                  "example_vi": "TĂ´i há»c nÄƒm ngĂ y má»—i tuáº§n.",                  "level": "A2"},
-    {"text": "month",          "phonetic": "/mÊŒnÎ¸/",          "part_of_speech": "noun",        "definition_en": "One of the twelve periods in a year",               "definition_vi": "ThĂ¡ng",                 "example_en": "January is the first month.",                "example_vi": "ThĂ¡ng GiĂªng lĂ  thĂ¡ng Ä‘áº§u tiĂªn.",              "level": "A2"},
-    {"text": "birthday",       "phonetic": "/ËˆbÉœËrÎ¸deÉª/",     "part_of_speech": "noun",        "definition_en": "The annual anniversary of one's birth",             "definition_vi": "Sinh nháº­t",             "example_en": "Happy birthday to you!",                     "example_vi": "ChĂºc má»«ng sinh nháº­t báº¡n!",                    "level": "A2"},
-    {"text": "teacher",        "phonetic": "/ËˆtiËtÊƒÉ™r/",      "part_of_speech": "noun",        "definition_en": "A person who teaches in a school",                  "definition_vi": "GiĂ¡o viĂªn",             "example_en": "My teacher is very kind.",                   "example_vi": "GiĂ¡o viĂªn cá»§a tĂ´i ráº¥t tá»‘t bá»¥ng.",             "level": "A2"},
-    {"text": "student",        "phonetic": "/ËˆstjuËdÉ™nt/",    "part_of_speech": "noun",        "definition_en": "A person who is studying at school",                "definition_vi": "Há»c sinh / sinh viĂªn",  "example_en": "She is a good student.",                     "example_vi": "CĂ´ áº¥y lĂ  má»™t há»c sinh giá»i.",                 "level": "A2"},
-    {"text": "breakfast",      "phonetic": "/ËˆbrekfÉ™st/",     "part_of_speech": "noun",        "definition_en": "The first meal of the day",                         "definition_vi": "Bá»¯a sĂ¡ng",              "example_en": "I always eat breakfast.",                    "example_vi": "TĂ´i luĂ´n Äƒn sĂ¡ng.",                           "level": "A2"},
-    {"text": "lunch",          "phonetic": "/lÊŒntÊƒ/",         "part_of_speech": "noun",        "definition_en": "A meal eaten in the middle of the day",             "definition_vi": "Bá»¯a trÆ°a",              "example_en": "We have lunch at noon.",                     "example_vi": "ChĂºng tĂ´i Äƒn trÆ°a vĂ o buá»•i trÆ°a.",           "level": "A2"},
-    {"text": "dinner",         "phonetic": "/ËˆdÉªnÉ™r/",        "part_of_speech": "noun",        "definition_en": "The main meal of the day eaten in the evening",      "definition_vi": "Bá»¯a tá»‘i",               "example_en": "Dinner is ready at 7.",                      "example_vi": "Bá»¯a tá»‘i Ä‘Ă£ sáºµn sĂ ng lĂºc 7 giá».",             "level": "A2"},
-    {"text": "kitchen",        "phonetic": "/ËˆkÉªtÊƒÉªn/",       "part_of_speech": "noun",        "definition_en": "A room where food is prepared",                     "definition_vi": "NhĂ  báº¿p",               "example_en": "She is cooking in the kitchen.",             "example_vi": "CĂ´ áº¥y Ä‘ang náº¥u Äƒn trong báº¿p.",               "level": "A2"},
-    {"text": "bedroom",        "phonetic": "/ËˆbedruËm/",      "part_of_speech": "noun",        "definition_en": "A room used for sleeping",                          "definition_vi": "PhĂ²ng ngá»§",             "example_en": "My bedroom is on the second floor.",         "example_vi": "PhĂ²ng ngá»§ cá»§a tĂ´i á»Ÿ táº§ng hai.",               "level": "A2"},
-    {"text": "garden",         "phonetic": "/ËˆÉ¡É‘ËrdÉ™n/",      "part_of_speech": "noun",        "definition_en": "A piece of ground for growing plants",               "definition_vi": "Khu vÆ°á»n",              "example_en": "We grow flowers in the garden.",             "example_vi": "ChĂºng tĂ´i trá»“ng hoa trong vÆ°á»n.",             "level": "A2"},
-    {"text": "river",          "phonetic": "/ËˆrÉªvÉ™r/",        "part_of_speech": "noun",        "definition_en": "A large natural stream of water",                   "definition_vi": "DĂ²ng sĂ´ng",             "example_en": "The river flows to the sea.",                "example_vi": "DĂ²ng sĂ´ng cháº£y ra biá»ƒn.",                     "level": "A2"},
-    {"text": "mountain",       "phonetic": "/ËˆmaÊntÉ™n/",      "part_of_speech": "noun",        "definition_en": "A large natural elevation of the earth",            "definition_vi": "Ngá»n nĂºi",              "example_en": "We climbed the mountain.",                   "example_vi": "ChĂºng tĂ´i leo lĂªn ngá»n nĂºi.",                 "level": "A2"},
-    {"text": "beach",          "phonetic": "/biËtÊƒ/",         "part_of_speech": "noun",        "definition_en": "A sandy area by the sea or lake",                   "definition_vi": "BĂ£i biá»ƒn",              "example_en": "We went to the beach last summer.",          "example_vi": "ChĂºng tĂ´i Ä‘Ă£ Ä‘áº¿n bĂ£i biá»ƒn mĂ¹a hĂ¨ trÆ°á»›c.",    "level": "A2"},
-    {"text": "airport",        "phonetic": "/ËˆeÉ™rpÉ”Ërt/",     "part_of_speech": "noun",        "definition_en": "A place where aircraft take off and land",           "definition_vi": "SĂ¢n bay",               "example_en": "We arrived at the airport early.",           "example_vi": "ChĂºng tĂ´i Ä‘áº¿n sĂ¢n bay sá»›m.",                  "level": "A2"},
-    {"text": "ticket",         "phonetic": "/ËˆtÉªkÉªt/",        "part_of_speech": "noun",        "definition_en": "A card that gives you the right to enter or travel", "definition_vi": "VĂ©",                    "example_en": "I bought a ticket to Hanoi.",                "example_vi": "TĂ´i mua vĂ© Ä‘i HĂ  Ná»™i.",                       "level": "A2"},
-    {"text": "hotel",          "phonetic": "/hoÊËˆtel/",        "part_of_speech": "noun",        "definition_en": "A building where people pay to stay",                "definition_vi": "KhĂ¡ch sáº¡n",             "example_en": "We stayed at a nice hotel.",                 "example_vi": "ChĂºng tĂ´i á»Ÿ má»™t khĂ¡ch sáº¡n Ä‘áº¹p.",              "level": "A2"},
-    {"text": "map",            "phonetic": "/mĂ¦p/",           "part_of_speech": "noun",        "definition_en": "A drawing of a place showing roads and areas",       "definition_vi": "Báº£n Ä‘á»“",                "example_en": "Use the map to find the way.",               "example_vi": "DĂ¹ng báº£n Ä‘á»“ Ä‘á»ƒ tĂ¬m Ä‘Æ°á»ng.",                   "level": "A2"},
-    {"text": "newspaper",      "phonetic": "/ËˆnjuËzpeÉªpÉ™r/",  "part_of_speech": "noun",        "definition_en": "A printed daily publication of news",               "definition_vi": "BĂ¡o / tá» bĂ¡o",          "example_en": "He reads the newspaper every morning.",      "example_vi": "Anh áº¥y Ä‘á»c bĂ¡o má»—i buá»•i sĂ¡ng.",              "level": "A2"},
-    {"text": "computer",       "phonetic": "/kÉ™mËˆpjuËtÉ™r/",   "part_of_speech": "noun",        "definition_en": "An electronic device that processes data",           "definition_vi": "MĂ¡y tĂ­nh",              "example_en": "I work on a computer all day.",              "example_vi": "TĂ´i lĂ m viá»‡c trĂªn mĂ¡y tĂ­nh cáº£ ngĂ y.",         "level": "A2"},
-    {"text": "internet",       "phonetic": "/ËˆÉªntÉ™rnet/",     "part_of_speech": "noun",        "definition_en": "A global computer network",                         "definition_vi": "Máº¡ng internet",         "example_en": "I use the internet for research.",           "example_vi": "TĂ´i dĂ¹ng internet Ä‘á»ƒ nghiĂªn cá»©u.",            "level": "A2"},
-    {"text": "language",       "phonetic": "/ËˆlĂ¦Å‹É¡wÉªdÊ’/",    "part_of_speech": "noun",        "definition_en": "A system of communication used by a country",        "definition_vi": "NgĂ´n ngá»¯",              "example_en": "English is a global language.",              "example_vi": "Tiáº¿ng Anh lĂ  ngĂ´n ngá»¯ toĂ n cáº§u.",             "level": "A2"},
-    {"text": "exercise",       "phonetic": "/ËˆeksÉ™rsaÉªz/",    "part_of_speech": "noun",        "definition_en": "Physical activity done to keep fit",                 "definition_vi": "BĂ i táº­p / táº­p thá»ƒ dá»¥c", "example_en": "Daily exercise keeps you healthy.",           "example_vi": "Táº­p thá»ƒ dá»¥c háº±ng ngĂ y giĂºp báº¡n khá»e máº¡nh.",  "level": "A2"},
-
-    # â”€â”€ B1 (35 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "environment",    "phonetic": "/ÉªnËˆvaÉªrÉ™nmÉ™nt/",  "part_of_speech": "noun",        "definition_en": "The natural world around us",                                       "definition_vi": "MĂ´i trÆ°á»ng",              "example_en": "We must protect the environment.",             "example_vi": "ChĂºng ta pháº£i báº£o vá»‡ mĂ´i trÆ°á»ng.",              "level": "B1"},
-    {"text": "opportunity",    "phonetic": "/ËŒÉ’pÉ™ËˆtjuËnÉªti/",  "part_of_speech": "noun",        "definition_en": "A set of circumstances that makes something possible",               "definition_vi": "CÆ¡ há»™i",                  "example_en": "This is a great opportunity for you.",         "example_vi": "ÄĂ¢y lĂ  má»™t cÆ¡ há»™i tuyá»‡t vá»i cho báº¡n.",          "level": "B1"},
-    {"text": "society",        "phonetic": "/sÉ™ËˆsaÉªÉªti/",       "part_of_speech": "noun",        "definition_en": "The community of people living together",                            "definition_vi": "XĂ£ há»™i",                  "example_en": "Technology changes society rapidly.",           "example_vi": "CĂ´ng nghá»‡ thay Ä‘á»•i xĂ£ há»™i nhanh chĂ³ng.",        "level": "B1"},
-    {"text": "culture",        "phonetic": "/ËˆkÊŒltÊƒÉ™r/",        "part_of_speech": "noun",        "definition_en": "The ideas and customs of a group of people",                        "definition_vi": "VÄƒn hĂ³a",                 "example_en": "Vietnamese culture is rich and diverse.",       "example_vi": "VÄƒn hĂ³a Viá»‡t Nam phong phĂº vĂ  Ä‘a dáº¡ng.",        "level": "B1"},
-    {"text": "technology",     "phonetic": "/tekËˆnÉ’lÉ™dÊ’i/",     "part_of_speech": "noun",        "definition_en": "The application of scientific knowledge",                           "definition_vi": "CĂ´ng nghá»‡",               "example_en": "Technology has transformed our lives.",         "example_vi": "CĂ´ng nghá»‡ Ä‘Ă£ biáº¿n Ä‘á»•i cuá»™c sá»‘ng cá»§a chĂºng ta.", "level": "B1"},
-    {"text": "education",      "phonetic": "/ËŒedjÊËˆkeÉªÊƒÉ™n/",    "part_of_speech": "noun",        "definition_en": "The process of receiving or giving instruction",                    "definition_vi": "GiĂ¡o dá»¥c",                "example_en": "Education is the key to success.",             "example_vi": "GiĂ¡o dá»¥c lĂ  chĂ¬a khĂ³a dáº«n Ä‘áº¿n thĂ nh cĂ´ng.",    "level": "B1"},
-    {"text": "experience",     "phonetic": "/ÉªkËˆspÉªÉ™riÉ™ns/",    "part_of_speech": "noun",        "definition_en": "Practical contact with and observation of facts",                   "definition_vi": "Kinh nghiá»‡m",             "example_en": "She has ten years of teaching experience.",     "example_vi": "CĂ´ áº¥y cĂ³ mÆ°á»i nÄƒm kinh nghiá»‡m giáº£ng dáº¡y.",     "level": "B1"},
-    {"text": "communicate",    "phonetic": "/kÉ™ËˆmjuËnÉªkeÉªt/",   "part_of_speech": "verb",        "definition_en": "To share or exchange information",                                  "definition_vi": "Giao tiáº¿p",               "example_en": "It's important to communicate clearly.",        "example_vi": "Giao tiáº¿p rĂµ rĂ ng lĂ  Ä‘iá»u quan trá»ng.",         "level": "B1"},
-    {"text": "achievement",    "phonetic": "/É™ËˆtÊƒiËvmÉ™nt/",     "part_of_speech": "noun",        "definition_en": "A thing done successfully with effort",                             "definition_vi": "ThĂ nh tĂ­ch",              "example_en": "Winning the award was a great achievement.",    "example_vi": "GiĂ nh Ä‘Æ°á»£c giáº£i thÆ°á»Ÿng lĂ  má»™t thĂ nh tĂ­ch lá»›n.", "level": "B1"},
-    {"text": "challenge",      "phonetic": "/ËˆtÊƒĂ¦lÉªndÊ’/",       "part_of_speech": "noun",        "definition_en": "A task that is difficult but stimulating",                          "definition_vi": "Thá»­ thĂ¡ch",               "example_en": "Learning a language is a real challenge.",      "example_vi": "Há»c má»™t ngĂ´n ngá»¯ lĂ  má»™t thá»­ thĂ¡ch thá»±c sá»±.",    "level": "B1"},
-    {"text": "government",     "phonetic": "/ËˆÉ¡ÊŒvÉ™nmÉ™nt/",      "part_of_speech": "noun",        "definition_en": "The group of people who control a country",                         "definition_vi": "ChĂ­nh phá»§",               "example_en": "The government announced new policies.",        "example_vi": "ChĂ­nh phá»§ thĂ´ng bĂ¡o cĂ¡c chĂ­nh sĂ¡ch má»›i.",        "level": "B1"},
-    {"text": "economy",        "phonetic": "/ÉªËˆkÉ’nÉ™mi/",        "part_of_speech": "noun",        "definition_en": "The system of trade and production in a country",                   "definition_vi": "Ná»n kinh táº¿",             "example_en": "The economy is growing steadily.",              "example_vi": "Ná»n kinh táº¿ Ä‘ang phĂ¡t triá»ƒn á»•n Ä‘á»‹nh.",           "level": "B1"},
-    {"text": "health",         "phonetic": "/helÎ¸/",             "part_of_speech": "noun",        "definition_en": "The state of being free from illness",                              "definition_vi": "Sá»©c khá»e",                "example_en": "Good health is more important than wealth.",    "example_vi": "Sá»©c khá»e tá»‘t quan trá»ng hÆ¡n tiá»n báº¡c.",         "level": "B1"},
-    {"text": "pollution",      "phonetic": "/pÉ™ËˆluËÊƒÉ™n/",       "part_of_speech": "noun",        "definition_en": "The presence of harmful substances in the environment",             "definition_vi": "Ă” nhiá»…m",                 "example_en": "Air pollution is a serious problem.",           "example_vi": "Ă” nhiá»…m khĂ´ng khĂ­ lĂ  váº¥n Ä‘á» nghiĂªm trá»ng.",     "level": "B1"},
-    {"text": "solution",       "phonetic": "/sÉ™ËˆluËÊƒÉ™n/",       "part_of_speech": "noun",        "definition_en": "A means of solving a problem",                                     "definition_vi": "Giáº£i phĂ¡p",               "example_en": "We need to find a solution quickly.",           "example_vi": "ChĂºng ta cáº§n tĂ¬m giáº£i phĂ¡p nhanh chĂ³ng.",       "level": "B1"},
-    {"text": "problem",        "phonetic": "/ËˆprÉ’blÉ™m/",        "part_of_speech": "noun",        "definition_en": "A matter that is difficult to deal with",                          "definition_vi": "Váº¥n Ä‘á» / bĂ i toĂ¡n",       "example_en": "We have a serious problem to solve.",           "example_vi": "ChĂºng ta cĂ³ má»™t váº¥n Ä‘á» nghiĂªm trá»ng cáº§n giáº£i.", "level": "B1"},
-    {"text": "decision",       "phonetic": "/dÉªËˆsÉªÊ’É™n/",        "part_of_speech": "noun",        "definition_en": "A conclusion reached after consideration",                          "definition_vi": "Quyáº¿t Ä‘á»‹nh",              "example_en": "It was a difficult decision to make.",          "example_vi": "ÄĂ³ lĂ  má»™t quyáº¿t Ä‘á»‹nh khĂ³ khÄƒn pháº£i Ä‘Æ°a ra.",    "level": "B1"},
-    {"text": "information",    "phonetic": "/ËŒÉªnfÉ™ËˆmeÉªÊƒÉ™n/",   "part_of_speech": "noun",        "definition_en": "Facts provided or learned about something",                         "definition_vi": "ThĂ´ng tin",               "example_en": "I need more information about this.",           "example_vi": "TĂ´i cáº§n thĂªm thĂ´ng tin vá» Ä‘iá»u nĂ y.",            "level": "B1"},
-    {"text": "relationship",   "phonetic": "/rÉªËˆleÉªÊƒÉ™nÊƒÉªp/",   "part_of_speech": "noun",        "definition_en": "The way two people or things are connected",                        "definition_vi": "Má»‘i quan há»‡",             "example_en": "They have a good working relationship.",        "example_vi": "Há» cĂ³ má»‘i quan há»‡ lĂ m viá»‡c tá»‘t.",                "level": "B1"},
-    {"text": "opinion",        "phonetic": "/É™ËˆpÉªnjÉ™n/",        "part_of_speech": "noun",        "definition_en": "A view or judgement formed about something",                        "definition_vi": "Ă kiáº¿n / quan Ä‘iá»ƒm",      "example_en": "In my opinion, we should act now.",             "example_vi": "Theo Ă½ kiáº¿n cá»§a tĂ´i, chĂºng ta nĂªn hĂ nh Ä‘á»™ng.",  "level": "B1"},
-    {"text": "describe",       "phonetic": "/dÉªËˆskraÉªb/",       "part_of_speech": "verb",        "definition_en": "To give a detailed account of something",                          "definition_vi": "MĂ´ táº£",                   "example_en": "Can you describe what happened?",               "example_vi": "Báº¡n cĂ³ thá»ƒ mĂ´ táº£ nhá»¯ng gĂ¬ Ä‘Ă£ xáº£y ra khĂ´ng?",    "level": "B1"},
-    {"text": "develop",        "phonetic": "/dÉªËˆvelÉ™p/",        "part_of_speech": "verb",        "definition_en": "To grow or cause to grow more advanced",                           "definition_vi": "PhĂ¡t triá»ƒn",              "example_en": "We want to develop new skills.",                "example_vi": "ChĂºng tĂ´i muá»‘n phĂ¡t triá»ƒn ká»¹ nÄƒng má»›i.",        "level": "B1"},
-    {"text": "improve",        "phonetic": "/ÉªmËˆpruËv/",        "part_of_speech": "verb",        "definition_en": "To make or become better",                                         "definition_vi": "Cáº£i thiá»‡n / cáº£i tiáº¿n",    "example_en": "I want to improve my English.",                 "example_vi": "TĂ´i muá»‘n cáº£i thiá»‡n tiáº¿ng Anh cá»§a mĂ¬nh.",        "level": "B1"},
-    {"text": "discuss",        "phonetic": "/dÉªËˆskÊŒs/",         "part_of_speech": "verb",        "definition_en": "To talk about something with another person",                       "definition_vi": "Tháº£o luáº­n",               "example_en": "Let's discuss the plan together.",              "example_vi": "HĂ£y cĂ¹ng tháº£o luáº­n vá» káº¿ hoáº¡ch.",               "level": "B1"},
-    {"text": "explain",        "phonetic": "/ÉªkËˆspleÉªn/",       "part_of_speech": "verb",        "definition_en": "To make something clear by describing it",                         "definition_vi": "Giáº£i thĂ­ch",              "example_en": "Please explain your idea to us.",               "example_vi": "Vui lĂ²ng giáº£i thĂ­ch Ă½ tÆ°á»Ÿng cá»§a báº¡n cho chĂºng.", "level": "B1"},
-    {"text": "advantage",      "phonetic": "/É™dËˆvÉ‘ËntÉªdÊ’/",     "part_of_speech": "noun",        "definition_en": "A condition that puts one in a better position",                    "definition_vi": "Lá»£i tháº¿ / Æ°u Ä‘iá»ƒm",      "example_en": "Being bilingual is a big advantage.",           "example_vi": "Biáº¿t hai ngĂ´n ngá»¯ lĂ  má»™t lá»£i tháº¿ lá»›n.",          "level": "B1"},
-    {"text": "disadvantage",   "phonetic": "/ËŒdÉªsÉ™dËˆvÉ‘ËntÉªdÊ’/", "part_of_speech": "noun",       "definition_en": "An unfavourable circumstance",                                      "definition_vi": "Báº¥t lá»£i / nhÆ°á»£c Ä‘iá»ƒm",   "example_en": "The main disadvantage is the cost.",            "example_vi": "Báº¥t lá»£i chĂ­nh lĂ  chi phĂ­.",                      "level": "B1"},
-    {"text": "important",      "phonetic": "/ÉªmËˆpÉ”ËrtÉ™nt/",     "part_of_speech": "adjective",   "definition_en": "Of great significance or value",                                   "definition_vi": "Quan trá»ng",              "example_en": "It is important to be honest.",                 "example_vi": "Trung thá»±c lĂ  Ä‘iá»u quan trá»ng.",                 "level": "B1"},
-    {"text": "necessary",      "phonetic": "/ËˆnesÉ™seri/",        "part_of_speech": "adjective",   "definition_en": "Required to be done; essential",                                   "definition_vi": "Cáº§n thiáº¿t",               "example_en": "It is necessary to study every day.",           "example_vi": "Há»c táº­p má»—i ngĂ y lĂ  Ä‘iá»u cáº§n thiáº¿t.",            "level": "B1"},
-    {"text": "popular",        "phonetic": "/ËˆpÉ’pjÊlÉ™r/",       "part_of_speech": "adjective",   "definition_en": "Liked or admired by many people",                                  "definition_vi": "Phá»• biáº¿n",                "example_en": "This song is very popular.",                    "example_vi": "BĂ i hĂ¡t nĂ y ráº¥t phá»• biáº¿n.",                      "level": "B1"},
-    {"text": "traditional",    "phonetic": "/trÉ™ËˆdÉªÊƒÉ™nÉ™l/",     "part_of_speech": "adjective",   "definition_en": "Relating to long-established customs",                             "definition_vi": "Truyá»n thá»‘ng",            "example_en": "They wore traditional costumes.",               "example_vi": "Há» máº·c trang phá»¥c truyá»n thá»‘ng.",                "level": "B1"},
-    {"text": "modern",         "phonetic": "/ËˆmÉ’dÉ™rn/",         "part_of_speech": "adjective",   "definition_en": "Relating to the present or recent times",                          "definition_vi": "Hiá»‡n Ä‘áº¡i",                "example_en": "This is a modern building.",                    "example_vi": "ÄĂ¢y lĂ  má»™t tĂ²a nhĂ  hiá»‡n Ä‘áº¡i.",                   "level": "B1"},
-    {"text": "local",          "phonetic": "/ËˆloÊkÉ™l/",         "part_of_speech": "adjective",   "definition_en": "Relating to a particular area or neighborhood",                    "definition_vi": "Äá»‹a phÆ°Æ¡ng",              "example_en": "I shop at the local market.",                   "example_vi": "TĂ´i mua sáº¯m á»Ÿ chá»£ Ä‘á»‹a phÆ°Æ¡ng.",                  "level": "B1"},
-    {"text": "natural",        "phonetic": "/ËˆnĂ¦tÊƒÉ™rÉ™l/",       "part_of_speech": "adjective",   "definition_en": "Existing in or caused by nature",                                  "definition_vi": "Tá»± nhiĂªn",                "example_en": "This park is a natural area.",                  "example_vi": "CĂ´ng viĂªn nĂ y lĂ  khu vá»±c tá»± nhiĂªn.",              "level": "B1"},
-    {"text": "succeed",        "phonetic": "/sÉ™kËˆsiËd/",         "part_of_speech": "verb",        "definition_en": "To achieve a desired aim",                                         "definition_vi": "ThĂ nh cĂ´ng",              "example_en": "Hard work helps you succeed.",                  "example_vi": "ChÄƒm chá»‰ giĂºp báº¡n thĂ nh cĂ´ng.",                  "level": "B1"},
-
-    # â”€â”€ B2 (35 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "innovation",       "phonetic": "/ËŒÉªnÉ™ËˆveÉªÊƒÉ™n/",    "part_of_speech": "noun",        "definition_en": "The introduction of new ideas or methods",                    "definition_vi": "Äá»•i má»›i / sĂ¡ng táº¡o",      "example_en": "Innovation drives economic growth.",              "example_vi": "Äá»•i má»›i thĂºc Ä‘áº©y tÄƒng trÆ°á»Ÿng kinh táº¿.",         "level": "B2"},
-    {"text": "sustainable",      "phonetic": "/sÉ™ËˆsteÉªnÉ™bÉ™l/",    "part_of_speech": "adjective",   "definition_en": "Able to be maintained without depleting resources",            "definition_vi": "Bá»n vá»¯ng",                "example_en": "We need sustainable development.",                "example_vi": "ChĂºng ta cáº§n phĂ¡t triá»ƒn bá»n vá»¯ng.",               "level": "B2"},
-    {"text": "globalization",    "phonetic": "/ËŒÉ¡loÊbÉ™lÉ™ËˆzeÉªÊƒÉ™n/","part_of_speech": "noun",        "definition_en": "The process of international integration",                    "definition_vi": "ToĂ n cáº§u hĂ³a",            "example_en": "Globalization has connected the world.",          "example_vi": "ToĂ n cáº§u hĂ³a Ä‘Ă£ káº¿t ná»‘i tháº¿ giá»›i.",              "level": "B2"},
-    {"text": "perspective",      "phonetic": "/pÉ™rËˆspektÉªv/",     "part_of_speech": "noun",        "definition_en": "A particular way of thinking about something",                 "definition_vi": "Quan Ä‘iá»ƒm / gĂ³c nhĂ¬n",    "example_en": "Consider this from a different perspective.",     "example_vi": "HĂ£y xem xĂ©t Ä‘iá»u nĂ y tá»« má»™t gĂ³c nhĂ¬n khĂ¡c.",     "level": "B2"},
-    {"text": "consequence",      "phonetic": "/ËˆkÉ’nsÉªkwÉ™ns/",     "part_of_speech": "noun",        "definition_en": "A result or effect of an action",                             "definition_vi": "Háº­u quáº£",                 "example_en": "Every action has consequences.",                  "example_vi": "Má»i hĂ nh Ä‘á»™ng Ä‘á»u cĂ³ háº­u quáº£.",                  "level": "B2"},
-    {"text": "significant",      "phonetic": "/sÉªÉ¡ËˆnÉªfÉªkÉ™nt/",   "part_of_speech": "adjective",   "definition_en": "Sufficiently great or important",                             "definition_vi": "ÄĂ¡ng ká»ƒ / quan trá»ng",    "example_en": "There has been a significant improvement.",       "example_vi": "ÄĂ£ cĂ³ sá»± cáº£i thiá»‡n Ä‘Ă¡ng ká»ƒ.",                    "level": "B2"},
-    {"text": "hypothesis",       "phonetic": "/haÉªËˆpÉ’Î¸ÉªsÉªs/",     "part_of_speech": "noun",        "definition_en": "A proposed explanation made on limited evidence",              "definition_vi": "Giáº£ thuyáº¿t",              "example_en": "The scientist tested her hypothesis.",            "example_vi": "NhĂ  khoa há»c Ä‘Ă£ kiá»ƒm tra giáº£ thuyáº¿t cá»§a mĂ¬nh.",  "level": "B2"},
-    {"text": "collaboration",    "phonetic": "/kÉ™ËŒlĂ¦bÉ™ËˆreÉªÊƒÉ™n/",  "part_of_speech": "noun",        "definition_en": "The action of working with someone",                          "definition_vi": "Há»£p tĂ¡c",                 "example_en": "Success requires teamwork and collaboration.",    "example_vi": "ThĂ nh cĂ´ng Ä‘Ă²i há»i tinh tháº§n Ä‘á»“ng Ä‘á»™i vĂ  há»£p tĂ¡c.", "level": "B2"},
-    {"text": "entrepreneurship", "phonetic": "/ËŒÉ’ntrÉ™prÉ™ËˆnÉœËÊƒÉªp/","part_of_speech": "noun",        "definition_en": "The activity of setting up a business",                       "definition_vi": "Tinh tháº§n khá»Ÿi nghiá»‡p",   "example_en": "Entrepreneurship requires courage and vision.",   "example_vi": "Khá»Ÿi nghiá»‡p Ä‘Ă²i há»i sá»± can Ä‘áº£m vĂ  táº§m nhĂ¬n.",   "level": "B2"},
-    {"text": "phenomenon",       "phonetic": "/fÉªËˆnÉ’mÉªnÉ™n/",       "part_of_speech": "noun",        "definition_en": "A fact or event that is observable",                          "definition_vi": "Hiá»‡n tÆ°á»£ng",              "example_en": "Climate change is a global phenomenon.",          "example_vi": "Biáº¿n Ä‘á»•i khĂ­ háº­u lĂ  má»™t hiá»‡n tÆ°á»£ng toĂ n cáº§u.",   "level": "B2"},
-    {"text": "ambiguous",        "phonetic": "/Ă¦mËˆbÉªÉ¡juÉ™s/",       "part_of_speech": "adjective",   "definition_en": "Open to more than one interpretation",                        "definition_vi": "MÆ¡ há»“ / khĂ´ng rĂµ rĂ ng",   "example_en": "His reply was deliberately ambiguous.",           "example_vi": "CĂ¢u tráº£ lá»i cá»§a anh áº¥y cá»‘ tĂ¬nh mÆ¡ há»“.",          "level": "B2"},
-    {"text": "comprehensive",    "phonetic": "/ËŒkÉ’mprÉªËˆhensÉªv/",   "part_of_speech": "adjective",   "definition_en": "Including all or nearly all elements",                        "definition_vi": "ToĂ n diá»‡n / Ä‘áº§y Ä‘á»§",      "example_en": "They gave a comprehensive report.",               "example_vi": "Há» Ä‘Ă£ Ä‘Æ°a ra má»™t bĂ¡o cĂ¡o toĂ n diá»‡n.",            "level": "B2"},
-    {"text": "controversy",      "phonetic": "/ËˆkÉ’ntrÉ™vÉœËrsi/",    "part_of_speech": "noun",        "definition_en": "Prolonged public disagreement or debate",                     "definition_vi": "Tranh cĂ£i / gĂ¢y tranh luáº­n", "example_en": "The new law caused controversy.",              "example_vi": "Luáº­t má»›i gĂ¢y ra tranh cĂ£i.",                      "level": "B2"},
-    {"text": "emphasise",        "phonetic": "/ËˆemfÉ™saÉªz/",        "part_of_speech": "verb",        "definition_en": "To give special importance to something",                     "definition_vi": "Nháº¥n máº¡nh",               "example_en": "She emphasised the need for change.",             "example_vi": "CĂ´ áº¥y nháº¥n máº¡nh sá»± cáº§n thiáº¿t pháº£i thay Ä‘á»•i.",   "level": "B2"},
-    {"text": "evaluate",         "phonetic": "/ÉªËˆvĂ¦ljueÉªt/",       "part_of_speech": "verb",        "definition_en": "To assess or appraise something",                             "definition_vi": "ÄĂ¡nh giĂ¡",                "example_en": "We evaluate students twice a year.",              "example_vi": "ChĂºng tĂ´i Ä‘Ă¡nh giĂ¡ há»c sinh hai láº§n má»—i nÄƒm.",   "level": "B2"},
-    {"text": "interpret",        "phonetic": "/ÉªnËˆtÉœËrprÉªt/",      "part_of_speech": "verb",        "definition_en": "To explain the meaning of something",                         "definition_vi": "Giáº£i nghÄ©a / thĂ´ng dá»‹ch", "example_en": "Please interpret this data for us.",              "example_vi": "Vui lĂ²ng giáº£i thĂ­ch dá»¯ liá»‡u nĂ y cho chĂºng tĂ´i.", "level": "B2"},
-    {"text": "analyse",          "phonetic": "/ËˆĂ¦nÉ™laÉªz/",         "part_of_speech": "verb",        "definition_en": "To examine something in detail",                              "definition_vi": "PhĂ¢n tĂ­ch",               "example_en": "We need to analyse the results.",                 "example_vi": "ChĂºng ta cáº§n phĂ¢n tĂ­ch káº¿t quáº£.",                 "level": "B2"},
-    {"text": "justify",          "phonetic": "/ËˆdÊ’ÊŒstÉªfaÉª/",       "part_of_speech": "verb",        "definition_en": "To show or prove something to be right",                      "definition_vi": "Biá»‡n minh / chá»©ng minh",  "example_en": "Can you justify your decision?",                 "example_vi": "Báº¡n cĂ³ thá»ƒ biá»‡n minh cho quyáº¿t Ä‘á»‹nh cá»§a mĂ¬nh?",  "level": "B2"},
-    {"text": "implication",      "phonetic": "/ËŒÉªmplÉªËˆkeÉªÊƒÉ™n/",    "part_of_speech": "noun",        "definition_en": "A conclusion that can be drawn from something",               "definition_vi": "HĂ m Ă½ / tĂ¡c Ä‘á»™ng",        "example_en": "What are the implications of this?",              "example_vi": "TĂ¡c Ä‘á»™ng cá»§a Ä‘iá»u nĂ y lĂ  gĂ¬?",                    "level": "B2"},
-    {"text": "bias",             "phonetic": "/ËˆbaÉªÉ™s/",            "part_of_speech": "noun",        "definition_en": "An inclination or prejudice that unfairly affects judgment",  "definition_vi": "Sá»± thiĂªn vá»‹ / thiĂªn kiáº¿n","example_en": "The report shows a clear bias.",                  "example_vi": "BĂ¡o cĂ¡o cho tháº¥y sá»± thiĂªn vá»‹ rĂµ rĂ ng.",          "level": "B2"},
-    {"text": "contradiction",    "phonetic": "/ËŒkÉ’ntrÉ™ËˆdÉªkÊƒÉ™n/",   "part_of_speech": "noun",        "definition_en": "A combination of statements that are opposite",               "definition_vi": "MĂ¢u thuáº«n",               "example_en": "There is a contradiction in your argument.",     "example_vi": "CĂ³ sá»± mĂ¢u thuáº«n trong láº­p luáº­n cá»§a báº¡n.",        "level": "B2"},
-    {"text": "assumption",       "phonetic": "/É™ËˆsÊŒmpÊƒÉ™n/",         "part_of_speech": "noun",        "definition_en": "Something accepted as true without proof",                    "definition_vi": "Giáº£ Ä‘á»‹nh",                "example_en": "That assumption may be wrong.",                   "example_vi": "Giáº£ Ä‘á»‹nh Ä‘Ă³ cĂ³ thá»ƒ sai.",                         "level": "B2"},
-    {"text": "priority",         "phonetic": "/praÉªËˆÉ’rÉªti/",        "part_of_speech": "noun",        "definition_en": "Something considered more important than others",              "definition_vi": "Æ¯u tiĂªn",                 "example_en": "Education is our top priority.",                  "example_vi": "GiĂ¡o dá»¥c lĂ  Æ°u tiĂªn hĂ ng Ä‘áº§u cá»§a chĂºng tĂ´i.",   "level": "B2"},
-    {"text": "impact",           "phonetic": "/ËˆÉªmpĂ¦kt/",           "part_of_speech": "noun",        "definition_en": "A marked effect or influence",                                "definition_vi": "TĂ¡c Ä‘á»™ng / áº£nh hÆ°á»Ÿng",    "example_en": "Technology has a huge impact on life.",           "example_vi": "CĂ´ng nghá»‡ cĂ³ tĂ¡c Ä‘á»™ng lá»›n Ä‘áº¿n cuá»™c sá»‘ng.",       "level": "B2"},
-    {"text": "infrastructure",   "phonetic": "/ËˆÉªnfrÉ™strÊŒktÊƒÉ™r/",  "part_of_speech": "noun",        "definition_en": "The basic physical systems of a country",                     "definition_vi": "CÆ¡ sá»Ÿ háº¡ táº§ng",          "example_en": "The city improved its infrastructure.",           "example_vi": "ThĂ nh phá»‘ Ä‘Ă£ cáº£i thiá»‡n cÆ¡ sá»Ÿ háº¡ táº§ng.",          "level": "B2"},
-    {"text": "diversity",        "phonetic": "/daÉªËˆvÉœËrsÉªti/",      "part_of_speech": "noun",        "definition_en": "The state of being diverse; variety",                         "definition_vi": "Sá»± Ä‘a dáº¡ng",              "example_en": "Cultural diversity enriches society.",            "example_vi": "Sá»± Ä‘a dáº¡ng vÄƒn hĂ³a lĂ m phong phĂº xĂ£ há»™i.",      "level": "B2"},
-
-    # â”€â”€ TOEIC (30 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "negotiate",      "phonetic": "/nÉªËˆÉ¡oÊÊƒieÉªt/",    "part_of_speech": "verb",        "definition_en": "To try to reach an agreement through discussion",    "definition_vi": "ÄĂ m phĂ¡n",                  "example_en": "We need to negotiate the contract terms.",          "example_vi": "ChĂºng ta cáº§n Ä‘Ă m phĂ¡n cĂ¡c Ä‘iá»u khoáº£n há»£p Ä‘á»“ng.",  "level": "TOEIC"},
-    {"text": "revenue",        "phonetic": "/ËˆrevÉ™njuË/",       "part_of_speech": "noun",        "definition_en": "Income generated from business activities",          "definition_vi": "Doanh thu",                 "example_en": "Company revenue grew 20% this year.",               "example_vi": "Doanh thu cĂ´ng ty tÄƒng 20% nÄƒm nay.",               "level": "TOEIC"},
-    {"text": "deadline",       "phonetic": "/ËˆdedlaÉªn/",        "part_of_speech": "noun",        "definition_en": "The latest time by which something must be done",   "definition_vi": "Thá»i háº¡n chĂ³t",             "example_en": "Please submit the report before the deadline.",     "example_vi": "Vui lĂ²ng ná»™p bĂ¡o cĂ¡o trÆ°á»›c thá»i háº¡n chĂ³t.",        "level": "TOEIC"},
-    {"text": "headquarters",   "phonetic": "/ËˆhedËŒkwÉ”ËrtÉ™rz/",  "part_of_speech": "noun",        "definition_en": "The main offices of an organization",                "definition_vi": "Trá»¥ sá»Ÿ chĂ­nh",              "example_en": "The headquarters is located in Hanoi.",             "example_vi": "Trá»¥ sá»Ÿ chĂ­nh Ä‘áº·t táº¡i HĂ  Ná»™i.",                      "level": "TOEIC"},
-    {"text": "agenda",         "phonetic": "/É™ËˆdÊ’endÉ™/",         "part_of_speech": "noun",        "definition_en": "A list of items to be discussed at a meeting",       "definition_vi": "ChÆ°Æ¡ng trĂ¬nh há»p",          "example_en": "Please review the meeting agenda.",                 "example_vi": "Vui lĂ²ng xem láº¡i chÆ°Æ¡ng trĂ¬nh há»p.",                "level": "TOEIC"},
-    {"text": "invoice",        "phonetic": "/ËˆÉªnvÉ”Éªs/",         "part_of_speech": "noun",        "definition_en": "A bill sent for goods or services",                  "definition_vi": "HĂ³a Ä‘Æ¡n",                   "example_en": "Please send the invoice by email.",                 "example_vi": "Vui lĂ²ng gá»­i hĂ³a Ä‘Æ¡n qua email.",                   "level": "TOEIC"},
-    {"text": "contract",       "phonetic": "/ËˆkÉ’ntrĂ¦kt/",        "part_of_speech": "noun",        "definition_en": "A written legal agreement",                          "definition_vi": "Há»£p Ä‘á»“ng",                  "example_en": "Both parties signed the contract.",                 "example_vi": "Cáº£ hai bĂªn Ä‘Ă£ kĂ½ há»£p Ä‘á»“ng.",                        "level": "TOEIC"},
-    {"text": "client",         "phonetic": "/ËˆklaÉªÉ™nt/",        "part_of_speech": "noun",        "definition_en": "A person or company that uses a professional service","definition_vi": "KhĂ¡ch hĂ ng",                "example_en": "We must meet our client's requirements.",            "example_vi": "ChĂºng ta pháº£i Ä‘Ă¡p á»©ng yĂªu cáº§u cá»§a khĂ¡ch hĂ ng.",    "level": "TOEIC"},
-    {"text": "supplier",       "phonetic": "/sÉ™ËˆplaÉªÉ™r/",        "part_of_speech": "noun",        "definition_en": "A company that provides goods or services",          "definition_vi": "NhĂ  cung cáº¥p",              "example_en": "We work with reliable suppliers.",                  "example_vi": "ChĂºng tĂ´i lĂ m viá»‡c vá»›i cĂ¡c nhĂ  cung cáº¥p uy tĂ­n.",   "level": "TOEIC"},
-    {"text": "profit",         "phonetic": "/ËˆprÉ’fÉªt/",         "part_of_speech": "noun",        "definition_en": "Financial gain after deducting costs",               "definition_vi": "Lá»£i nhuáº­n",                 "example_en": "The company made a large profit.",                  "example_vi": "CĂ´ng ty Ä‘Ă£ táº¡o ra lá»£i nhuáº­n lá»›n.",                  "level": "TOEIC"},
-    {"text": "budget",         "phonetic": "/ËˆbÊŒdÊ’Éªt/",         "part_of_speech": "noun",        "definition_en": "An estimate of income and expenditure",              "definition_vi": "NgĂ¢n sĂ¡ch",                 "example_en": "We must stay within the budget.",                   "example_vi": "ChĂºng ta pháº£i giá»¯ trong ngĂ¢n sĂ¡ch.",                 "level": "TOEIC"},
-    {"text": "strategy",       "phonetic": "/ËˆstrĂ¦tÉªdÊ’i/",      "part_of_speech": "noun",        "definition_en": "A plan designed to achieve a long-term goal",        "definition_vi": "Chiáº¿n lÆ°á»£c",                "example_en": "We need a new marketing strategy.",                 "example_vi": "ChĂºng ta cáº§n má»™t chiáº¿n lÆ°á»£c tiáº¿p thá»‹ má»›i.",          "level": "TOEIC"},
-    {"text": "implement",      "phonetic": "/ËˆÉªmplÉªment/",      "part_of_speech": "verb",        "definition_en": "To put a plan or decision into effect",              "definition_vi": "Thá»±c hiá»‡n / triá»ƒn khai",    "example_en": "We will implement the plan next month.",            "example_vi": "ChĂºng tĂ´i sáº½ thá»±c hiá»‡n káº¿ hoáº¡ch vĂ o thĂ¡ng tá»›i.",   "level": "TOEIC"},
-    {"text": "proposal",       "phonetic": "/prÉ™ËˆpoÊzÉ™l/",       "part_of_speech": "noun",        "definition_en": "A formal suggestion or plan",                        "definition_vi": "Äá» xuáº¥t / báº£n Ä‘á» nghá»‹",    "example_en": "She submitted a business proposal.",                "example_vi": "CĂ´ áº¥y Ä‘Ă£ ná»™p má»™t Ä‘á» xuáº¥t kinh doanh.",              "level": "TOEIC"},
-    {"text": "schedule",       "phonetic": "/ËˆskedÊ’uËl/",        "part_of_speech": "noun",        "definition_en": "A plan that lists events with their times",          "definition_vi": "Lá»‹ch trĂ¬nh / thá»i gian biá»ƒu","example_en": "Please check the project schedule.",               "example_vi": "Vui lĂ²ng kiá»ƒm tra lá»‹ch trĂ¬nh dá»± Ă¡n.",               "level": "TOEIC"},
-    {"text": "productivity",   "phonetic": "/ËŒprÉ’dÊŒkËˆtÉªvÉªti/",  "part_of_speech": "noun",        "definition_en": "The efficiency of production",                       "definition_vi": "NÄƒng suáº¥t",                 "example_en": "New tools improve productivity.",                   "example_vi": "CĂ´ng cá»¥ má»›i cáº£i thiá»‡n nÄƒng suáº¥t.",                   "level": "TOEIC"},
-    {"text": "efficient",      "phonetic": "/ÉªËˆfÉªÊƒÉ™nt/",         "part_of_speech": "adjective",   "definition_en": "Achieving maximum output with minimum wasted effort","definition_vi": "Hiá»‡u quáº£",                  "example_en": "We need a more efficient process.",                 "example_vi": "ChĂºng ta cáº§n quy trĂ¬nh hiá»‡u quáº£ hÆ¡n.",               "level": "TOEIC"},
-    {"text": "colleague",      "phonetic": "/ËˆkÉ’liËÉ¡/",          "part_of_speech": "noun",        "definition_en": "A person with whom one works",                       "definition_vi": "Äá»“ng nghiá»‡p",               "example_en": "My colleague helped me with the report.",            "example_vi": "Äá»“ng nghiá»‡p cá»§a tĂ´i giĂºp tĂ´i vá»›i bĂ¡o cĂ¡o.",         "level": "TOEIC"},
-    {"text": "feedback",       "phonetic": "/ËˆfiËdbĂ¦k/",         "part_of_speech": "noun",        "definition_en": "Information about reactions to a product or service","definition_vi": "Pháº£n há»“i",                  "example_en": "Customer feedback is very important.",              "example_vi": "Pháº£n há»“i cá»§a khĂ¡ch hĂ ng ráº¥t quan trá»ng.",            "level": "TOEIC"},
-    {"text": "distribution",   "phonetic": "/ËŒdÉªstrÉªËˆbjuËÊƒÉ™n/", "part_of_speech": "noun",        "definition_en": "The action of sharing or supplying goods",           "definition_vi": "PhĂ¢n phá»‘i",                 "example_en": "They improved the distribution network.",            "example_vi": "Há» cáº£i thiá»‡n máº¡ng lÆ°á»›i phĂ¢n phá»‘i.",                  "level": "TOEIC"},
-    {"text": "inventory",      "phonetic": "/ËˆÉªnvÉ™ntÉ”Ëri/",     "part_of_speech": "noun",        "definition_en": "A complete list of goods in stock",                  "definition_vi": "HĂ ng tá»“n kho",              "example_en": "We check the inventory monthly.",                   "example_vi": "ChĂºng tĂ´i kiá»ƒm tra hĂ ng tá»“n kho hĂ ng thĂ¡ng.",       "level": "TOEIC"},
-    {"text": "promotion",      "phonetic": "/prÉ™ËˆmoÊÊƒÉ™n/",        "part_of_speech": "noun",        "definition_en": "Advancement to a higher position",                   "definition_vi": "ThÄƒng chá»©c / khuyáº¿n mĂ£i",  "example_en": "She received a promotion last month.",              "example_vi": "CĂ´ áº¥y Ä‘Æ°á»£c thÄƒng chá»©c thĂ¡ng trÆ°á»›c.",                 "level": "TOEIC"},
-    {"text": "complaint",      "phonetic": "/kÉ™mËˆpleÉªnt/",        "part_of_speech": "noun",        "definition_en": "An expression of dissatisfaction",                   "definition_vi": "Khiáº¿u náº¡i / phĂ n nĂ n",     "example_en": "We received a customer complaint.",                 "example_vi": "ChĂºng tĂ´i nháº­n Ä‘Æ°á»£c khiáº¿u náº¡i cá»§a khĂ¡ch hĂ ng.",     "level": "TOEIC"},
-    {"text": "reimbursement",  "phonetic": "/ËŒriËÉªmËˆbÉœËrsmÉ™nt/", "part_of_speech": "noun",        "definition_en": "Repayment of money spent",                           "definition_vi": "HoĂ n tráº£ / bá»“i hoĂ n",      "example_en": "You can claim reimbursement for travel costs.",     "example_vi": "Báº¡n cĂ³ thá»ƒ yĂªu cáº§u hoĂ n tráº£ chi phĂ­ Ä‘i láº¡i.",       "level": "TOEIC"},
-    {"text": "transaction",    "phonetic": "/trĂ¦nËˆzĂ¦kÊƒÉ™n/",       "part_of_speech": "noun",        "definition_en": "An instance of buying or selling",                   "definition_vi": "Giao dá»‹ch",                 "example_en": "The transaction was completed online.",             "example_vi": "Giao dá»‹ch Ä‘Æ°á»£c thá»±c hiá»‡n trá»±c tuyáº¿n.",               "level": "TOEIC"},
-    {"text": "freight",        "phonetic": "/freÉªt/",             "part_of_speech": "noun",        "definition_en": "Goods transported by truck, ship or plane",          "definition_vi": "HĂ ng hĂ³a váº­n chuyá»ƒn",       "example_en": "The freight arrives next Tuesday.",                 "example_vi": "HĂ ng hĂ³a sáº½ Ä‘áº¿n vĂ o thá»© Ba tá»›i.",                    "level": "TOEIC"},
-    {"text": "merger",         "phonetic": "/ËˆmÉœËrdÊ’É™r/",         "part_of_speech": "noun",        "definition_en": "The combination of two companies into one",          "definition_vi": "SĂ¡p nháº­p",                  "example_en": "The merger created a powerful company.",            "example_vi": "Vá»¥ sĂ¡p nháº­p Ä‘Ă£ táº¡o ra má»™t cĂ´ng ty máº¡nh.",            "level": "TOEIC"},
-    {"text": "overhead",       "phonetic": "/ËˆoÊvÉ™rhed/",         "part_of_speech": "noun",        "definition_en": "The ongoing business expenses not related to production","definition_vi": "Chi phĂ­ chung",           "example_en": "We need to reduce our overhead costs.",             "example_vi": "ChĂºng ta cáº§n giáº£m chi phĂ­ chung.",                   "level": "TOEIC"},
-    {"text": "quarterly",      "phonetic": "/ËˆkwÉ”ËrtÉ™rli/",       "part_of_speech": "adjective",   "definition_en": "Happening four times a year",                       "definition_vi": "HĂ ng quĂ½",                  "example_en": "The quarterly report looks positive.",              "example_vi": "BĂ¡o cĂ¡o hĂ ng quĂ½ trĂ´ng tĂ­ch cá»±c.",                   "level": "TOEIC"},
-    {"text": "workforce",      "phonetic": "/ËˆwÉœËrkfÉ”Ërs/",       "part_of_speech": "noun",        "definition_en": "The people engaged in or available for work",        "definition_vi": "Lá»±c lÆ°á»£ng lao Ä‘á»™ng",        "example_en": "They are expanding their workforce.",               "example_vi": "Há» Ä‘ang má»Ÿ rá»™ng lá»±c lÆ°á»£ng lao Ä‘á»™ng.",                "level": "TOEIC"},
-    {"text": "liability",      "phonetic": "/ËŒlaÉªÉ™ËˆbÉªlÉªti/",      "part_of_speech": "noun",        "definition_en": "The state of being responsible for something",       "definition_vi": "TrĂ¡ch nhiá»‡m phĂ¡p lĂ½ / ná»£", "example_en": "The company has significant liabilities.",          "example_vi": "CĂ´ng ty cĂ³ trĂ¡ch nhiá»‡m phĂ¡p lĂ½ Ä‘Ă¡ng ká»ƒ.",            "level": "TOEIC"},
-
-    # â”€â”€ C1 (20 tá»«) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    {"text": "ubiquitous",     "phonetic": "/juËËˆbÉªkwÉªtÉ™s/",    "part_of_speech": "adjective",   "definition_en": "Present, appearing, or found everywhere",           "definition_vi": "CĂ³ máº·t kháº¯p nÆ¡i",           "example_en": "Smartphones are now ubiquitous.",                   "example_vi": "Äiá»‡n thoáº¡i thĂ´ng minh hiá»‡n nay cĂ³ máº·t kháº¯p nÆ¡i.",   "level": "C1"},
-    {"text": "eloquent",       "phonetic": "/ËˆelÉ™kwÉ™nt/",        "part_of_speech": "adjective",   "definition_en": "Fluent or persuasive in speaking or writing",        "definition_vi": "HĂ¹ng há»“n / lÆ°u loĂ¡t",      "example_en": "She gave an eloquent speech.",                      "example_vi": "CĂ´ áº¥y Ä‘Ă£ cĂ³ má»™t bĂ i phĂ¡t biá»ƒu hĂ¹ng há»“n.",            "level": "C1"},
-    {"text": "paradigm",       "phonetic": "/ËˆpĂ¦rÉ™daÉªm/",        "part_of_speech": "noun",        "definition_en": "A typical example or pattern of something",         "definition_vi": "MĂ´ hĂ¬nh / khuĂ´n máº«u",      "example_en": "This is a new paradigm in science.",                "example_vi": "ÄĂ¢y lĂ  má»™t mĂ´ hĂ¬nh má»›i trong khoa há»c.",              "level": "C1"},
-    {"text": "pragmatic",      "phonetic": "/prĂ¦É¡ËˆmĂ¦tÉªk/",       "part_of_speech": "adjective",   "definition_en": "Dealing with things sensibly and realistically",    "definition_vi": "Thá»±c dá»¥ng",                 "example_en": "We need a pragmatic approach.",                     "example_vi": "ChĂºng ta cáº§n cĂ¡ch tiáº¿p cáº­n thá»±c dá»¥ng.",              "level": "C1"},
-    {"text": "scrutinise",     "phonetic": "/ËˆskruËtÉªnaÉªz/",     "part_of_speech": "verb",        "definition_en": "To examine or investigate closely",                 "definition_vi": "Xem xĂ©t ká»¹ lÆ°á»¡ng",         "example_en": "The report was scrutinised carefully.",             "example_vi": "BĂ¡o cĂ¡o Ä‘Æ°á»£c xem xĂ©t ká»¹ lÆ°á»¡ng.",                     "level": "C1"},
-    {"text": "albeit",         "phonetic": "/É”ËlËˆbiËÉªt/",        "part_of_speech": "conjunction", "definition_en": "Although; even though",                             "definition_vi": "Máº·c dĂ¹",                    "example_en": "It was an interesting, albeit long, meeting.",       "example_vi": "ÄĂ³ lĂ  má»™t cuá»™c há»p thĂº vá»‹, máº·c dĂ¹ dĂ i.",             "level": "C1"},
-    {"text": "coherent",       "phonetic": "/koÊËˆhÉªÉ™rÉ™nt/",      "part_of_speech": "adjective",   "definition_en": "Logical and consistent",                            "definition_vi": "Máº¡ch láº¡c / nháº¥t quĂ¡n",     "example_en": "The plan is coherent and well structured.",         "example_vi": "Káº¿ hoáº¡ch máº¡ch láº¡c vĂ  cĂ³ cáº¥u trĂºc tá»‘t.",              "level": "C1"},
-    {"text": "mitigate",       "phonetic": "/ËˆmÉªtÉªÉ¡eÉªt/",        "part_of_speech": "verb",        "definition_en": "To make something less severe or serious",          "definition_vi": "Giáº£m nháº¹ / giáº£m thiá»ƒu",    "example_en": "We can mitigate the risks by planning.",            "example_vi": "ChĂºng ta cĂ³ thá»ƒ giáº£m thiá»ƒu rá»§i ro báº±ng cĂ¡ch láº­p káº¿.", "level": "C1"},
-    {"text": "nuance",         "phonetic": "/ËˆnjuËÉ‘Ëns/",        "part_of_speech": "noun",        "definition_en": "A subtle difference in meaning or expression",       "definition_vi": "Sáº¯c thĂ¡i / chi tiáº¿t tinh táº¿","example_en": "The poem is full of nuance.",                       "example_vi": "BĂ i thÆ¡ Ä‘áº§y sáº¯c thĂ¡i.",                              "level": "C1"},
-    {"text": "inherent",       "phonetic": "/ÉªnËˆhÉªÉ™rÉ™nt/",       "part_of_speech": "adjective",   "definition_en": "Existing as a natural or basic part of something",  "definition_vi": "Vá»‘n cĂ³ / cá»‘ há»¯u",          "example_en": "There are inherent risks in every business.",       "example_vi": "Má»i doanh nghiá»‡p Ä‘á»u cĂ³ rá»§i ro vá»‘n cĂ³.",             "level": "C1"},
-    {"text": "rhetoric",       "phonetic": "/ËˆretÉ™rÉªk/",         "part_of_speech": "noun",        "definition_en": "Language designed to have a persuasive effect",     "definition_vi": "Lá»i láº½ hoa má»¹ / tu tá»«",   "example_en": "His speech was full of empty rhetoric.",            "example_vi": "BĂ i phĂ¡t biá»ƒu cá»§a anh áº¥y Ä‘áº§y lá»i láº½ sĂ¡o rá»—ng.",    "level": "C1"},
-    {"text": "unprecedented",  "phonetic": "/ÊŒnËˆpresÉªdentÉªd/",   "part_of_speech": "adjective",   "definition_en": "Never done or known before",                        "definition_vi": "ChÆ°a tá»«ng cĂ³ tiá»n lá»‡",     "example_en": "The pandemic caused unprecedented disruption.",     "example_vi": "Äáº¡i dá»‹ch gĂ¢y ra sá»± giĂ¡n Ä‘oáº¡n chÆ°a tá»«ng cĂ³.",        "level": "C1"},
-    {"text": "plausible",      "phonetic": "/ËˆplÉ”ËzÉªbÉ™l/",       "part_of_speech": "adjective",   "definition_en": "Seeming reasonable or probable",                    "definition_vi": "CĂ³ thá»ƒ cháº¥p nháº­n Ä‘Æ°á»£c / cĂ³ lĂ½", "example_en": "That is a plausible explanation.",              "example_vi": "ÄĂ³ lĂ  má»™t giáº£i thĂ­ch cĂ³ lĂ½.",                         "level": "C1"},
-    {"text": "ambivalent",     "phonetic": "/Ă¦mËˆbÉªvÉ™lÉ™nt/",       "part_of_speech": "adjective",   "definition_en": "Having mixed feelings about something",             "definition_vi": "LÆ°á»¡ng lá»± / cĂ³ cáº£m xĂºc trĂ¡i chiá»u", "example_en": "She felt ambivalent about the decision.",  "example_vi": "CĂ´ áº¥y cáº£m tháº¥y lÆ°á»¡ng lá»± vá» quyáº¿t Ä‘á»‹nh.",           "level": "C1"},
-    {"text": "catalyst",       "phonetic": "/ËˆkĂ¦tÉ™lÉªst/",        "part_of_speech": "noun",        "definition_en": "Something that causes change or events",            "definition_vi": "Cháº¥t xĂºc tĂ¡c / nguyĂªn nhĂ¢n thĂºc Ä‘áº©y", "example_en": "Education is a catalyst for development.", "example_vi": "GiĂ¡o dá»¥c lĂ  cháº¥t xĂºc tĂ¡c cho sá»± phĂ¡t triá»ƒn.",    "level": "C1"},
-    {"text": "obsolete",       "phonetic": "/ËŒÉ’bsÉ™ËˆliËt/",       "part_of_speech": "adjective",   "definition_en": "No longer produced or used; out of date",           "definition_vi": "Lá»—i thá»i / cÅ© ká»¹",         "example_en": "That technology is now obsolete.",                  "example_vi": "CĂ´ng nghá»‡ Ä‘Ă³ giá» Ä‘Ă£ lá»—i thá»i.",                      "level": "C1"},
-    {"text": "resilient",      "phonetic": "/rÉªËˆzÉªliÉ™nt/",       "part_of_speech": "adjective",   "definition_en": "Able to recover quickly from difficulty",           "definition_vi": "Bá»n bá»‰ / phá»¥c há»“i nhanh",  "example_en": "Resilient communities recover faster.",             "example_vi": "Cá»™ng Ä‘á»“ng bá»n bá»‰ phá»¥c há»“i nhanh hÆ¡n.",              "level": "C1"},
-    {"text": "fluctuate",      "phonetic": "/ËˆflÊŒktÊƒueÉªt/",      "part_of_speech": "verb",        "definition_en": "To rise and fall irregularly",                      "definition_vi": "Biáº¿n Ä‘á»™ng / dao Ä‘á»™ng",      "example_en": "Prices fluctuate with supply and demand.",          "example_vi": "GiĂ¡ cáº£ biáº¿n Ä‘á»™ng theo cung vĂ  cáº§u.",                 "level": "C1"},
-    {"text": "autonomy",       "phonetic": "/É”ËËˆtÉ’nÉ™mi/",        "part_of_speech": "noun",        "definition_en": "The right to govern oneself",                       "definition_vi": "Quyá»n tá»± chá»§",              "example_en": "Workers want more autonomy.",                       "example_vi": "NgÆ°á»i lao Ä‘á»™ng muá»‘n cĂ³ nhiá»u quyá»n tá»± chá»§ hÆ¡n.",    "level": "C1"},
-    {"text": "profound",       "phonetic": "/prÉ™ËˆfaÊnd/",         "part_of_speech": "adjective",   "definition_en": "Very great or intense",                             "definition_vi": "SĂ¢u sáº¯c",                   "example_en": "It had a profound effect on me.",                   "example_vi": "NĂ³ cĂ³ áº£nh hÆ°á»Ÿng sĂ¢u sáº¯c Ä‘áº¿n tĂ´i.",                  "level": "C1"},
+VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2", "TOEIC", "IELTS"}
+CSV_HEADERS = [
+    "text",
+    "phonetic",
+    "part_of_speech",
+    "definition_en",
+    "definition_vi",
+    "example_en",
+    "example_vi",
+    "level",
 ]
 
 WORDSETS = [
-    {"name": "Tá»« vá»±ng A1 â€“ CÄƒn báº£n", "description": "CĂ¡c tá»« vá»±ng cÆ¡ báº£n nháº¥t cho ngÆ°á»i má»›i báº¯t Ä‘áº§u há»c tiáº¿ng Anh.", "level": "A1",
-     "word_texts": ["hello", "goodbye", "book", "water", "eat", "sleep", "house", "family", "school", "friend", "cat", "dog", "apple", "milk", "sun", "chair", "table", "happy", "big", "small"]},
-    {"name": "Tá»« vá»±ng A2 â€“ SÆ¡ cáº¥p", "description": "Tá»« vá»±ng giao tiáº¿p hĂ ng ngĂ y cho trĂ¬nh Ä‘á»™ sÆ¡ cáº¥p.", "level": "A2",
-     "word_texts": ["travel", "weather", "shopping", "hospital", "doctor", "market", "restaurant", "holiday", "telephone", "money", "question", "answer", "city", "country", "music", "sport", "colour", "week", "birthday", "teacher"]},
-    {"name": "Tá»« vá»±ng B1 â€“ Trung cáº¥p", "description": "Má»Ÿ rá»™ng vá»‘n tá»« cho giao tiáº¿p trung cáº¥p.", "level": "B1",
-     "word_texts": ["environment", "opportunity", "society", "culture", "technology", "education", "experience", "communicate", "achievement", "challenge", "government", "economy", "health", "pollution", "solution", "decision", "information", "develop", "improve", "explain"]},
-    {"name": "Tá»« vá»±ng B2 â€“ Trung cao cáº¥p", "description": "Tá»« vá»±ng há»c thuáº­t vĂ  trĂ¬nh bĂ y Ă½ kiáº¿n.", "level": "B2",
-     "word_texts": ["innovation", "sustainable", "globalization", "perspective", "consequence", "significant", "hypothesis", "collaboration", "entrepreneurship", "phenomenon", "comprehensive", "evaluate", "analyse", "priority", "impact", "diversity", "justify", "ambiguous", "infrastructure", "bias"]},
-    {"name": "TOEIC â€“ Kinh doanh", "description": "Tá»« vá»±ng thÆ°á»ng gáº·p trong bĂ i thi TOEIC vĂ  mĂ´i trÆ°á»ng cĂ´ng sá»Ÿ.", "level": "TOEIC",
-     "word_texts": ["negotiate", "revenue", "deadline", "headquarters", "agenda", "invoice", "contract", "client", "supplier", "profit", "budget", "strategy", "implement", "proposal", "schedule", "productivity", "efficient", "colleague", "feedback", "distribution"]},
-    {"name": "C1 â€“ NĂ¢ng cao", "description": "Tá»« vá»±ng há»c thuáº­t nĂ¢ng cao cho trĂ¬nh Ä‘á»™ C1.", "level": "C1",
-     "word_texts": ["ubiquitous", "eloquent", "paradigm", "pragmatic", "coherent", "mitigate", "nuance", "inherent", "rhetoric", "unprecedented", "plausible", "resilient", "fluctuate", "autonomy", "profound", "catalyst", "obsolete", "ambivalent", "scrutinise", "albeit"]},
+    {"name": "A1 - Can ban", "description": "Tu vung can ban cho nguoi moi hoc.", "level": "A1"},
+    {"name": "A2 - So cap", "description": "Tu vung giao tiep hang ngay.", "level": "A2"},
+    {"name": "B1 - Trung cap", "description": "Mo rong von tu va dien dat.", "level": "B1"},
+    {"name": "B2 - Trung cap cao", "description": "Tu vung hoc thuat va phan tich.", "level": "B2"},
+    {"name": "TOEIC - Cong so", "description": "Tu vung thuong gap trong moi truong cong so.", "level": "TOEIC"},
+    {"name": "C1 - Nang cao", "description": "Tu vung nang cao cho hoc vien da vung.", "level": "C1"},
 ]
 
 LESSONS = [
-    {"title": "BĂ i 1 â€“ ChĂ o há»i vĂ  giá»›i thiá»‡u", "description": "Há»c cĂ¡ch chĂ o há»i vĂ  giá»›i thiá»‡u báº£n thĂ¢n báº±ng tiáº¿ng Anh.", "level": "A1", "order_index": 1,
-     "word_texts": ["hello", "goodbye", "friend", "family", "mother", "father", "happy", "yes", "no", "school"]},
-    {"title": "BĂ i 2 â€“ Cuá»™c sá»‘ng hĂ ng ngĂ y", "description": "Tá»« vá»±ng vá» cĂ¡c hoáº¡t Ä‘á»™ng sinh hoáº¡t hĂ ng ngĂ y.", "level": "A1", "order_index": 2,
-     "word_texts": ["eat", "sleep", "house", "book", "water", "run", "walk", "open", "close", "food"]},
-    {"title": "BĂ i 3 â€“ Váº­t dá»¥ng vĂ  mĂ u sáº¯c", "description": "Tá»« vá»±ng mĂ´ táº£ Ä‘á»“ váº­t vĂ  mĂ u sáº¯c xung quanh.", "level": "A1", "order_index": 3,
-     "word_texts": ["chair", "table", "pen", "bag", "hat", "car", "bus", "red", "blue", "big"]},
-    {"title": "BĂ i 4 â€“ NÆ¡i chá»‘n vĂ  di chuyá»ƒn", "description": "Tá»« vá»±ng vá» Ä‘á»‹a Ä‘iá»ƒm vĂ  phÆ°Æ¡ng tiá»‡n di chuyá»ƒn.", "level": "A2", "order_index": 4,
-     "word_texts": ["hospital", "market", "restaurant", "airport", "hotel", "beach", "mountain", "river", "city", "ticket"]},
-    {"title": "BĂ i 5 â€“ Sinh hoáº¡t vĂ  bá»¯a Äƒn", "description": "Tá»« vá»±ng vá» thĂ³i quen Äƒn uá»‘ng vĂ  sinh hoáº¡t gia Ä‘Ă¬nh.", "level": "A2", "order_index": 5,
-     "word_texts": ["breakfast", "lunch", "dinner", "kitchen", "bedroom", "garden", "shopping", "holiday", "birthday", "exercise"]},
-    {"title": "BĂ i 6 â€“ ThĂ´ng tin vĂ  truyá»n thĂ´ng", "description": "Tá»« vá»±ng vá» cĂ´ng nghá»‡, truyá»n thĂ´ng vĂ  thĂ´ng tin.", "level": "A2", "order_index": 6,
-     "word_texts": ["computer", "internet", "language", "newspaper", "map", "telephone", "music", "sport", "question", "answer"]},
-    {"title": "BĂ i 7 â€“ XĂ£ há»™i vĂ  con ngÆ°á»i", "description": "Tá»« vá»±ng mĂ´ táº£ xĂ£ há»™i, giĂ¡o dá»¥c vĂ  nghá» nghiá»‡p.", "level": "B1", "order_index": 7,
-     "word_texts": ["society", "education", "culture", "government", "economy", "health", "opportunity", "relationship", "opinion", "traditional"]},
-    {"title": "BĂ i 8 â€“ Ká»¹ nÄƒng giao tiáº¿p", "description": "Tá»« vá»±ng dĂ¹ng trong giao tiáº¿p vĂ  diá»…n Ä‘áº¡t Ă½ kiáº¿n.", "level": "B1", "order_index": 8,
-     "word_texts": ["communicate", "describe", "discuss", "explain", "develop", "improve", "decision", "information", "advantage", "disadvantage"]},
-    {"title": "BĂ i 9 â€“ MĂ´i trÆ°á»ng vĂ  phĂ¡t triá»ƒn", "description": "Tá»« vá»±ng vá» mĂ´i trÆ°á»ng, Ă´ nhiá»…m vĂ  phĂ¡t triá»ƒn bá»n vá»¯ng.", "level": "B1", "order_index": 9,
-     "word_texts": ["environment", "pollution", "solution", "natural", "modern", "traditional", "local", "popular", "necessary", "succeed"]},
-    {"title": "BĂ i 10 â€“ Khoa há»c vĂ  cĂ´ng nghá»‡", "description": "Tá»« vá»±ng há»c thuáº­t vá» cĂ´ng nghá»‡ vĂ  Ä‘á»•i má»›i.", "level": "B2", "order_index": 10,
-     "word_texts": ["technology", "innovation", "hypothesis", "phenomenon", "sustainable", "significant", "comprehensive", "analyse", "evaluate", "impact"]},
-    {"title": "BĂ i 11 â€“ TÆ° duy phĂ¢n tĂ­ch", "description": "Tá»« vá»±ng diá»…n Ä‘áº¡t quan Ä‘iá»ƒm vĂ  phĂ¢n tĂ­ch váº¥n Ä‘á».", "level": "B2", "order_index": 11,
-     "word_texts": ["perspective", "consequence", "assumption", "bias", "contradiction", "implication", "priority", "diversity", "justify", "ambiguous"]},
-    {"title": "BĂ i 12 â€“ Kinh doanh quá»‘c táº¿", "description": "Tá»« vá»±ng TOEIC cho mĂ´i trÆ°á»ng kinh doanh vĂ  vÄƒn phĂ²ng.", "level": "TOEIC", "order_index": 12,
-     "word_texts": ["negotiate", "contract", "client", "supplier", "revenue", "profit", "budget", "invoice", "strategy", "proposal"]},
-    {"title": "BĂ i 13 â€“ Quáº£n lĂ½ vĂ  váº­n hĂ nh", "description": "Tá»« vá»±ng vá» quáº£n lĂ½ nhĂ¢n sá»±, lá»‹ch trĂ¬nh vĂ  váº­n hĂ nh.", "level": "TOEIC", "order_index": 13,
-     "word_texts": ["schedule", "deadline", "implement", "productivity", "efficient", "colleague", "feedback", "promotion", "complaint", "headquarters"]},
-    {"title": "BĂ i 14 â€“ Tiáº¿ng Anh há»c thuáº­t C1", "description": "Tá»« vá»±ng nĂ¢ng cao dĂ nh cho vÄƒn viáº¿t vĂ  há»c thuáº­t.", "level": "C1", "order_index": 14,
-     "word_texts": ["ubiquitous", "eloquent", "paradigm", "pragmatic", "coherent", "mitigate", "nuance", "inherent", "plausible", "unprecedented"]},
+    {
+        "title": "Bai 1 - Chao hoi co ban",
+        "description": "Tu vung chao hoi va gioi thieu.",
+        "level": "A1",
+        "order_index": 1,
+        "words": ["hello", "goodbye", "friend", "family", "school", "yes", "no"],
+    },
+    {
+        "title": "Bai 2 - Cuoc song hang ngay",
+        "description": "Tu vung sinh hoat hang ngay.",
+        "level": "A1",
+        "order_index": 2,
+        "words": ["eat", "sleep", "house", "water", "book", "open", "close"],
+    },
+    {
+        "title": "Bai 3 - Di lai va phuong tien",
+        "description": "Tu vung ve di chuyen co ban.",
+        "level": "A2",
+        "order_index": 3,
+        "words": ["travel", "bus", "car", "ticket", "airport", "city", "country"],
+    },
+    {
+        "title": "Bai 4 - Giao tiep va cong viec",
+        "description": "Tu vung hay dung trong hoc tap va cong viec.",
+        "level": "B1",
+        "order_index": 4,
+        "words": ["communicate", "decision", "information", "develop", "improve", "experience"],
+    },
+    {
+        "title": "Bai 5 - Kinh doanh TOEIC",
+        "description": "Cum tu cong so can biet.",
+        "level": "TOEIC",
+        "order_index": 5,
+        "words": ["invoice", "contract", "client", "supplier", "profit", "budget", "deadline"],
+    },
 ]
 
 
+def _csv_path() -> Path:
+    return Path(__file__).resolve().parents[5] / "data" / "words.csv"
+
+
+def _norm(value: str) -> str:
+    return (value or "").strip()
+
+
 class Command(BaseCommand):
-    help = "Đẩy dữ liệu mẫu vào database (development only)"
+    help = "Seed full catalog from backend/data/words.csv (development only)"
 
     def add_arguments(self, parser):
-        parser.add_argument("--clear", action="store_true", help="Xóa dữ liệu cũ trước khi seed")
+        parser.add_argument("--clear", action="store_true", help="Xoa du lieu cu truoc khi seed")
 
     def handle(self, *args, **options):
         if options["clear"]:
-            self.stdout.write("Đang xóa dữ liệu cũ...")
-            WordSetWord.objects.all().delete()
-            LessonWord.objects.all().delete()
-            WordSet.objects.all().delete()
-            Lesson.objects.all().delete()
-            Word.objects.all().delete()
-            User.objects.filter(is_superuser=False).delete()
-            self.stdout.write(self.style.WARNING("Đã xóa dữ liệu cũ."))
+            self._clear_data()
 
         with transaction.atomic():
             admin = self._seed_users()
@@ -317,92 +103,154 @@ class Command(BaseCommand):
             self._seed_wordsets(admin, words)
             self._seed_lessons(admin, words)
 
-        self.stdout.write(self.style.SUCCESS(
-            f"\n✅ Seed hoàn tất!"
-            f"\n   Admin:    admin@norostu.com  /  Admin@123456"
-            f"\n   Student:  student@norostu.com  /  Student@123456"
-            f"\n   Từ vựng:  {len(WORDS)} từ"
-            f"\n   Bộ từ:    {len(WORDSETS)} bộ"
-            f"\n   Bài học:  {len(LESSONS)} bài"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                "\nSeed hoan tat!"
+                "\n  Admin:   admin@norostu.com / Admin@123456"
+                "\n  Student: student@norostu.com / Student@123456"
+                f"\n  Tu vung: {Word.objects.count()}"
+                f"\n  Bo tu:   {WordSet.objects.count()}"
+                f"\n  Bai hoc: {Lesson.objects.count()}"
+            )
+        )
+
+    def _clear_data(self):
+        self.stdout.write("Dang xoa du lieu cu...")
+        WordSetWord.objects.all().delete()
+        LessonWord.objects.all().delete()
+        WordSet.objects.all().delete()
+        Lesson.objects.all().delete()
+        Word.objects.all().delete()
+        User.objects.filter(is_superuser=False).delete()
+        self.stdout.write(self.style.WARNING("Da xoa du lieu cu."))
 
     def _seed_users(self):
-        self.stdout.write("Đang tạo users...")
-        users_data = [
-            {"email": "admin@norostu.com",   "username": "admin",   "full_name": "Quản trị viên", "password": "Admin@123456",   "role": "admin",   "is_staff": True,  "is_superuser": True},
-            {"email": "student@norostu.com", "username": "student", "full_name": "Học sinh Nam",  "password": "Student@123456", "role": "user",    "is_staff": False, "is_superuser": False},
+        self.stdout.write("Dang tao users...")
+        users = [
+            {
+                "email": "admin@norostu.com",
+                "username": "admin",
+                "full_name": "Quan tri vien",
+                "password": "Admin@123456",
+                "role": "admin",
+                "is_staff": True,
+                "is_superuser": True,
+            },
+            {
+                "email": "student@norostu.com",
+                "username": "student",
+                "full_name": "Hoc sinh Nam",
+                "password": "Student@123456",
+                "role": "user",
+                "is_staff": False,
+                "is_superuser": False,
+            },
         ]
+
         admin = None
-        for data in users_data:
-            data = _fix_payload(data)
+        for data in users:
             user, created = User.objects.get_or_create(
                 email=data["email"],
                 defaults={
-                    "username":       data["username"],
-                    "full_name":      data["full_name"],
-                    "role":           data["role"],
-                    "is_active":      True,
+                    "username": data["username"],
+                    "full_name": data["full_name"],
+                    "role": data["role"],
+                    "is_active": True,
                     "email_verified": True,
-                    "is_staff":       data["is_staff"],
-                    "is_superuser":   data["is_superuser"],
+                    "is_staff": data["is_staff"],
+                    "is_superuser": data["is_superuser"],
                 },
             )
             if created:
                 user.set_password(data["password"])
-                user.save()
-                self.stdout.write(f"   + Tạo user: {user.email}")
-            else:
-                self.stdout.write(f"   ~ Đã tồn tại: {user.email}")
+                user.save(update_fields=["password"])
+                self.stdout.write(f"  + Tao user: {user.email}")
             if data["role"] == "admin":
                 admin = user
         return admin
 
     def _seed_words(self, admin):
-        self.stdout.write("Đang tạo từ vựng...")
+        self.stdout.write("Dang tao tu vung tu words.csv...")
+        csv_file = _csv_path()
+        if not csv_file.exists():
+            raise FileNotFoundError(f"Khong tim thay file du lieu: {csv_file}")
+
         word_map = {}
-        for data in WORDS:
-            data = _fix_payload(data)
-            # Bỏ qua từ trùng lặp (text + level giống nhau)
-            word, created = Word.objects.get_or_create(
-                text=data["text"],
-                level=data["level"],
-                defaults={**data, "created_by": admin},
-            )
-            word_map[data["text"]] = word
-            if created:
-                self.stdout.write(f"   + {word.text} [{word.level}]")
+        created_count = 0
+        with csv_file.open("r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            missing_headers = [h for h in CSV_HEADERS if h not in (reader.fieldnames or [])]
+            if missing_headers:
+                raise ValueError(f"words.csv thieu cot: {missing_headers}")
+
+            for row in reader:
+                text = _norm(row.get("text")).lower()
+                if not text:
+                    continue
+                level = _norm(row.get("level")).upper()
+                if level not in VALID_LEVELS:
+                    continue
+
+                payload = {
+                    "phonetic": _norm(row.get("phonetic")),
+                    "part_of_speech": _norm(row.get("part_of_speech")),
+                    "definition_en": _norm(row.get("definition_en")),
+                    "definition_vi": _norm(row.get("definition_vi")),
+                    "example_en": _norm(row.get("example_en")),
+                    "example_vi": _norm(row.get("example_vi")),
+                    "level": level,
+                    "created_by": admin,
+                }
+                word, created = Word.objects.get_or_create(text=text, defaults=payload)
+                if created:
+                    created_count += 1
+                word_map[text] = word
+
+        self.stdout.write(f"  + Tao moi {created_count} tu")
         return word_map
 
     def _seed_wordsets(self, admin, word_map):
-        self.stdout.write("Đang tạo bộ từ...")
-        for data in WORDSETS:
-            data = _fix_payload(data)
-            ws, created = WordSet.objects.get_or_create(
-                name=data["name"],
-                defaults={"description": data["description"], "level": data["level"], "created_by": admin},
-            )
-            if created:
-                for i, text in enumerate(data["word_texts"]):
-                    if text in word_map:
-                        WordSetWord.objects.get_or_create(wordset=ws, word=word_map[text], defaults={"order_index": i})
-                self.stdout.write(f"   + Bộ từ: {ws.name}")
-
-    def _seed_lessons(self, admin, word_map):
-        self.stdout.write("Đang tạo bài học...")
-        for data in LESSONS:
-            data = _fix_payload(data)
-            lesson, created = Lesson.objects.get_or_create(
-                title=data["title"],
+        self.stdout.write("Dang tao bo tu...")
+        for spec in WORDSETS:
+            ws, _ = WordSet.objects.get_or_create(
+                name=spec["name"],
                 defaults={
-                    "description":  data["description"],
-                    "level":        data["level"],
-                    "order_index":  data["order_index"],
-                    "is_published": True,
-                    "created_by":   admin,
+                    "description": spec["description"],
+                    "level": spec["level"],
+                    "created_by": admin,
+                    "is_public": True,
                 },
             )
-            if created:
-                for i, text in enumerate(data["word_texts"]):
-                    if text in word_map:
-                        LessonWord.objects.get_or_create(lesson=lesson, word=word_map[text], defaults={"order_index": i})
-                self.stdout.write(f"   + Bài học: {lesson.title}")
+
+            level_words = [
+                word for word in word_map.values() if (word.level or "").upper() == spec["level"]
+            ][:40]
+            for idx, word in enumerate(level_words):
+                WordSetWord.objects.get_or_create(
+                    wordset=ws,
+                    word=word,
+                    defaults={"order_index": idx},
+                )
+
+    def _seed_lessons(self, admin, word_map):
+        self.stdout.write("Dang tao bai hoc...")
+        for spec in LESSONS:
+            lesson, _ = Lesson.objects.get_or_create(
+                title=spec["title"],
+                defaults={
+                    "description": spec["description"],
+                    "level": spec["level"],
+                    "order_index": spec["order_index"],
+                    "is_published": True,
+                    "created_by": admin,
+                },
+            )
+            for idx, text in enumerate(spec["words"]):
+                word = word_map.get(text.lower())
+                if not word:
+                    continue
+                LessonWord.objects.get_or_create(
+                    lesson=lesson,
+                    word=word,
+                    defaults={"order_index": idx},
+                )

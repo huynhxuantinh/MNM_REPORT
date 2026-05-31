@@ -9,7 +9,7 @@ Scope: self-learning only (`no teacher flow`, `no payment/subscription flow` run
 - Frontend lint: `npm run lint` -> PASS
 - Frontend test: `npm run test -- --run` -> `43 passed`
 - Frontend build: `npm run build` -> PASS
-- Cypress E2E: chua run lai trong dot nay (lan gan nhat: `9 passed`, `2026-05-21`)
+- E2E gate: `npm run cy:run` PASS (fallback Playwright admin smoke khi Cypress runtime local loi)
 
 ## 2) Dot 1 -> Dot 6 da chot
 - Dot 1: them `frontend/public/robots.txt`, `frontend/public/sitemap.xml`

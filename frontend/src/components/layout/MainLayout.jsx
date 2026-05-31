@@ -1,8 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Box, useMediaQuery, useTheme, IconButton, Tooltip } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
+import { KeyboardRounded as KeyboardRoundedIcon } from "@mui/icons-material";
+import { ShieldRounded as ShieldRoundedIcon } from "@mui/icons-material";
+import { FavoriteRounded as FavoriteRoundedIcon } from "@mui/icons-material";
+import { FactCheckRounded as FactCheckRoundedIcon } from "@mui/icons-material";
+import Sidebar, { SIDEBAR_WIDTH } from "./Sidebar";
+import Header from "./Header";
+import { SbButton } from "@/components/ui";
+import { colors } from "@/styles/theme";
 
 const resolveComponent = (Comp) => {
   let current = Comp;
@@ -13,16 +34,18 @@ const resolveComponent = (Comp) => {
 };
 
 const SafeLocalFireDepartmentRoundedIcon = resolveComponent(LocalFireDepartmentRoundedIcon);
-import Sidebar, { SIDEBAR_WIDTH } from "./Sidebar";
-import Header from "./Header";
-import { colors } from "@/styles/theme";
 
 const HEADER_HEIGHT = 64;
+const getUxOnboardingKey = (user) => {
+  const identity = user?.id || user?.email || user?.username || "anon";
+  return `ux_onboarding_seen_v2_${identity}`;
+};
 
 const MainLayout = () => {
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -30,9 +53,24 @@ const MainLayout = () => {
   const isReviewPage = location.pathname === "/review";
   const showFrap = user?.role === "user" && !isReviewPage;
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (user?.role !== "user") return;
+    if (location.pathname.startsWith("/learning/session/")) return;
+
+    const seen = window.localStorage.getItem(getUxOnboardingKey(user)) === "1";
+    setOnboardingOpen(!seen);
+  }, [location.pathname, user]);
+
+  const closeOnboarding = () => {
+    setOnboardingOpen(false);
+    if (typeof window !== "undefined" && user?.role === "user") {
+      window.localStorage.setItem(getUxOnboardingKey(user), "1");
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      {/* Sidebar – permanent on desktop, drawer on mobile */}
       <Box
         component="nav"
         sx={{ width: { md: SIDEBAR_WIDTH }, flexShrink: { md: 0 } }}
@@ -48,7 +86,6 @@ const MainLayout = () => {
         )}
       </Box>
 
-      {/* Main area */}
       <Box
         sx={{
           flex: 1,
@@ -60,7 +97,6 @@ const MainLayout = () => {
       >
         <Header onMenuClick={() => setMobileOpen(true)} />
 
-        {/* Page content */}
         <Box
           component="main"
           sx={{
@@ -75,7 +111,6 @@ const MainLayout = () => {
         </Box>
       </Box>
 
-      {/* Floating Action Button (Frap) for Review */}
       {showFrap && (
         <Tooltip title="Ôn tập ngay (SRS)" placement="left" arrow>
           <IconButton
@@ -105,6 +140,52 @@ const MainLayout = () => {
           </IconButton>
         </Tooltip>
       )}
+
+      <Dialog open={onboardingOpen} onClose={closeOnboarding} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Hướng dẫn nhanh trước khi học</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.2} sx={{ mt: 0.5 }}>
+            <Alert icon={<FavoriteRoundedIcon />} severity="info">
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>Hearts</Typography>
+              <Typography sx={{ fontSize: "0.84rem" }}>
+                Mỗi câu sai thường trừ 1 tim. Hết tim cần chờ hồi để học tiếp.
+              </Typography>
+            </Alert>
+            <Alert icon={<ShieldRoundedIcon />} severity="success">
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>Streak Freeze</Typography>
+              <Typography sx={{ fontSize: "0.84rem" }}>
+                Nếu nghỉ 1 ngày, hệ thống tự dùng 1 freeze để giữ streak.
+              </Typography>
+            </Alert>
+            <Alert icon={<FactCheckRoundedIcon />} severity="warning">
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>Checkpoint</Typography>
+              <Typography sx={{ fontSize: "0.84rem" }}>
+                Hoàn thành checkpoint để xác nhận kiến thức unit trước khi tiến xa hơn.
+              </Typography>
+            </Alert>
+            <Alert icon={<KeyboardRoundedIcon />} severity="info">
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>Phím tắt</Typography>
+              <Typography sx={{ fontSize: "0.84rem" }}>
+                Dùng 1-4 để chọn đáp án, Enter để gửi nhanh.
+              </Typography>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <SbButton
+            variant="outlined"
+            onClick={() => {
+              closeOnboarding();
+              navigate("/learning");
+            }}
+          >
+            Vào lộ trình học
+          </SbButton>
+          <SbButton variant="primary" onClick={closeOnboarding}>
+            Đã hiểu
+          </SbButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

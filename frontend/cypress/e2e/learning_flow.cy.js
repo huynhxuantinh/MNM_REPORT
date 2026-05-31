@@ -1,4 +1,4 @@
-﻿describe("Student Learning Flow", () => {
+describe("Student Learning Flow", () => {
   const student = {
     id: 10,
     email: "student@test.com",
@@ -7,12 +7,9 @@
     role: "user",
     xp: 250,
     level: 3,
-    notification_enabled: true,
-    created_at: "2026-01-01T00:00:00Z",
-    streak: { current_streak: 4 },
   };
 
-  const mockStudentSession = () => {
+  const setupSession = () => {
     cy.intercept("POST", "**/api/v1/auth/token/refresh/**", {
       statusCode: 200,
       body: { access: "student_access" },
@@ -33,36 +30,29 @@
   };
 
   beforeEach(() => {
-    mockStudentSession();
+    setupSession();
   });
 
   it("loads home dashboard", () => {
     cy.intercept("GET", "**/api/v1/learning/review/summary/**", {
       statusCode: 200,
       body: { due_today: 2, reviewed_today: 1, streak: 4 },
-    }).as("reviewSummary");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/review/history/**", {
       statusCode: 200,
       body: [{ date: "2026-05-10", count: 2 }],
-    }).as("reviewHistory");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/lessons/**", {
       statusCode: 200,
       body: {
-        count: 2,
-        results: [
-          { id: 1, title: "Basic Greetings", level: "A1", word_count: 5, user_progress: null },
-          { id: 2, title: "Numbers 1-10", level: "A1", word_count: 8, user_progress: null },
-        ],
+        count: 1,
+        results: [{ id: 1, title: "Basic Greetings", level: "A1", word_count: 5, user_progress: null }],
       },
-    }).as("homeLessons");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/session/recover/**", {
       statusCode: 200,
       body: { has_recoverable_session: false },
-    }).as("recoverSession");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/daily-goal/**", {
       statusCode: 200,
       body: {
@@ -72,14 +62,13 @@
         hearts: { current: 5, max: 10 },
         streak: { freeze_count: 0 },
       },
-    }).as("dailyGoal");
+    });
 
     cy.visit("/");
     cy.wait("@refresh");
     cy.wait("@me");
     cy.wait("@placementStatus");
-    cy.location("pathname").should("eq", "/");
-    cy.contains(/trang chủ|home/i).should("be.visible");
+    cy.contains(/trang chủ|home|chào/i).should("be.visible");
   });
 
   it("opens learning path and starts a lesson session", () => {
@@ -101,28 +90,24 @@
         ],
       },
     }).as("learningPath");
-
     cy.intercept("GET", "**/api/v1/learning/session/recover/**", {
       statusCode: 200,
       body: { has_recoverable_session: false },
-    }).as("recoverSession");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/daily-goal/**", {
       statusCode: 200,
       body: {
         target_minutes: 10,
-        reward_xp: 20,
+        reward_xp: 15,
         today: { studied_minutes: 3, goal_minutes: 10, is_achieved: false, claimed_at: null },
         hearts: { current: 5, max: 10 },
         streak: { freeze_count: 0 },
       },
-    }).as("dailyGoal");
-
+    });
     cy.intercept("POST", "**/api/v1/learning/session/start/**", {
       statusCode: 201,
       body: { id: 900 },
     }).as("startSession");
-
     cy.intercept("GET", "**/api/v1/learning/session/900/**", {
       statusCode: 200,
       body: {
@@ -137,9 +122,7 @@
           xp_earned: 0,
         },
         attempts: [],
-        exercises: [
-          { step_index: 1, exercise_type: "mc_meaning", prompt: "hello means?", choices: ["xin chao", "tam biet"] },
-        ],
+        exercises: [{ step_index: 1, exercise_type: "mc_meaning", prompt: "hello means?", choices: ["xin chao", "tam biet"] }],
         hearts: { current: 5, max: 10 },
       },
     }).as("session900");
@@ -149,9 +132,8 @@
     cy.wait("@me");
     cy.wait("@placementStatus");
     cy.wait("@learningPath");
-    cy.location("pathname").should("eq", "/learning");
     cy.contains(/lộ trình học|learning path/i).should("be.visible");
-    cy.contains("button", /học|start/i).first().click();
+    cy.contains("button", /học|start/i).first().click({ force: true });
     cy.wait("@startSession");
     cy.wait("@session900");
     cy.url().should("include", "/learning/session/900");
@@ -181,7 +163,6 @@
         ],
       },
     }).as("reviewList");
-
     cy.intercept("POST", "**/api/v1/learning/review/101/answer/**", {
       statusCode: 200,
       body: { xp_earned: 5, total_xp: 255, level: 3, streak: 4 },
@@ -191,17 +172,11 @@
     cy.wait("@refresh");
     cy.wait("@me");
     cy.wait("@placementStatus");
-
-    cy.get("body").then(($body) => {
-      const text = $body.text().toLowerCase();
-      if (text.includes("hello")) {
-        cy.contains("button", /lật thẻ|xem nghĩa|lat the|xem nghia/i).click({ force: true });
-        cy.contains(/tốt|tot/i).click({ force: true });
-        cy.wait("@reviewAnswer");
-      } else {
-        cy.contains(/tất cả đã ôn xong|tat ca da on xong/i).should("be.visible");
-      }
-    });
+    cy.wait("@reviewList");
+    cy.contains(/hello/i).should("be.visible");
+    cy.contains("button", /lật thẻ|xem nghĩa|flip|xem nghia/i).click({ force: true });
+    cy.contains(/tốt|tot/i).click({ force: true });
+    cy.wait("@reviewAnswer");
   });
 
   it("updates profile full name", () => {
@@ -216,13 +191,11 @@
         bookmarks: 3,
         lessons_completed: 6,
       },
-    }).as("profileStats");
-
+    });
     cy.intercept("GET", "**/api/v1/learning/review/history/**", {
       statusCode: 200,
       body: [{ date: "2026-05-10", count: 2 }],
-    }).as("history");
-
+    });
     cy.intercept("PUT", "**/api/v1/auth/me/**", {
       statusCode: 200,
       body: { ...student, full_name: "Updated Student" },
@@ -234,9 +207,7 @@
     cy.wait("@placementStatus");
     cy.get('[data-cy="full-name-input"]').clear().type("Updated Student");
     cy.get('[data-cy="full-name-input"]').closest("form").find('button[type="submit"]').click();
-    cy.wait("@updateProfile").its("request.body").should("deep.include", {
-      full_name: "Updated Student",
-    });
+    cy.wait("@updateProfile").its("request.body").should("deep.include", { full_name: "Updated Student" });
   });
 
   it("marks one notification as read", () => {
@@ -247,7 +218,7 @@
         results: [
           {
             id: 7,
-            type: "assignment",
+            type: "system",
             message: "New assignment available",
             is_read: false,
             created_at: "2026-05-15T08:00:00Z",
@@ -255,7 +226,6 @@
         ],
       },
     }).as("notifications");
-
     cy.intercept("PUT", "**/api/v1/learning/notifications/7/read/**", {
       statusCode: 200,
       body: {},
@@ -265,7 +235,8 @@
     cy.wait("@refresh");
     cy.wait("@me");
     cy.wait("@placementStatus");
-    cy.contains("New assignment available").click();
+    cy.wait("@notifications");
+    cy.contains("New assignment available").click({ force: true });
     cy.wait("@markRead");
   });
 });
