@@ -19,7 +19,7 @@ import { BookmarkRounded as BookmarkRoundedIcon } from "@mui/icons-material";
 import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import { colors } from "@/styles/theme";
-import vocabularyApi from "@/api/vocabularyApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

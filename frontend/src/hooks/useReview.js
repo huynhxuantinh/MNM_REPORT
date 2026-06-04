@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 
 /**
  * Hook để lấy danh sách từ cần ôn tập hôm nay (SRS queue)
@@ -105,3 +105,5 @@ export const useReviewSession = () => {
     refresh,
   };
 };
+
+

@@ -14,7 +14,7 @@ import { CalendarTodayRounded as CalendarTodayRoundedIcon } from "@mui/icons-mat
 import { TrendingUpRounded as TrendingUpRoundedIcon } from "@mui/icons-material";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
-import vocabularyApi from "@/api/vocabularyApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -333,3 +333,4 @@ const WordDetailPage = () => {
 };
 
 export default WordDetailPage;
+

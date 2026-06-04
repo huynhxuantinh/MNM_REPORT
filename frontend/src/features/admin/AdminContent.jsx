@@ -7,7 +7,7 @@ import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
 import { CollectionsBookmarkRounded as CollectionsBookmarkRoundedIcon } from "@mui/icons-material";
 import { RepeatRounded as RepeatRoundedIcon } from "@mui/icons-material";
 import { QuizRounded as QuizRoundedIcon } from "@mui/icons-material";
-import adminApi from "@/api/adminApi";
+import adminApi from "@/services/adminApi";
 
 const ADMIN_BG = "#1a1f3a";
 
@@ -145,5 +145,7 @@ const AdminContent = () => {
 };
 
 export default AdminContent;
+
+
 
 

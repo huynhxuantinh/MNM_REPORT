@@ -17,7 +17,7 @@ import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-materia
 import { FactCheckRounded as FactCheckRoundedIcon } from "@mui/icons-material";
 import { InfoOutlined as InfoOutlinedIcon } from "@mui/icons-material";
 import { StyleRounded as FlashcardIcon } from "@mui/icons-material";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
@@ -93,9 +93,16 @@ const UnitCard = ({
         </Box>
 
         <Stack spacing={1}>
-          {(unit.lessons || []).map((item) => (
+          {(unit.lessons || []).map((item) => {
+            const lessonId = item.lesson?.id ?? item.lesson_id ?? null;
+            const lessonTitle = item.lesson?.title || item.title || "Bài học";
+            const lessonLevel = item.lesson?.level || item.level || "A1";
+            const wordsLearned = item.lesson?.words_learned ?? item.words_learned ?? 0;
+            const wordsTotal = item.lesson?.words_total ?? item.words_total ?? 0;
+
+            return (
             <Stack
-              key={`${unit.id}-${item.order_index}-${item.lesson?.id}`}
+              key={`${unit.id}-${item.order_index}-${lessonId || "na"}`}
               direction={{ xs: "column", sm: "row" }}
               justifyContent="space-between"
               alignItems={{ xs: "flex-start", sm: "center" }}
@@ -104,39 +111,41 @@ const UnitCard = ({
             >
               <Box>
                 <Typography sx={{ fontWeight: 700 }}>
-                  Bài {item.order_index}: {item.lesson?.title}
+                  Bài {item.order_index}: {lessonTitle}
                 </Typography>
                 <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-                  {(item.lesson?.level || "A1")} · Đã học {item.lesson?.words_learned ?? 0}/{item.lesson?.words_total ?? 0} từ
+                  {lessonLevel} · Đã học {wordsLearned}/{wordsTotal} từ
                 </Typography>
               </Box>
               <Stack direction="row" spacing={0.75}>
-                <Tooltip title="Lật thẻ flashcard" arrow>
+                <Tooltip title="Mở chế độ flashcard để học nghĩa từng từ trước" arrow>
                   <Box>
                     <SbButton
                       size="small"
                       variant="outlined"
-                      disabled={!unit.unlocked}
-                      onClick={() => onStudy(item.lesson?.id)}
+                      startIcon={<FlashcardIcon sx={{ fontSize: 18 }} />}
+                      disabled={!unit.unlocked || !lessonId}
+                      onClick={() => onStudy(lessonId)}
                       sx={{ minWidth: 0, px: 1.5 }}
                     >
-                      <FlashcardIcon sx={{ fontSize: 18 }} />
+                      Flashcard
                     </SbButton>
                   </Box>
                 </Tooltip>
                 <SbButton
                   size="small"
                   variant="primary"
+                  data-cy={lessonId ? `learning-start-${lessonId}` : "learning-start-disabled"}
                   startIcon={<PlayArrowRoundedIcon />}
-                  disabled={!unit.unlocked || disabled}
-                  loading={startingLessonId === item.lesson?.id}
-                  onClick={() => onStart(item.lesson?.id)}
+                  disabled={!unit.unlocked || disabled || !lessonId}
+                  loading={startingLessonId === lessonId}
+                  onClick={() => onStart(lessonId)}
                 >
-                  Học
+                  Làm bài
                 </SbButton>
               </Stack>
             </Stack>
-          ))}
+          )})}
         </Stack>
 
         {canStartCheckpoint && (
@@ -171,6 +180,8 @@ const LearningPage = () => {
   const navigate = useNavigate();
   const [quickStudyLoading, setQuickStudyLoading] = useState(false);
   const [quickStudyError, setQuickStudyError] = useState("");
+  const [recoverRefreshing, setRecoverRefreshing] = useState(false);
+  const [recoverRefreshNote, setRecoverRefreshNote] = useState("");
   const [showUxHint, setShowUxHint] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(LEARNING_UX_HINT_KEY) !== "1";
@@ -189,6 +200,8 @@ const LearningPage = () => {
   const { data: recoverData, refetch: refetchRecover } = useQuery({
     queryKey: ["learning-recover-session"],
     queryFn: () => learningApi.getRecoverableSession().then((response) => response.data),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const startMutation = useMutation({
@@ -244,7 +257,7 @@ const LearningPage = () => {
   };
   const handleStudy = (lessonId) => {
     if (!lessonId) return;
-    startMutation.mutate(lessonId);
+    navigate(`/learning/${lessonId}/study`);
   };
   const handleStartCheckpoint = (unitId) => {
     if (!unitId) return;
@@ -255,15 +268,41 @@ const LearningPage = () => {
     const unlockedUnits = [...units]
       .filter((unit) => !!unit?.unlocked)
       .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+    const fallbackLessonIds = [];
+
     for (const unit of unlockedUnits) {
       const lessonLinks = [...(unit?.lessons || [])]
-        .filter((item) => !!item?.lesson?.id)
+        .filter((item) => {
+          const lessonId = item?.lesson?.id ?? item?.lesson_id ?? null;
+          const isPublished = item?.lesson?.is_published !== false;
+          return !!lessonId && isPublished;
+        })
         .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
       if (!lessonLinks.length) continue;
-      const completed = Math.max(0, unit?.progress?.completed_lessons ?? 0);
-      const nextLink = lessonLinks[Math.min(completed, lessonLinks.length - 1)];
-      if (nextLink?.lesson?.id) return nextLink.lesson.id;
+
+      for (const link of lessonLinks) {
+        const lessonId = link?.lesson?.id ?? link?.lesson_id ?? null;
+        if (lessonId) fallbackLessonIds.push(lessonId);
+      }
+      for (const link of lessonLinks) {
+        const lesson = link?.lesson || {};
+        const lessonId = lesson?.id ?? link?.lesson_id ?? null;
+        const completedAt = lesson?.user_progress?.completed_at;
+        const wordsTotal = Number(lesson?.words_total || 0);
+        const wordsLearned = Number(lesson?.words_learned || 0);
+        const isFullyLearnedByWordCount = wordsTotal > 0 && wordsLearned >= wordsTotal;
+        const isCompleted = Boolean(completedAt) || isFullyLearnedByWordCount;
+        if (lessonId && !isCompleted) {
+          return lessonId;
+        }
+      }
     }
+
+    // Fallback: if user already completed all unlocked lessons, allow relearn.
+    if (fallbackLessonIds.length > 0) {
+      return fallbackLessonIds[0];
+    }
+
     return null;
   };
 
@@ -300,6 +339,29 @@ const LearningPage = () => {
     setShowUxHint(false);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LEARNING_UX_HINT_KEY, "1");
+    }
+  };
+
+  const handleRefreshRecover = async () => {
+    if (recoverRefreshing) return;
+    setRecoverRefreshing(true);
+    setRecoverRefreshNote("");
+    try {
+      const [recoverResult] = await Promise.all([
+        refetchRecover(),
+        refetch(),
+        refetchDailyGoal(),
+      ]);
+      const hasRecoverable = !!recoverResult?.data?.has_recoverable_session;
+      setRecoverRefreshNote(
+        hasRecoverable
+          ? "Đã cập nhật: vẫn còn phiên học dở. Bấm Tiếp tục phiên học để quay lại."
+          : "Đã cập nhật: không còn phiên học dở."
+      );
+    } catch (err) {
+      setRecoverRefreshNote("Không thể làm mới trạng thái. Vui lòng thử lại.");
+    } finally {
+      setRecoverRefreshing(false);
     }
   };
 
@@ -350,14 +412,21 @@ const LearningPage = () => {
               <SbButton
                 size="small"
                 variant="text"
-                onClick={() => refetchRecover()}
+                loading={recoverRefreshing}
+                onClick={handleRefreshRecover}
               >
-                Làm mới
+                Kiểm tra lại
               </SbButton>
             </Stack>
           )}
         >
           Bạn đang có phiên học chưa xong: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
+        </Alert>
+      )}
+
+      {!!recoverRefreshNote && (
+        <Alert severity="info">
+          {recoverRefreshNote}
         </Alert>
       )}
 
@@ -466,6 +535,7 @@ const LearningPage = () => {
             <SbButton
               size="small"
               variant="primary"
+              data-cy="learning-quick-study"
               loading={quickStudyLoading || resumeMutation.isPending}
               onClick={handleQuickStudy}
             >
@@ -549,5 +619,3 @@ const LearningPage = () => {
 };
 
 export default LearningPage;
-
-

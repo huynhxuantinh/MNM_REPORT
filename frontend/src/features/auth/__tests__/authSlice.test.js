@@ -8,7 +8,7 @@ import authReducer, {
 } from "../authSlice";
 
 // Mock axiosClient để không gọi API thật
-vi.mock("@/api/axiosClient", () => ({
+vi.mock("@/services/axiosClient", () => ({
   default: {
     post: vi.fn(),
     get: vi.fn(),
@@ -60,7 +60,7 @@ describe("authSlice - login thunk", () => {
   });
 
   it("login.pending đặt loading=true và xóa error", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.post.mockReturnValue(new Promise(() => {})); // never resolves
 
     const store = createStore({
@@ -73,7 +73,7 @@ describe("authSlice - login thunk", () => {
   });
 
   it("login.fulfilled đặt isAuthenticated=true và lưu user", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.post.mockResolvedValue({ data: MOCK_TOKENS });
 
     const store = createStore({
@@ -87,7 +87,7 @@ describe("authSlice - login thunk", () => {
   });
 
   it("login.rejected lưu error từ server", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.post.mockRejectedValue({
       response: { data: { detail: "Sai mật khẩu" } },
     });
@@ -101,3 +101,5 @@ describe("authSlice - login thunk", () => {
     expect(state.isAuthenticated).toBe(false);
   });
 });
+
+

@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/helpers";
-import LoginPage from "../LoginPage";
+import LoginPage from "@/pages/auth/LoginPage";
 
-vi.mock("@/api/axiosClient", () => ({
+vi.mock("@/services/axiosClient", () => ({
   default: {
     post: vi.fn(),
     get: vi.fn(),
@@ -15,7 +15,6 @@ vi.mock("@/api/axiosClient", () => ({
   },
 }));
 
-// Mock window.matchMedia cho MUI
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
@@ -43,8 +42,9 @@ describe("LoginPage", () => {
 
   it("hiển thị lỗi khi gửi form rỗng", async () => {
     renderWithProviders(<LoginPage />, { initialEntries: ["/login"] });
-    const btn = screen.getByRole("button", { name: /đăng nhập/i });
-    await userEvent.click(btn);
+    const button = screen.getByRole("button", { name: /đăng nhập/i });
+    await userEvent.click(button);
+
     await waitFor(() => {
       expect(screen.getByText("Email là bắt buộc")).toBeInTheDocument();
     });
@@ -55,13 +55,14 @@ describe("LoginPage", () => {
     const emailInput = container.querySelector('input[type="email"]');
     await userEvent.type(emailInput, "notvalid");
     fireEvent.blur(emailInput);
+
     await waitFor(() => {
       expect(screen.getByText("Email không hợp lệ")).toBeInTheDocument();
     });
   });
 
   it("gọi login API khi form hợp lệ", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.post.mockResolvedValue({
       data: {
         access: "access-token",
@@ -71,9 +72,9 @@ describe("LoginPage", () => {
     });
 
     const { container } = renderWithProviders(<LoginPage />, { initialEntries: ["/login"] });
-
     const emailInput = container.querySelector('input[type="email"]');
     const passwordInput = container.querySelector('input[type="password"]');
+
     await userEvent.type(emailInput, "test@example.com");
     await userEvent.type(passwordInput, "pass123");
     await userEvent.click(screen.getByRole("button", { name: /^đăng nhập$/i }));
@@ -81,7 +82,7 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(axiosClient.default.post).toHaveBeenCalledWith(
         "/auth/login/",
-        { email: "test@example.com", password: "pass123" }
+        { email: "test@example.com", password: "pass123" },
       );
     });
   });

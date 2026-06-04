@@ -14,8 +14,8 @@ import { AddRounded as AddRoundedIcon } from "@mui/icons-material";
 import { MenuBookRounded as MenuBookRoundedIcon } from "@mui/icons-material";
 import { RemoveCircleOutlineRounded as RemoveCircleOutlineRoundedIcon } from "@mui/icons-material";
 import { AddCircleOutlineRounded as AddCircleOutlineRoundedIcon } from "@mui/icons-material";
-import learningApi from "@/api/learningApi";
-import vocabularyApi from "@/api/vocabularyApi";
+import learningApi from "@/services/learningApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 const ADMIN_BG = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
@@ -109,7 +109,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
                         {lw.word.definition_vi}
                       </Typography>
                     </Box>
-                    <Tooltip title="Xoá khỏi bài">
+                    <Tooltip title="Xóa khỏi bài">
                       <IconButton size="small" onClick={() => removeWord(lw.word.id)} disabled={isRemoving}>
                         <RemoveCircleOutlineRoundedIcon fontSize="small" color="error" />
                       </IconButton>
@@ -156,7 +156,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
 
             {!wordSearch.trim() && (
               <Typography sx={{ color: "text.disabled", fontSize: "0.82rem" }}>
-                Nhập từ khoá để tìm kiếm từ vựng.
+                Nhập từ khóa để tìm kiếm từ vựng.
               </Typography>
             )}
 
@@ -237,9 +237,9 @@ const AdminLessons = () => {
     mutationFn: (id) => learningApi.deleteLesson(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-lessons"] });
-      setToast({ msg: "Đã xoá bài học", severity: "success" });
+      setToast({ msg: "Đã xóa bài học", severity: "success" });
     },
-    onError: () => setToast({ msg: "Lỗi xoá bài học", severity: "error" }),
+    onError: () => setToast({ msg: "Lỗi xóa bài học", severity: "error" }),
   });
 
   const { mutate: togglePublish } = useMutation({
@@ -352,8 +352,8 @@ const AdminLessons = () => {
                           <EditRoundedIcon fontSize="small" sx={{ color: ADMIN_ACCENT }} />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xoá">
-                        <IconButton size="small" onClick={() => { if (window.confirm("Chắc chắn xoá bài học này?")) deleteLesson(l.id); }}>
+                      <Tooltip title="Xóa">
+                        <IconButton size="small" onClick={() => { if (window.confirm("Chắc chắn xóa bài học này?")) deleteLesson(l.id); }}>
                           <DeleteRoundedIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>
@@ -425,3 +425,5 @@ const AdminLessons = () => {
 };
 
 export default AdminLessons;
+
+

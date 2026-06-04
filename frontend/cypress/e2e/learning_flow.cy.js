@@ -133,7 +133,7 @@ describe("Student Learning Flow", () => {
     cy.wait("@placementStatus");
     cy.wait("@learningPath");
     cy.contains(/lộ trình học|learning path/i).should("be.visible");
-    cy.contains("button", /học|start/i).first().click({ force: true });
+    cy.get('[data-cy^="learning-start-"]').first().click({ force: true });
     cy.wait("@startSession");
     cy.wait("@session900");
     cy.url().should("include", "/learning/session/900");

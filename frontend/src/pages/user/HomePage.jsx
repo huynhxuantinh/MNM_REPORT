@@ -379,8 +379,9 @@ const HomePage = () => {
     const units = learningPathData?.units || [];
     units.forEach((unit) => {
       (unit.lessons || []).forEach((item) => {
-        const lessonId = item?.lesson?.id;
-        if (!lessonId) return;
+        const lessonId = item?.lesson?.id ?? item?.lesson_id ?? null;
+        const isPublished = item?.lesson?.is_published !== false;
+        if (!lessonId || !isPublished) return;
         map.set(lessonId, !!unit.unlocked);
       });
     });
@@ -430,7 +431,7 @@ const HomePage = () => {
                 Tiếp tục phiên học
               </Typography>
               <Typography sx={{ fontSize: "0.86rem", color: "text.secondary" }}>
-                bạn còn dở bài: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
+                Bạn còn dở bài: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -496,9 +497,9 @@ const HomePage = () => {
         <SbCard>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
             <Box>
-              <Typography sx={{ fontWeight: 700, color: colors.greenStarbucks }}>Daily Goal Progress</Typography>
+              <Typography sx={{ fontWeight: 700, color: colors.greenStarbucks }}>Tiến độ mục tiêu ngày</Typography>
               <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
-                {dailyGoalData.today?.studied_minutes ?? 0}/{dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes} minutes
+                {dailyGoalData.today?.studied_minutes ?? 0}/{dailyGoalData.today?.goal_minutes ?? dailyGoalData.target_minutes} phút
               </Typography>
             </Box>
             <Box sx={{ position: "relative", display: "inline-flex" }}>
@@ -611,5 +612,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
-
 

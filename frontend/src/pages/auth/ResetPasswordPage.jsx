@@ -9,7 +9,7 @@ import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
 import { ErrorRounded as ErrorRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
-import authApi from "@/api/authApi";
+import authApi from "@/services/authApi";
 import { colors } from "@/styles/theme";
 
 // ── Password strength (same as RegisterPage) ─────────────────────────────────
@@ -316,3 +316,4 @@ const ResetPasswordPage = () => {
 };
 
 export default ResetPasswordPage;
+

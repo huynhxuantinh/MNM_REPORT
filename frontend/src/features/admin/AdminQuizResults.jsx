@@ -8,7 +8,7 @@ import {
 import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
 import { QuizRounded as QuizRoundedIcon } from "@mui/icons-material";
 import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
-import adminApi from "@/api/adminApi";
+import adminApi from "@/services/adminApi";
 
 const ADMIN_BG     = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
@@ -198,3 +198,5 @@ const AdminQuizResults = () => {
 };
 
 export default AdminQuizResults;
+
+

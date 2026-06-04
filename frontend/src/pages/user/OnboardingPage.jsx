@@ -6,7 +6,7 @@ import { QuizRounded as QuizIcon } from "@mui/icons-material";
 import { SchoolRounded as SchoolIcon } from "@mui/icons-material";
 import { SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 
 const normalize = (value) => String(value || "")
   .normalize("NFD")

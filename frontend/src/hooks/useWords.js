@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import vocabularyApi from "@/api/vocabularyApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 /**
  * Hook để lấy danh sách từ vựng có phân trang, tìm kiếm, lọc
@@ -95,3 +95,5 @@ export const useWordSet = (id, options = {}) => {
 };
 
 export default useWords;
+
+

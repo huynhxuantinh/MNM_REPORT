@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Box, Typography, CircularProgress } from "@mui/material";
@@ -6,7 +6,7 @@ import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-materia
 import { ErrorRounded as ErrorRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard } from "@/components/ui";
-import authApi from "@/api/authApi";
+import authApi from "@/services/authApi";
 import { logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
 

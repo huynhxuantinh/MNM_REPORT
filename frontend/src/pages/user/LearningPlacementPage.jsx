@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,7 +13,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
@@ -23,6 +23,7 @@ const getFirstUnlockedLesson = (pathData) => {
   const units = (pathData?.units || [])
     .filter((unit) => !!unit?.unlocked)
     .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+
   for (const unit of units) {
     const lessonLinks = (unit?.lessons || [])
       .filter((item) => !!item?.lesson?.id)
@@ -31,6 +32,7 @@ const getFirstUnlockedLesson = (pathData) => {
       return lessonLinks[0].lesson;
     }
   }
+
   return null;
 };
 
@@ -81,6 +83,7 @@ const LearningPlacementPage = () => {
       }
     },
   });
+
   const startFirstLessonMutation = useMutation({
     mutationFn: async () => {
       const pathData = await learningApi.getLearningPath().then((response) => response.data);
@@ -176,6 +179,7 @@ const LearningPlacementPage = () => {
         handleSubmit();
       }
     };
+
     window.addEventListener("keydown", handleKeyboardShortcuts);
     return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
   }, [activeQuestionIndex, answeredCount, placementResult, questions, submitMutation.isPending]);

@@ -1,4 +1,4 @@
-﻿import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { colors } from "@/styles/theme";

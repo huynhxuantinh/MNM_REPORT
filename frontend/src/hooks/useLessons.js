@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 
 export const useLessons = (params = {}, options = {}) => {
   const { level, is_published, page = 1, page_size = 20, ...rest } = params;
@@ -54,3 +54,5 @@ export const useCompleteLesson = () => {
     },
   });
 };
+
+

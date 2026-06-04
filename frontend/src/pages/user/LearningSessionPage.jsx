@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,13 +22,13 @@ import { ReplayRounded as ReplayRoundedIcon } from "@mui/icons-material";
 import { FavoriteRounded as FavoriteRoundedIcon } from "@mui/icons-material";
 import { HeartBrokenRounded as HeartBrokenIcon } from "@mui/icons-material";
 import { VolumeUpRounded as VolumeUpRoundedIcon } from "@mui/icons-material";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 import { setUser } from "@/features/auth/authSlice";
 import { SbButton, SbCard } from "@/components/ui";
 import { colors } from "@/styles/theme";
 
-const FEEDBACK_DELAY_CORRECT_MS = 1200;
-const FEEDBACK_DELAY_WRONG_MS = 1800;
+const FEEDBACK_DELAY_CORRECT_MS = 250;
+const FEEDBACK_DELAY_WRONG_MS = 380;
 const SESSION_TYPE_LABELS = {
   lesson: "Bài học",
   checkpoint: "Checkpoint",
@@ -38,6 +38,11 @@ const DIFFICULTY_LABELS = {
   normal: "Thường",
   hard: "Khó",
 };
+const STATUS_LABELS = {
+  started: "Đang học",
+  completed: "Hoàn thành",
+  abandoned: "Bỏ dở",
+};
 const DIFFICULTY_REASON_LABELS = {
   high_accuracy_and_fast_response: "Độ chính xác cao và phản hồi nhanh",
   balanced_recent_performance: "Hiệu suất gần đây cân bằng",
@@ -46,6 +51,7 @@ const DIFFICULTY_REASON_LABELS = {
 
 const getSessionTypeLabel = (value) => SESSION_TYPE_LABELS[value] || value || "Bài học";
 const getDifficultyLabel = (value) => DIFFICULTY_LABELS[value] || value || "Thường";
+const getStatusLabel = (value) => STATUS_LABELS[value] || value || "Đang học";
 const getDifficultyReasonLabel = (value) => {
   if (!value) return DIFFICULTY_REASON_LABELS.balanced_recent_performance;
   if (DIFFICULTY_REASON_LABELS[value]) return DIFFICULTY_REASON_LABELS[value];
@@ -179,6 +185,8 @@ const LearningSessionPage = () => {
   const [quitDialogOpen, setQuitDialogOpen] = useState(false);
   const [heartsState, setHeartsState] = useState(null);
   const stepStartedAtRef = useRef(Date.now());
+  const keyboardSelectedOptionRef = useRef("");
+  const nextStepTimeoutRef = useRef(null);
 
   const invalidateLearningCaches = () => {
     queryClient.invalidateQueries({ queryKey: ["learning-recover-session"] });
@@ -224,8 +232,16 @@ const LearningSessionPage = () => {
     setTextAnswer("");
     setOrderedTokens([]);
     setUsedTokenIndexes(new Set());
+    keyboardSelectedOptionRef.current = "";
     stepStartedAtRef.current = Date.now();
   }, [currentStepIndex]);
+
+  useEffect(() => () => {
+    if (nextStepTimeoutRef.current) {
+      clearTimeout(nextStepTimeoutRef.current);
+      nextStepTimeoutRef.current = null;
+    }
+  }, []);
 
   const checkpointSubmitMutation = useMutation({
     mutationFn: () => learningApi.submitCheckpoint(sessionId).then((response) => response.data),
@@ -275,7 +291,10 @@ const LearningSessionPage = () => {
         setFrustrationGuard(null);
       }
       const delay = data?.feedback?.is_correct ? FEEDBACK_DELAY_CORRECT_MS : FEEDBACK_DELAY_WRONG_MS;
-      setTimeout(() => {
+      if (nextStepTimeoutRef.current) {
+        clearTimeout(nextStepTimeoutRef.current);
+      }
+      nextStepTimeoutRef.current = setTimeout(() => {
         const isLast = currentStepIndex >= exercises.length - 1;
         if (isLast) {
           if (session?.session_type === "checkpoint") {
@@ -288,6 +307,7 @@ const LearningSessionPage = () => {
           refetch();
         }
         setFeedback(null);
+        nextStepTimeoutRef.current = null;
       }, delay);
     },
     onError: (err) => {
@@ -300,10 +320,14 @@ const LearningSessionPage = () => {
 
   const currentExercise = useMemo(() => exercises[currentStepIndex] || null, [exercises, currentStepIndex]);
 
-  const buildSubmittedAnswer = () => {
+  const buildSubmittedAnswer = (answerOverride = null) => {
     if (!currentExercise) return {};
-    if (currentExercise.exercise_type === "mc_meaning") return { option: textAnswer };
-    if (currentExercise.exercise_type === "listen_choose_word") return { option: textAnswer };
+    if (currentExercise.exercise_type === "mc_meaning") {
+      return { option: answerOverride ?? textAnswer };
+    }
+    if (currentExercise.exercise_type === "listen_choose_word") {
+      return { option: answerOverride ?? textAnswer };
+    }
     if (currentExercise.exercise_type === "fill_blank") return { text: textAnswer };
     if (currentExercise.exercise_type === "word_order") return { tokens: orderedTokens };
     return {};
@@ -315,14 +339,22 @@ const LearningSessionPage = () => {
     return textAnswer.trim().length > 0;
   }, [currentExercise, textAnswer, orderedTokens]);
 
-  const handleSubmitAnswer = useCallback(() => {
-    if (!currentExercise || !canSubmit || answerMutation.isPending) return;
+  const handleSubmitAnswer = useCallback((answerOverride = null) => {
+    const submitted = buildSubmittedAnswer(answerOverride);
+    const hasAnswer = (() => {
+      if (!currentExercise) return false;
+      if (currentExercise.exercise_type === "word_order") return (submitted.tokens || []).length > 0;
+      if (currentExercise.exercise_type === "fill_blank") return String(submitted.text || "").trim().length > 0;
+      return String(submitted.option || "").trim().length > 0;
+    })();
+
+    if (!currentExercise || !hasAnswer || answerMutation.isPending) return;
     answerMutation.mutate({
       step_index: currentExercise.step_index,
-      submitted_answer: buildSubmittedAnswer(),
+      submitted_answer: submitted,
       response_ms: Math.max(100, Date.now() - stepStartedAtRef.current),
     });
-  }, [answerMutation, canSubmit, currentExercise, orderedTokens, textAnswer]);
+  }, [answerMutation, currentExercise, orderedTokens, textAnswer]);
 
   const addToken = useCallback((token, index) => {
     setOrderedTokens((prev) => [...prev, token]);
@@ -351,6 +383,7 @@ const LearningSessionPage = () => {
           if (!option) return;
           event.preventDefault();
           setTextAnswer(option);
+          keyboardSelectedOptionRef.current = option;
           return;
         }
 
@@ -367,9 +400,14 @@ const LearningSessionPage = () => {
       }
 
       if (event.key !== "Enter") return;
-      if (!canSubmit) return;
+      const keyboardOption = keyboardSelectedOptionRef.current;
+      const canSubmitByKeyboardOption = (
+        (currentExercise.exercise_type === "mc_meaning" || currentExercise.exercise_type === "listen_choose_word")
+        && !!keyboardOption
+      );
+      if (!canSubmit && !canSubmitByKeyboardOption) return;
       event.preventDefault();
-      handleSubmitAnswer();
+      handleSubmitAnswer(canSubmitByKeyboardOption ? keyboardOption : null);
     };
     window.addEventListener("keydown", handleKeyboardShortcuts);
     return () => window.removeEventListener("keydown", handleKeyboardShortcuts);
@@ -446,6 +484,7 @@ const LearningSessionPage = () => {
             <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>{session.unit_title}</Typography>
             <Chip size="small" label={getSessionTypeLabel(session.session_type)} />
             <Chip size="small" label={`Độ khó: ${getDifficultyLabel(session.difficulty)}`} />
+            <Chip size="small" color="success" label={getStatusLabel(session.status)} />
             <Chip
               size="small"
               color={currentHearts > 0 ? "default" : "error"}
@@ -526,6 +565,9 @@ const LearningSessionPage = () => {
                 <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
                   Phím tắt: 1-4 để chọn nhanh, Enter để gửi đáp án.
                 </Typography>
+                <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                  Tiến độ được tự lưu sau mỗi câu. Nếu thoát giữa chừng, bạn có thể tiếp tục lại sau.
+                </Typography>
 
                 {currentExercise.exercise_type === "mc_meaning" && (
                   <Stack spacing={1}>
@@ -533,7 +575,10 @@ const LearningSessionPage = () => {
                       <SbButton
                         key={option}
                         variant={textAnswer === option ? "primary" : "outlined"}
-                        onClick={() => setTextAnswer(option)}
+                        onClick={() => {
+                          setTextAnswer(option);
+                          keyboardSelectedOptionRef.current = option;
+                        }}
                         sx={{ justifyContent: "flex-start" }}
                       >
                         {option}
@@ -563,7 +608,10 @@ const LearningSessionPage = () => {
                       <SbButton
                         key={option}
                         variant={textAnswer === option ? "primary" : "outlined"}
-                        onClick={() => setTextAnswer(option)}
+                        onClick={() => {
+                          setTextAnswer(option);
+                          keyboardSelectedOptionRef.current = option;
+                        }}
                         sx={{ justifyContent: "flex-start" }}
                       >
                         {option}
@@ -628,7 +676,6 @@ const LearningSessionPage = () => {
                 {feedback.is_correct
                   ? `Đúng! +${feedback.awarded_xp} XP`
                   : `Sai, từ này sẽ được đưa vào ôn tập sớm. -${feedback.heart_cost ?? 1} tim`}
-                {feedback.server_eval_ms !== undefined ? ` (server ${feedback.server_eval_ms} ms)` : ""}
               </Alert>
             )}
 
@@ -669,6 +716,7 @@ const LearningSessionPage = () => {
 };
 
 export default LearningSessionPage;
+
 
 
 

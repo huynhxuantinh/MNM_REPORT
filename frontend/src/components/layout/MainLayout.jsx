@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -57,6 +57,12 @@ const MainLayout = () => {
     if (typeof window === "undefined") return;
     if (user?.role !== "user") return;
     if (location.pathname.startsWith("/learning/session/")) return;
+
+    // Avoid blocking unrelated pages (home/profile/quiz) with onboarding dialog.
+    if (location.pathname !== "/learning") {
+      setOnboardingOpen(false);
+      return;
+    }
 
     const seen = window.localStorage.getItem(getUxOnboardingKey(user)) === "1";
     setOnboardingOpen(!seen);

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Box, Typography, Avatar, CircularProgress, Chip } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { colors } from "@/styles/theme";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 
 // ── Animations ──────────────────────────────────────────────────────────────
 const floatUp = keyframes`
@@ -586,3 +586,4 @@ const LeaderboardPage = () => {
 };
 
 export default LeaderboardPage;
+

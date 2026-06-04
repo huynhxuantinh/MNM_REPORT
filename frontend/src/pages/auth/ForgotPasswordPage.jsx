@@ -6,7 +6,7 @@ import { MarkEmailReadRounded as MarkEmailReadRoundedIcon } from "@mui/icons-mat
 import { ArrowBackRounded as ArrowBackRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
-import authApi from "@/api/authApi";
+import authApi from "@/services/authApi";
 import { colors } from "@/styles/theme";
 
 // ── Success state ─────────────────────────────────────────────────────────────
@@ -155,3 +155,4 @@ const ForgotPasswordPage = () => {
 };
 
 export default ForgotPasswordPage;
+

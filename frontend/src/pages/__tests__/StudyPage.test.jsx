@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/helpers";
-import StudyPage from "../StudyPage";
+import StudyPage from "@/pages/user/StudyPage";
 
 const mockNavigate = vi.fn();
 
-vi.mock("@/api/learningApi", () => ({
+vi.mock("@/services/learningApi", () => ({
   default: {
+    getLesson: vi.fn(),
     startLearningSession: vi.fn(),
   },
 }));
@@ -20,22 +21,29 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-describe("StudyPage (legacy redirect)", () => {
+describe("StudyPage (flashcard mode)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("creates session and redirects to session page", async () => {
-    const learningApi = await import("@/api/learningApi");
-    learningApi.default.startLearningSession.mockResolvedValue({
-      data: { id: 123 },
+  it("loads lesson and renders first flashcard word", async () => {
+    const learningApi = await import("@/services/learningApi");
+    learningApi.default.getLesson.mockResolvedValue({
+      data: {
+        id: 7,
+        title: "Bài test",
+        words: [
+          {
+            id: 1,
+            word: { id: 101, text: "good", definition_vi: "tốt", definition_en: "good" },
+          },
+        ],
+      },
     });
 
     renderWithProviders(<StudyPage />);
 
-    await waitFor(() => {
-      expect(learningApi.default.startLearningSession).toHaveBeenCalledWith(7, "legacy_study_route");
-      expect(mockNavigate).toHaveBeenCalledWith("/learning/session/123", { replace: true });
-    });
+    expect(await screen.findByText("Flashcard: Bài test")).toBeInTheDocument();
+    expect(screen.getByText("good")).toBeInTheDocument();
   });
 });

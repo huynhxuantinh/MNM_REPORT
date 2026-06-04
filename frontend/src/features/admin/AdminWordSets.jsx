@@ -17,7 +17,7 @@ import { RemoveCircleOutlineRounded as RemoveCircleOutlineRoundedIcon } from "@m
 import { AddCircleOutlineRounded as AddCircleOutlineRoundedIcon } from "@mui/icons-material";
 import { PublicRounded as PublicRoundedIcon } from "@mui/icons-material";
 import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
-import vocabularyApi from "@/api/vocabularyApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 const ADMIN_BG     = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
@@ -109,7 +109,7 @@ const ManageWordsDialog = ({ wordset, open, onClose }) => {
                         {wsw.word.definition_vi}
                       </Typography>
                     </Box>
-                    <Tooltip title="Xoá khỏi bộ từ">
+                    <Tooltip title="Xóa khỏi bộ từ">
                       <IconButton size="small" onClick={() => removeWord(wsw.word.id)} disabled={isRemoving}>
                         <RemoveCircleOutlineRoundedIcon fontSize="small" color="error" />
                       </IconButton>
@@ -138,7 +138,7 @@ const ManageWordsDialog = ({ wordset, open, onClose }) => {
               <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>Không tìm thấy từ nào (hoặc đã thêm hết).</Typography>
             )}
             {!wordSearch.trim() && (
-              <Typography sx={{ color: "text.disabled", fontSize: "0.82rem" }}>Nhập từ khoá để tìm kiếm.</Typography>
+              <Typography sx={{ color: "text.disabled", fontSize: "0.82rem" }}>Nhập từ khóa để tìm kiếm.</Typography>
             )}
             <Box sx={{ flex: 1, overflowY: "auto" }}>
               {searchResults.map((w) => (
@@ -210,9 +210,9 @@ const AdminWordSets = () => {
     mutationFn: (id) => vocabularyApi.deleteSet(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-wordsets"] });
-      setToast({ msg: "Đã xoá bộ từ", severity: "success" });
+      setToast({ msg: "Đã xóa bộ từ", severity: "success" });
     },
-    onError: () => setToast({ msg: "Lỗi xoá bộ từ", severity: "error" }),
+    onError: () => setToast({ msg: "Lỗi xóa bộ từ", severity: "error" }),
   });
 
   const sets     = data?.results ?? [];
@@ -311,8 +311,8 @@ const AdminWordSets = () => {
                           <EditRoundedIcon fontSize="small" sx={{ color: ADMIN_ACCENT }} />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xoá">
-                        <IconButton size="small" onClick={() => { if (window.confirm(`Xoá bộ từ "${s.name}"?`)) deleteSet(s.id); }}>
+                      <Tooltip title="Xóa">
+                        <IconButton size="small" onClick={() => { if (window.confirm(`Xóa bộ từ "${s.name}"?`)) deleteSet(s.id); }}>
                           <DeleteRoundedIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>
@@ -397,3 +397,5 @@ const AdminWordSets = () => {
 };
 
 export default AdminWordSets;
+
+

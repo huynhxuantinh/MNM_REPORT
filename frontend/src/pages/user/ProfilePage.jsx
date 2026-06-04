@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -26,10 +26,10 @@ import { LocalLibraryRounded as LocalLibraryRoundedIcon } from "@mui/icons-mater
 import { SbCard, SbButton, SbInput } from "@/components/ui";
 import { setUser, logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
-import authApi from "@/api/authApi";
-import learningApi from "@/api/learningApi";
+import authApi from "@/services/authApi";
+import learningApi from "@/services/learningApi";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 const ROLE_LABEL = { user: "Học sinh", admin: "Quản trị viên" };
 const ROLE_COLOR = { user: colors.greenAccent, admin: colors.red };
@@ -42,7 +42,7 @@ const fmtDate = (iso) => {
 
 const getLevelXp = (l) => 100 * l * (l + 1) / 2;
 
-// ── Stat chip ─────────────────────────────────────────────────────────────────
+// Stat chip
 
 const StatBox = ({ icon, value, label, color }) => (
   <Box sx={{ textAlign: "center", flex: 1, minWidth: { xs: "calc(33% - 8px)", sm: 0 } }}>
@@ -54,7 +54,7 @@ const StatBox = ({ icon, value, label, color }) => (
   </Box>
 );
 
-// ── Heatmap ───────────────────────────────────────────────────────────────────
+// Heatmap
 
 const HEAT_COLORS = ["#ebedf0", "#c6e48b", "#7bc96f", "#239a3b", "#196127"];
 
@@ -79,17 +79,17 @@ const ActivityHeatmap = () => {
     staleTime: 300_000,
   });
 
-  // Build map date→count
+  // Build map date -> count
   const countMap = useMemo(() => {
     const m = {};
     (history ?? []).forEach(({ date, count }) => { m[date] = count; });
     return m;
   }, [history]);
 
-  // Build grid: weeks × days, newest week rightmost
+  // Build grid: weeks x days, newest week rightmost
   const today = new Date();
   // Align to Saturday (end of week column)
-  const dayOfWeek = today.getDay(); // 0=Sun…6=Sat
+  const dayOfWeek = today.getDay(); // 0=Sun ... 6=Sat
   const endDate = new Date(today);
   endDate.setDate(today.getDate() + (6 - dayOfWeek)); // next/current Saturday
 
@@ -197,7 +197,7 @@ const ActivityHeatmap = () => {
   );
 };
 
-// ── Learning stats card ───────────────────────────────────────────────────────
+// Learning stats card
 
 const StatItem = ({ icon, color, value, label, loading }) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}>
@@ -226,6 +226,8 @@ const LearningStatsCard = () => {
   });
 
   const s = stats ?? {};
+  const totalReviewAttempts = s.total_review_attempts ?? s.total_review_sessions ?? 0;
+  const hasReliableAccuracy = totalReviewAttempts >= 10;
 
   return (
     <SbCard>
@@ -234,24 +236,59 @@ const LearningStatsCard = () => {
       </Typography>
       <Grid container spacing={0}>
         <Grid item xs={12} sm={6}>
-          <StatItem icon={<RepeatRoundedIcon />}       color={colors.greenAccent}  value={s.total_words_studied?.toLocaleString()}   label="Từ đã học (SRS)" loading={isLoading} />
-          <StatItem icon={<TrackChangesRoundedIcon />} color="#1e88e5"             value={s.total_review_sessions?.toLocaleString()}  label="Tổng lượt ôn"    loading={isLoading} />
-          <StatItem icon={<CheckCircleRoundedIcon />}  color="#43a047"             value={`${s.accuracy_pct ?? 0}%`}                   label="Độ chính xác"    loading={isLoading} />
+          <StatItem
+            icon={<RepeatRoundedIcon />}
+            color={colors.greenAccent}
+            value={s.total_words_studied?.toLocaleString()}
+            label="Từ trong SRS"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<TrackChangesRoundedIcon />}
+            color="#1e88e5"
+            value={totalReviewAttempts?.toLocaleString()}
+            label="Lượt trả lời review"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<CheckCircleRoundedIcon />}
+            color="#43a047"
+            value={hasReliableAccuracy ? `${s.accuracy_pct ?? 0}%` : "-"}
+            label="Độ chính xác"
+            loading={isLoading}
+          />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <StatItem icon={<LocalFireDepartmentRoundedIcon />} color={colors.gold}        value={s.best_streak}           label="Streak dài nhất"       loading={isLoading} />
-          <StatItem icon={<BookmarkRoundedIcon />}            color="#fb8c00"             value={s.bookmarks}             label="Từ đã bookmark"        loading={isLoading} />
-          <StatItem icon={<EmojiEventsRoundedIcon />}         color={colors.greenStarbucks} value={s.lessons_completed}   label="Bài học hoàn thành"    loading={isLoading} />
+          <StatItem
+            icon={<LocalFireDepartmentRoundedIcon />}
+            color={colors.gold}
+            value={s.best_streak}
+            label="Streak dài nhất"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<BookmarkRoundedIcon />}
+            color="#fb8c00"
+            value={s.bookmarks}
+            label="Từ đã bookmark"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<EmojiEventsRoundedIcon />}
+            color={colors.greenStarbucks}
+            value={s.lessons_completed}
+            label="Bài học hoàn thành"
+            loading={isLoading}
+          />
         </Grid>
       </Grid>
 
-      {/* Accuracy bar */}
-      {!isLoading && s.total_review_sessions > 0 && (
+      {!isLoading && hasReliableAccuracy && (
         <Box sx={{ mt: 1.5 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
             <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Độ chính xác tổng thể</Typography>
             <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: s.accuracy_pct >= 70 ? "#43a047" : s.accuracy_pct >= 40 ? colors.gold : "#ef5350" }}>
-              {s.correct_answers?.toLocaleString()} / {s.total_review_sessions?.toLocaleString()} đúng
+              {s.correct_answers?.toLocaleString()} / {totalReviewAttempts?.toLocaleString()} đúng
             </Typography>
           </Box>
           <LinearProgress
@@ -267,12 +304,14 @@ const LearningStatsCard = () => {
           />
         </Box>
       )}
+      {!isLoading && !hasReliableAccuracy && (
+        <Typography sx={{ mt: 1, fontSize: "0.75rem", color: "text.secondary" }}>
+          Độ chính xác sẽ ổn định hơn khi có từ 10 lượt review trở lên.
+        </Typography>
+      )}
     </SbCard>
   );
 };
-
-// ── Badges Section ────────────────────────────────────────────────────────────
-
 const BadgesSection = () => {
   const { user } = useSelector((s) => s.auth);
   const { data: stats, isLoading } = useQuery({
@@ -307,7 +346,7 @@ const BadgesSection = () => {
     {
       id: "words_50",
       title: "Thông thái",
-      desc: "Học trên 50 từ",
+      desc: "Học từ 50 từ trở lên",
       icon: <LocalLibraryRoundedIcon sx={{ fontSize: 36 }} />,
       color: "#1e88e5",
       unlocked: (s.total_words_studied ?? 0) >= 50,
@@ -315,10 +354,10 @@ const BadgesSection = () => {
     {
       id: "accuracy_85",
       title: "Xạ thủ",
-      desc: "Chính xác > 85%",
+      desc: "Độ chính xác ≥ 85% (tối thiểu 20 lượt ôn)",
       icon: <WorkspacePremiumRoundedIcon sx={{ fontSize: 36 }} />,
       color: colors.greenAccent,
-      unlocked: s.total_review_sessions > 0 && (s.accuracy_pct ?? 0) >= 85,
+      unlocked: (s.total_review_sessions ?? 0) >= 20 && (s.accuracy_pct ?? 0) >= 85,
     },
   ];
 
@@ -369,7 +408,7 @@ const BadgesSection = () => {
   );
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// Main page
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
@@ -398,7 +437,7 @@ const ProfilePage = () => {
   const prevXp  = getLevelXp(level - 1);
   const xpPct   = nextXp > prevXp ? Math.round(((xp - prevXp) / (nextXp - prevXp)) * 100) : 100;
 
-  // ── Mutations ──
+  // Mutations
 
   const profileMut = useMutation({
     mutationFn: (d) => authApi.updateMe(d).then((r) => r.data),
@@ -464,7 +503,7 @@ const ProfilePage = () => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 860, mx: "auto" }}>
 
-      {/* ── Profile header card ──────────────────────────────────────── */}
+      {/* Profile header card */}
       <SbCard>
         <Box sx={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap" }}>
           {/* Avatar */}
@@ -534,16 +573,16 @@ const ProfilePage = () => {
         </Box>
       </SbCard>
 
-      {/* ── Activity heatmap ─────────────────────────────────────────── */}
+      {/* Activity heatmap */}
       <ActivityHeatmap />
 
-      {/* ── Badges ───────────────────────────────────────────────────── */}
+      {/* Badges */}
       {user?.role === "user" && <BadgesSection />}
 
-      {/* ── Learning stats ───────────────────────────────────────────── */}
+      {/* Learning stats */}
       <LearningStatsCard />
 
-      {/* ── Edit profile ─────────────────────────────────────────────── */}
+      {/* Edit profile */}
       <SbCard>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <PersonRoundedIcon sx={{ color: colors.greenAccent }} />
@@ -596,7 +635,7 @@ const ProfilePage = () => {
         </Box>
       </SbCard>
 
-      {/* ── Change password ───────────────────────────────────────────── */}
+      {/* Change password */}
       <SbCard>
         <Box
           onClick={() => setPwOpen((p) => !p)}
@@ -659,3 +698,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

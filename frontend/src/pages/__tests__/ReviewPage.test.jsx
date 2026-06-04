@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/test/helpers";
-import ReviewPage from "../ReviewPage";
+import ReviewPage from "@/pages/user/ReviewPage";
 
-vi.mock("@/api/learningApi", () => ({
+vi.mock("@/services/learningApi", () => ({
   default: {
     getReviewList: vi.fn(),
     submitAnswer: vi.fn(),
   },
 }));
 
-vi.mock("@/api/axiosClient", () => ({
+vi.mock("@/services/axiosClient", () => ({
   default: {
     interceptors: {
       request: { use: vi.fn() },
@@ -22,14 +22,17 @@ vi.mock("@/api/axiosClient", () => ({
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
-    matches: false, media: query, onchange: null,
-    addListener: vi.fn(), removeListener: vi.fn(),
-    addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
 });
 
-// speechSynthesis mock
 Object.defineProperty(window, "speechSynthesis", {
   writable: true,
   value: { speak: vi.fn(), cancel: vi.fn() },
@@ -38,13 +41,33 @@ Object.defineProperty(window, "speechSynthesis", {
 const MOCK_WORDS = [
   {
     id: 1,
-    word: { id: 10, text: "meticulous", phonetic: "məˈtɪkjʊləs", part_of_speech: "adjective", definition_vi: "Tỉ mỉ", definition_en: "Very careful", example_en: "She is meticulous.", example_vi: "Cô ấy rất tỉ mỉ." },
-    repetitions: 1, easiness_factor: 2.5, interval: 1,
+    word: {
+      id: 10,
+      text: "meticulous",
+      phonetic: "məˈtɪkjələs",
+      part_of_speech: "adjective",
+      definition_vi: "tỉ mỉ",
+      definition_en: "Very careful",
+      example_en: "She is meticulous.",
+      example_vi: "Cô ấy rất tỉ mỉ.",
+    },
+    repetitions: 1,
+    interval_days: 1,
   },
   {
     id: 2,
-    word: { id: 11, text: "eloquent", phonetic: "ˈɛləkwənt", part_of_speech: "adjective", definition_vi: "Hùng hồn", definition_en: "Fluent and persuasive", example_en: "He gave an eloquent speech.", example_vi: "Anh ấy đưa ra bài phát biểu hùng hồn." },
-    repetitions: 0, easiness_factor: 2.5, interval: 1,
+    word: {
+      id: 11,
+      text: "eloquent",
+      phonetic: "ˈeləkwənt",
+      part_of_speech: "adjective",
+      definition_vi: "hùng hồn",
+      definition_en: "Fluent and persuasive",
+      example_en: "He gave an eloquent speech.",
+      example_vi: "Anh ấy phát biểu rất hùng hồn.",
+    },
+    repetitions: 0,
+    interval_days: 1,
   },
 ];
 
@@ -55,18 +78,19 @@ describe("ReviewPage", () => {
   });
 
   it("hiển thị trạng thái loading", async () => {
-    const learningApi = await import("@/api/learningApi");
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockReturnValue(new Promise(() => {}));
 
     renderWithProviders(<ReviewPage />, {
       preloadedState: { auth: { user: { id: 1 }, isAuthenticated: true, loading: false, error: null } },
       initialEntries: ["/review"],
     });
+
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
 
-  it("hiển thị empty state khi không có từ cần ôn", async () => {
-    const learningApi = await import("@/api/learningApi");
+  it("empty state khi không có từ cần ôn", async () => {
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: [], count: 0 } });
 
     renderWithProviders(<ReviewPage />, {
@@ -80,7 +104,7 @@ describe("ReviewPage", () => {
   });
 
   it("hiển thị từ đầu tiên ở mặt trước", async () => {
-    const learningApi = await import("@/api/learningApi");
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
 
     renderWithProviders(<ReviewPage />, {
@@ -93,8 +117,8 @@ describe("ReviewPage", () => {
     });
   });
 
-  it("hiển thị progress bar 'Từ 1/2'", async () => {
-    const learningApi = await import("@/api/learningApi");
+  it("hiển thị progress bar từ 1/2", async () => {
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
 
     renderWithProviders(<ReviewPage />, {
@@ -107,8 +131,8 @@ describe("ReviewPage", () => {
     });
   });
 
-  it("nhấn thẻ để lật và xem nghĩa", async () => {
-    const learningApi = await import("@/api/learningApi");
+  it("lật thẻ và hiển thị nhóm đánh giá", async () => {
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
 
     renderWithProviders(<ReviewPage />, {
@@ -117,19 +141,15 @@ describe("ReviewPage", () => {
     });
 
     await waitFor(() => screen.getByText("meticulous"));
-
-    // Sau khi flip, nút đánh giá chất lượng xuất hiện
-    // Click vào nút "Lật thẻ"
-    const flipButton = screen.getByRole("button", { name: /lật thẻ/i });
-    fireEvent.click(flipButton);
+    fireEvent.click(screen.getByRole("button", { name: /lật thẻ/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/quên/i)).toBeInTheDocument();
     });
   });
 
-  it("hiển thị 6 nút đánh giá sau khi lật", async () => {
-    const learningApi = await import("@/api/learningApi");
+  it("hiển thị đủ 6 nút đánh giá", async () => {
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
 
     renderWithProviders(<ReviewPage />, {
@@ -138,20 +158,17 @@ describe("ReviewPage", () => {
     });
 
     await waitFor(() => screen.getByText("meticulous"));
-
-    const flipButton = screen.getByRole("button", { name: /lật thẻ/i });
-    fireEvent.click(flipButton);
+    fireEvent.click(screen.getByRole("button", { name: /lật thẻ/i }));
 
     await waitFor(() => {
-      const labels = ["Quên", "Rất khó", "Khó", "Ổn", "Tốt", "Dễ"];
-      labels.forEach((label) => {
+      ["Quên", "Rất khó", "Khó", "Ổn", "Tốt", "Dễ"].forEach((label) => {
         expect(screen.getByText(label)).toBeInTheDocument();
       });
     });
   });
 
-  it("nhấn chất lượng gọi submitAnswer và tiến sang từ tiếp theo", async () => {
-    const learningApi = await import("@/api/learningApi");
+  it("chọn chất lượng gọi submitAnswer và sang từ tiếp", async () => {
+    const learningApi = await import("@/services/learningApi");
     learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
     learningApi.default.submitAnswer.mockResolvedValue({
       data: { xp_earned: 5, streak: 1, total_xp: 100, level: 2 },
@@ -163,9 +180,7 @@ describe("ReviewPage", () => {
     });
 
     await waitFor(() => screen.getByText("meticulous"));
-
-    const flipButton = screen.getByRole("button", { name: /lật thẻ/i });
-    fireEvent.click(flipButton);
+    fireEvent.click(screen.getByRole("button", { name: /lật thẻ/i }));
 
     await waitFor(() => screen.getByText("Tốt"));
     fireEvent.click(screen.getByText("Tốt"));

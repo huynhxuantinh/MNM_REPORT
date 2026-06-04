@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { SearchRounded as SearchRoundedIcon } from "@mui/icons-material";
 import { EditRounded as EditRoundedIcon } from "@mui/icons-material";
-import adminApi from "@/api/adminApi";
+import adminApi from "@/services/adminApi";
 import { SbAvatar } from "@/components/ui";
 
 const ADMIN_BG     = "#1a1f3a";
@@ -171,11 +171,13 @@ const AdminUsers = () => {
                     ))}
                   </TableRow>
                 ))
-              : users.map((u) => (
-                  <TableRow
-                    key={u.id}
-                    sx={{ "&:hover": { bgcolor: "#f8f9ff" }, opacity: u.is_active ? 1 : 0.55 }}
-                  >
+              : users.map((u) => {
+                  const isSelf = Boolean(u.id) && Boolean(data?.current_user_id) && u.id === data.current_user_id;
+                  return (
+                    <TableRow
+                      key={u.id}
+                      sx={{ "&:hover": { bgcolor: "#f8f9ff" }, opacity: u.is_active ? 1 : 0.55 }}
+                    >
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                         <SbAvatar user={u} size="sm" />
@@ -186,18 +188,36 @@ const AdminUsers = () => {
                     </TableCell>
                     <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{u.email}</TableCell>
                     <TableCell>
-                      <RoleSelect userId={u.id} currentRole={u.role} onSave={handleSave} />
+                      {isSelf ? (
+                        <Tooltip title="Không thể tự đổi quyền của chính mình">
+                          <Box sx={{ display: "inline-flex" }}>
+                            <Chip
+                              label={ROLE_LABEL[u.role] ?? u.role}
+                              color={ROLE_COLOR[u.role] ?? "default"}
+                              size="small"
+                              sx={{ fontWeight: 700, fontSize: "0.72rem" }}
+                            />
+                          </Box>
+                        </Tooltip>
+                      ) : (
+                        <RoleSelect userId={u.id} currentRole={u.role} onSave={handleSave} />
+                      )}
                     </TableCell>
                     <TableCell align="center">
-                      <Switch
-                        checked={u.is_active}
-                        onChange={(e) => handleSave(u.id, { is_active: e.target.checked })}
-                        size="small"
-                        sx={{
-                          "& .MuiSwitch-thumb": { bgcolor: u.is_active ? ADMIN_ACCENT : "#bbb" },
-                          "& .MuiSwitch-track": { bgcolor: u.is_active ? `${ADMIN_ACCENT}80` : "#ddd" },
-                        }}
-                      />
+                      <Tooltip title={isSelf ? "Không thể tự vô hiệu hóa tài khoản của chính mình" : ""}>
+                        <Box sx={{ display: "inline-flex" }}>
+                          <Switch
+                            checked={u.is_active}
+                            disabled={isSelf}
+                            onChange={(e) => handleSave(u.id, { is_active: e.target.checked })}
+                            size="small"
+                            sx={{
+                              "& .MuiSwitch-thumb": { bgcolor: u.is_active ? ADMIN_ACCENT : "#bbb" },
+                              "& .MuiSwitch-track": { bgcolor: u.is_active ? `${ADMIN_ACCENT}80` : "#ddd" },
+                            }}
+                          />
+                        </Box>
+                      </Tooltip>
                     </TableCell>
                     <TableCell sx={{ fontSize: "0.8rem" }}>
                       {(u.xp ?? 0).toLocaleString()}
@@ -207,8 +227,9 @@ const AdminUsers = () => {
                         ? new Date(u.created_at).toLocaleDateString("vi-VN")
                         : "—"}
                     </TableCell>
-                  </TableRow>
-                ))}
+                    </TableRow>
+                  );
+                })}
           </TableBody>
         </Table>
       </TableContainer>

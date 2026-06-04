@@ -148,9 +148,14 @@ Promise.resolve(skipVerify ? 0 : runNodeScript(CYPRESS_BIN, ["verify"]))
       process.exit(fallbackCode);
     });
   })
-  .catch((err) => {
+  .catch(async (err) => {
     console.error(`[run-cypress] ${err.message}`);
     stopDevServer();
+    if (mode === "run" && !strictMode && env.ALLOW_CYPRESS_FALLBACK === "1") {
+      const fallbackCode = await maybeRunFallback();
+      process.exit(fallbackCode);
+      return;
+    }
     process.exit(1);
   });
 

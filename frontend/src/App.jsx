@@ -5,28 +5,28 @@ import { useQuery } from "@tanstack/react-query";
 import { Box, CircularProgress } from "@mui/material";
 import MainLayout from "@/components/layout/MainLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import VerifyEmailPage from "@/pages/VerifyEmailPage";
-import NotFoundPage from "@/pages/NotFoundPage";
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
+import NotFoundPage from "@/pages/public/NotFoundPage";
 
-const AboutPage = lazy(() => import("@/pages/AboutPage"));
-const HomePage = lazy(() => import("@/pages/HomePage"));
-const VocabularyPage = lazy(() => import("@/pages/VocabularyPage"));
-const WordSetsPage = lazy(() => import("@/pages/WordSetsPage"));
-const LearningPage = lazy(() => import("@/pages/LearningPage"));
-const LearningPlacementPage = lazy(() => import("@/pages/LearningPlacementPage"));
-const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
-const LearningSessionPage = lazy(() => import("@/pages/LearningSessionPage"));
-const StudyPage = lazy(() => import("@/pages/StudyPage"));
-const ReviewPage = lazy(() => import("@/pages/ReviewPage"));
-const QuizPage = lazy(() => import("@/pages/QuizPage"));
-const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
-const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
-const WordDetailPage = lazy(() => import("@/pages/WordDetailPage"));
-const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
+const AboutPage = lazy(() => import("@/pages/public/AboutPage"));
+const HomePage = lazy(() => import("@/pages/user/HomePage"));
+const VocabularyPage = lazy(() => import("@/pages/user/VocabularyPage"));
+const WordSetsPage = lazy(() => import("@/pages/user/WordSetsPage"));
+const LearningPage = lazy(() => import("@/pages/user/LearningPage"));
+const LearningPlacementPage = lazy(() => import("@/pages/user/LearningPlacementPage"));
+const OnboardingPage = lazy(() => import("@/pages/user/OnboardingPage"));
+const LearningSessionPage = lazy(() => import("@/pages/user/LearningSessionPage"));
+const StudyPage = lazy(() => import("@/pages/user/StudyPage"));
+const ReviewPage = lazy(() => import("@/pages/user/ReviewPage"));
+const QuizPage = lazy(() => import("@/pages/user/QuizPage"));
+const ProfilePage = lazy(() => import("@/pages/user/ProfilePage"));
+const NotificationsPage = lazy(() => import("@/pages/user/NotificationsPage"));
+const WordDetailPage = lazy(() => import("@/pages/user/WordDetailPage"));
+const LeaderboardPage = lazy(() => import("@/pages/user/LeaderboardPage"));
 
 const AdminDashboard = lazy(() => import("@/features/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/features/admin/AdminUsers"));
@@ -38,7 +38,7 @@ const AdminQuizResults = lazy(() => import("@/features/admin/AdminQuizResults"))
 const AdminLearningPath = lazy(() => import("@/features/admin/AdminLearningPath"));
 
 import { initAuth } from "@/features/auth/authSlice";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { applyRouteSeo } from "@/utils/seo";
 
@@ -191,3 +191,5 @@ const App = () => {
 };
 
 export default App;
+
+

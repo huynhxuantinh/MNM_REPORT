@@ -17,7 +17,7 @@ import {
   SearchRounded as SearchIcon,
   RemoveCircleOutlineRounded as RemoveIcon,
 } from "@mui/icons-material";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 
 const ADMIN_BG = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";

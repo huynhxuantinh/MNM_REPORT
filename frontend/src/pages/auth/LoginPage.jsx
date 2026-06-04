@@ -12,7 +12,7 @@ import { LockRounded as LockRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
 import { login, clearError } from "@/features/auth/authSlice";
-import learningApi from "@/api/learningApi";
+import learningApi from "@/services/learningApi";
 import { colors } from "@/styles/theme";
 
 const validate = {
@@ -31,7 +31,7 @@ const parseServerError = (err) => {
   if (err.non_field_errors) {
     const msg = err.non_field_errors.join(" ");
     if (msg.includes("chưa được xác thực") || msg.includes("kích hoạt")) {
-      return `${msg} (Kiểm tra hộp thư và spam folder)`;
+      return `${msg} (Kiểm tra hộp thư và thư mục spam)`;
     }
     return msg;
   }

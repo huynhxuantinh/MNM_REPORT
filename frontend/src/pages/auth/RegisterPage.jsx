@@ -13,7 +13,7 @@ import { CheckCircleRounded as CheckCircleRoundedIcon } from "@mui/icons-materia
 import { MarkEmailReadRounded as MarkEmailReadRoundedIcon } from "@mui/icons-material";
 import AuthShell from "@/components/layout/AuthShell";
 import { SbButton, SbCard, SbInput } from "@/components/ui";
-import authApi from "@/api/authApi";
+import authApi from "@/services/authApi";
 import { colors } from "@/styles/theme";
 
 const validate = {
@@ -65,7 +65,7 @@ const parseFieldErrors = (err) => {
   return result;
 };
 
-const RegisterSuccess = ({ email }) => {
+const RegisterSuccess = ({ email, emailSent, initialDetail }) => {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
   const [resendError, setResendError] = useState("");
@@ -75,11 +75,13 @@ const RegisterSuccess = ({ email }) => {
     setResendMsg("");
     setResendError("");
     try {
-      await authApi.resendVerification({ email });
-      setResendMsg("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư!");
+      const response = await authApi.resendVerification({ email });
+      setResendMsg(
+        response?.data?.detail || "Nếu email tồn tại và chưa xác thực, bạn sẽ nhận được email trong vài phút."
+      );
     } catch (err) {
       const msg = err.response?.data?.detail;
-      if (msg?.includes("đợi")) {
+      if (err?.response?.status === 429 && msg) {
         setResendError(msg);
       } else {
         setResendError("Không thể gửi lại email. Vui lòng thử lại sau.");
@@ -98,12 +100,20 @@ const RegisterSuccess = ({ email }) => {
         Kiểm tra email của bạn!
       </Typography>
       <Typography sx={{ color: "text.secondary", mb: 2, lineHeight: 1.7 }}>
-        Chúng tôi đã gửi email xác thực đến{" "}
+        {emailSent ? "Chúng tôi đã gửi email xác thực đến " : "Tài khoản đã được tạo cho email "}
         <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
           {email}
         </Box>
-        . Nhấn vào link trong email để kích hoạt tài khoản.
+        {emailSent
+          ? ". Nhấn vào link trong email để kích hoạt tài khoản."
+          : ". Nếu chưa nhận được email xác thực, hãy dùng nút gửi lại bên dưới."}
       </Typography>
+
+      {!emailSent && (
+        <Alert severity="warning" sx={{ mb: 2, textAlign: "left" }}>
+          {initialDetail || "Email xác thực chưa gửi đi được. Vui lòng thử gửi lại."}
+        </Alert>
+      )}
 
       {resendMsg && <Alert severity="success" sx={{ mb: 2, textAlign: "left" }}>{resendMsg}</Alert>}
       {resendError && <Alert severity="error" sx={{ mb: 2, textAlign: "left" }}>{resendError}</Alert>}
@@ -133,7 +143,7 @@ const RegisterPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverErrors, setServerErrors] = useState({});
-  const [success, setSuccess] = useState(false);
+  const [successState, setSuccessState] = useState(null);
 
   const clientErrors = {
     username: touched.username ? validate.username(form.username) : "",
@@ -166,13 +176,16 @@ const RegisterPage = () => {
     setLoading(true);
     setServerErrors({});
     try {
-      await authApi.register({
+      const response = await authApi.register({
         username: form.username,
         email: form.email,
         password: form.password,
         password_confirm: form.confirmPassword,
       });
-      setSuccess(true);
+      setSuccessState({
+        emailSent: response?.data?.email_sent !== false,
+        detail: response?.data?.detail || "",
+      });
     } catch (err) {
       setServerErrors(parseFieldErrors(err));
     } finally {
@@ -180,10 +193,14 @@ const RegisterPage = () => {
     }
   };
 
-  if (success) {
+  if (successState) {
     return (
       <AuthShell headline={"Đăng ký\nthành công!"}>
-        <RegisterSuccess email={form.email} />
+        <RegisterSuccess
+          email={form.email}
+          emailSent={successState.emailSent}
+          initialDetail={successState.detail}
+        />
       </AuthShell>
     );
   }
@@ -245,7 +262,7 @@ const RegisterPage = () => {
             autoComplete="new-password"
             startAdornment={<LockRoundedIcon sx={{ fontSize: 20, color: "text.secondary" }} />}
             endAdornment={
-              <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1}>
+              <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small" tabIndex={-1} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
                 {showPassword ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
               </IconButton>
             }
@@ -266,7 +283,7 @@ const RegisterPage = () => {
               form.confirmPassword && form.confirmPassword === form.password ? (
                 <CheckCircleRoundedIcon sx={{ fontSize: 20, color: colors.greenAccent }} />
               ) : (
-                <IconButton onClick={() => setShowConfirm((v) => !v)} edge="end" size="small" tabIndex={-1}>
+                <IconButton onClick={() => setShowConfirm((v) => !v)} edge="end" size="small" tabIndex={-1} aria-label={showConfirm ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
                   {showConfirm ? <VisibilityOffRoundedIcon sx={{ fontSize: 20 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 20 }} />}
                 </IconButton>
               )

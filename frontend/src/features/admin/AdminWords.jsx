@@ -12,7 +12,7 @@ import { EditRounded as EditRoundedIcon } from "@mui/icons-material";
 import { DeleteRounded as DeleteRoundedIcon } from "@mui/icons-material";
 import { AddRounded as AddRoundedIcon } from "@mui/icons-material";
 import { UploadFileRounded as UploadFileRoundedIcon } from "@mui/icons-material";
-import vocabularyApi from "@/api/vocabularyApi";
+import vocabularyApi from "@/services/vocabularyApi";
 
 const ADMIN_BG = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
@@ -64,9 +64,9 @@ const AdminWords = () => {
     mutationFn: (id) => vocabularyApi.deleteWord(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-words"] });
-      setToast({ msg: "Đã xoá từ vựng", severity: "success" });
+      setToast({ msg: "Đã xóa từ vựng", severity: "success" });
     },
-    onError: () => setToast({ msg: "Lỗi xoá từ vựng", severity: "error" }),
+    onError: () => setToast({ msg: "Lỗi xóa từ vựng", severity: "error" }),
   });
 
   const { mutate: importCsv, isPending: isImporting } = useMutation({
@@ -179,7 +179,7 @@ const AdminWords = () => {
                 </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Sửa"><IconButton size="small" onClick={() => handleOpenEdit(w)}><EditRoundedIcon fontSize="small" sx={{ color: ADMIN_ACCENT }} /></IconButton></Tooltip>
-                  <Tooltip title="Xoá"><IconButton size="small" onClick={() => { if(window.confirm("Chắc chắn xoá?")) deleteWord(w.id); }}><DeleteRoundedIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                  <Tooltip title="Xóa"><IconButton size="small" onClick={() => { if(window.confirm("Chắc chắn xóa?")) deleteWord(w.id); }}><DeleteRoundedIcon fontSize="small" color="error" /></IconButton></Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -255,3 +255,5 @@ const AdminWords = () => {
 };
 
 export default AdminWords;
+
+

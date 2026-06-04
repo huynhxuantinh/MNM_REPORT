@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/test/helpers";
-import VocabularyPage from "../VocabularyPage";
+import VocabularyPage from "@/pages/user/VocabularyPage";
 
-vi.mock("@/api/axiosClient", () => ({
+vi.mock("@/services/axiosClient", () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
@@ -33,18 +33,18 @@ describe("VocabularyPage", () => {
     {
       id: 1,
       text: "hello",
-      phonetic: "həˈloʊ",
+      phonetic: "hello",
       part_of_speech: "exclamation",
-      definition_vi: "loi chao khi gap ai do",
+      definition_vi: "lời chào khi gặp ai đó",
       level: "A1",
       is_bookmarked: false,
     },
     {
       id: 2,
       text: "beautiful",
-      phonetic: "ˈbjuːtɪfl",
+      phonetic: "beautiful",
       part_of_speech: "adjective",
-      definition_vi: "dep",
+      definition_vi: "đẹp",
       level: "A1",
       is_bookmarked: true,
     },
@@ -54,8 +54,8 @@ describe("VocabularyPage", () => {
     vi.clearAllMocks();
   });
 
-  it("hien thi tieu de trang", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("hiển thị tiêu đề trang", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
@@ -65,8 +65,8 @@ describe("VocabularyPage", () => {
     });
   });
 
-  it("hien thi danh sach tu", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("hiển thị danh sách từ", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
@@ -77,21 +77,21 @@ describe("VocabularyPage", () => {
     });
   });
 
-  it("hien thi thong tin tu", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("hiển thị thông tin từ", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
 
     await waitFor(() => {
-      expect(screen.getByText("/həˈloʊ/")).toBeInTheDocument();
-      expect(screen.getByText("loi chao khi gap ai do")).toBeInTheDocument();
+      expect(screen.getByText("/hello/")).toBeInTheDocument();
+      expect(screen.getByText("lời chào khi gặp ai đó")).toBeInTheDocument();
       expect(screen.getAllByText("A1").length).toBeGreaterThan(0);
     });
   });
 
-  it("co o tim kiem", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("có ô tìm kiếm", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
@@ -101,8 +101,8 @@ describe("VocabularyPage", () => {
     });
   });
 
-  it("goi API words endpoint", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("gọi API words endpoint", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
@@ -115,27 +115,27 @@ describe("VocabularyPage", () => {
     });
   });
 
-  it("hien thi loading", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("hiển thị loading", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockImplementation(() => new Promise(() => {}));
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
     expect(document.querySelector(".MuiSkeleton-root")).toBeTruthy();
   });
 
-  it("hien thi empty state", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("hiển thị empty state", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: [], count: 0 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });
 
     await waitFor(() => {
-      expect(screen.getByText("Chưa có từ nào")).toBeInTheDocument();
+      expect(screen.getByText(/chưa có từ nào/i)).toBeInTheDocument();
     });
   });
 
-  it("co bo loc level", async () => {
-    const axiosClient = await import("@/api/axiosClient");
+  it("có bộ lọc level", async () => {
+    const axiosClient = await import("@/services/axiosClient");
     axiosClient.default.get.mockResolvedValueOnce({ data: { results: mockWords, count: 2 } });
 
     renderWithProviders(<VocabularyPage />, { initialEntries: ["/vocabulary"] });

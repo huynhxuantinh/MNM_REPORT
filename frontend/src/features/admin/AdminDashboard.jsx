@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
@@ -24,7 +24,7 @@ import { RocketLaunchRounded as RocketLaunchRoundedIcon } from "@mui/icons-mater
 import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
 import { FlagRounded as FlagRoundedIcon } from "@mui/icons-material";
 import { BeenhereRounded as BeenhereRoundedIcon } from "@mui/icons-material";
-import adminApi from "@/api/adminApi";
+import adminApi from "@/services/adminApi";
 
 const ADMIN_ACCENT = "#5c6bc0";
 const ADMIN_BG = "#1a1f3a";
@@ -204,3 +204,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+

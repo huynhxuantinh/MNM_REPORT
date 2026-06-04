@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import axiosClient from "@/api/axiosClient";
-import { setToken, clearToken } from "@/api/tokenStore";
+import axiosClient from "@/services/axiosClient";
+import { setToken, clearToken } from "@/services/tokenStore";
 
 // Đọc user từ localStorage để hiển thị ngay khi tải trang trước khi initAuth hoàn thành
 const loadUser = () => {
@@ -143,3 +143,5 @@ const authSlice = createSlice({
 
 export const { logout, setUser, clearError } = authSlice.actions;
 export default authSlice.reducer;
+
+
