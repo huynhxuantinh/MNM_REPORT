@@ -1,4 +1,4 @@
-# ── Env & Secrets ─────────────────────────────────────────────────
+﻿# Env & secrets
 .env
 .env.local
 .env.*.local
@@ -6,9 +6,9 @@ backend/.env
 backend/.env.*
 frontend/.env
 frontend/.env.*
-# Không commit file .env ở bất kỳ thư mục nào — chỉ commit .env.example
+*.local
 
-# ── Python / Django ───────────────────────────────────────────────
+# Python / Django
 __pycache__/
 *.py[cod]
 *.pyo
@@ -16,8 +16,6 @@ __pycache__/
 *.so
 *.egg
 *.egg-info/
-dist/
-build/
 .eggs/
 .venv/
 venv/
@@ -29,19 +27,24 @@ htmlcov/
 backend/static/
 backend/media/
 
-# ── Node / React ──────────────────────────────────────────────────
+# Node / React
 node_modules/
 frontend/dist/
-frontend/.env
-*.local
+frontend/.vite/
+frontend/coverage/
+frontend/test-results/
 frontend/cypress/screenshots/
 frontend/cypress/videos/
-frontend/test-results/
+frontend/.vercel/
 
-# ── Docker ────────────────────────────────────────────────────────
+# Build artifacts (generic)
+dist/
+build/
+
+# Docker
 docker-compose.override.yml
 
-# ── IDEs ──────────────────────────────────────────────────────────
+# IDE / OS
 .vscode/
 .idea/
 *.swp
@@ -49,10 +52,16 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 
-# ── Logs ──────────────────────────────────────────────────────────
+# Local agent/tool folders
+.claude/
+
+# Logs
 *.log
 logs/
 
-# Office / export docs
+# Office exports
 *.doc
 *.docx
+
+# Local database backups
+database/backup/*.sql

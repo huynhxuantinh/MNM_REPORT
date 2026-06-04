@@ -59,14 +59,14 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 Khoi dong toan bo stack:
 
 ```bash
-docker compose up -d
+docker compose -f deployment/docker/docker-compose.yml up -d
 ```
 
 Kiem tra service:
 
 ```bash
-docker compose ps
-docker compose logs -f backend
+docker compose -f deployment/docker/docker-compose.yml ps
+docker compose -f deployment/docker/docker-compose.yml logs -f backend
 ```
 
 Service chinh:
@@ -77,23 +77,29 @@ Service chinh:
 - `celery_beat`
 - `frontend`
 
+Frontend structure hien tai:
+- `frontend/src/pages/auth/`
+- `frontend/src/pages/public/`
+- `frontend/src/pages/user/`
+- `frontend/src/services/`
+
 Nginx config luu y:
-- Dev reverse proxy (neu dung): `nginx/nginx.conf`
+- Dev reverse proxy (neu dung): `deployment/nginx/nginx.conf`
 - Production frontend Nginx (duoc copy trong Dockerfile.prod): `frontend/nginx.conf`
-- Khong deploy production bang file `nginx/nginx.conf`.
+- Khong deploy production bang file `deployment/nginx/nginx.conf`.
 
 ## 5) Migrate va seed data
 
 ```bash
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py import_words data/words.csv
-docker compose exec backend python manage.py seed_data
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py migrate
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py import_words database/seed/words.csv
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_data
 ```
 
 Neu can full catalog:
 
 ```bash
-docker compose exec backend python manage.py seed_full_catalog --clear
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_full_catalog --clear
 ```
 
 ## 6) URL truy cap
@@ -103,8 +109,9 @@ docker compose exec backend python manage.py seed_full_catalog --clear
 - Swagger: `http://localhost:8000/api/docs/`
 - Django Admin: `http://localhost:8000/admin/`
 
-Neu chay production compose (`docker-compose.prod.yml`):
-- Frontend mac dinh: `http://localhost` (hoac `http://localhost:${FRONTEND_PORT}`)
+Neu chay production compose (`deployment/docker/docker-compose.prod.yml`):
+- Chay bang lenh: `docker compose --env-file .env -f deployment/docker/docker-compose.prod.yml up -d --build`
+- Frontend mac dinh: `http://localhost` (hoac `http://localhost:${FRONTEND_PROD_PORT}`)
 - Frontend phuc vu bang `frontend/nginx.conf`
 
 ## 7) Chay thu cong (khong Docker)
@@ -123,7 +130,7 @@ source .venv/bin/activate
 
 pip install -r requirements/development.txt
 python manage.py migrate
-python manage.py import_words data/words.csv
+python manage.py import_words database/seed/words.csv
 python manage.py seed_data
 python manage.py runserver
 ```
@@ -152,11 +159,11 @@ npm run dev
 ## 9) Lenh hay dung
 
 ```bash
-docker compose down
-docker compose down -v
-docker compose logs -f backend
-docker compose exec backend python manage.py check
-docker compose exec backend pytest apps -q
+docker compose -f deployment/docker/docker-compose.yml down
+docker compose -f deployment/docker/docker-compose.yml down -v
+docker compose -f deployment/docker/docker-compose.yml logs -f backend
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py check
+docker compose -f deployment/docker/docker-compose.yml exec backend pytest apps -q
 ```
 
 ## 10) Loi thuong gap
@@ -164,14 +171,14 @@ docker compose exec backend pytest apps -q
 ### Backend khong len
 
 ```bash
-docker compose logs -f backend
+docker compose -f deployment/docker/docker-compose.yml logs -f backend
 ```
 
 ### Redis/Postgres loi ket noi
 
 ```bash
-docker compose logs -f redis
-docker compose logs -f postgres
+docker compose -f deployment/docker/docker-compose.yml logs -f redis
+docker compose -f deployment/docker/docker-compose.yml logs -f postgres
 ```
 
 ### Port bi trung
@@ -189,8 +196,13 @@ lsof -i :5173
 ### Reset toan bo du lieu local
 
 ```bash
-docker compose down -v
+docker compose -f deployment/docker/docker-compose.yml down -v
+docker compose -f deployment/docker/docker-compose.yml up -d
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py migrate
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_data
+```
+
+Shortcut nhanh (legacy van dung):
+```bash
 docker compose up -d
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py seed_data
 ```

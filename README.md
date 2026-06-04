@@ -16,18 +16,28 @@ Nen tang web hoc tieng Anh theo mo hinh self-learning (khong teacher, khong mua 
 - Cache/Queue: Redis + Celery
 - Auth: JWT
 
+## Frontend structure
+- Auth pages: `frontend/src/pages/auth/`
+- Public pages: `frontend/src/pages/public/`
+- User pages: `frontend/src/pages/user/`
+- API client/services: `frontend/src/services/`
+
 ## Chay nhanh bang Docker
 ```bash
-docker compose up -d
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py import_words data/words.csv
-docker compose exec backend python manage.py seed_data
+docker compose -f deployment/docker/docker-compose.yml up -d
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py migrate
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py import_words database/seed/words.csv
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_data
 ```
 
 Neu muon seed full catalog (200 words, 14 lessons):
 ```bash
-docker compose exec backend python manage.py seed_full_catalog --clear
+docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_full_catalog --clear
 ```
+
+## Deployment structure
+- Docker compose: `deployment/docker/docker-compose.yml`, `deployment/docker/docker-compose.prod.yml`
+- Nginx reverse proxy: `deployment/nginx/nginx.conf`, `deployment/nginx/security_headers.conf`
 
 ## URL mac dinh
 - Frontend: http://localhost:5173
@@ -40,14 +50,45 @@ docker compose exec backend python manage.py seed_full_catalog --clear
 - Student: `student@norostu.com` / `Student@2024!`
 
 ## Test gate (latest)
-- Backend: `335 passed` (verified `2026-05-27`)
-- Frontend unit/integration: `43 passed` (verified `2026-05-27`)
-- Frontend lint: `PASS` (verified `2026-05-27`)
-- Frontend build: `PASS` (verified `2026-05-27`)
-- Cypress E2E: `9 passed` (last verified `2026-05-21`)
+- Backend: `335 passed` (verified `2026-06-03`)
+- Frontend unit/integration: `39 passed` (verified `2026-06-03`)
+- Frontend lint: `PASS` (verified `2026-06-03`)
+- Frontend build: `PASS` (verified `2026-06-03`)
+- Cypress E2E: last captured green evidence `9 passed` (`2026-05-21`)
+
+## Release status
+- Local quality gate: `PASS`
+- Deploy gate via Docker/production smoke: `PENDING`
+- Current production decision: `NO-GO` until Docker stack is up and smoke test is re-run
 
 ## Tai lieu
 - Setup: [docs/SETUP.md](docs/SETUP.md)
 - Commands: [docs/COMMANDS.md](docs/COMMANDS.md)
 - API reference: [docs/api-reference.md](docs/api-reference.md)
+- Operations: [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - Release sign-off: [docs/RELEASE_SIGNOFF.md](docs/RELEASE_SIGNOFF.md)
+
+## Project summary
+
+### Product scope
+NoroStu la web hoc tieng Anh theo huong self-learning.
+
+Core flow:
+1. Dang ky / dang nhap
+2. Hoc lesson
+3. On tap SRS
+4. Lam quiz
+5. Theo doi tien trinh
+
+### Current source structure
+- Frontend pages:
+  - `frontend/src/pages/auth/`
+  - `frontend/src/pages/public/`
+  - `frontend/src/pages/user/`
+- Frontend API layer:
+  - `frontend/src/services/`
+- Backend core apps:
+  - `backend/apps/accounts/`
+  - `backend/apps/vocabulary/`
+  - `backend/apps/quiz/`
+  - `backend/apps/learning/`
