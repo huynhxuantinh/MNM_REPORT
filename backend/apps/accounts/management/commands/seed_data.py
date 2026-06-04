@@ -191,7 +191,7 @@ class Command(BaseCommand):
                 "  admin@norostu.com   / Admin@2024!\n"
                 "  student@norostu.com / Student@2024!\n"
                 "\nLưu ý: chạy lệnh này sau khi đã import từ vựng:\n"
-                "  python manage.py import_words data/words.csv\n"
+                "  python manage.py import_words database/seed/words.csv\n"
                 "  python manage.py seed_data"
             )
         )

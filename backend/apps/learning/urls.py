@@ -3,6 +3,6 @@ from django.urls import include, path
 
 
 urlpatterns = [
-    path("", include("apps.learning.urls_management")),
-    path("", include("apps.learning.urls_flow")),
+    path("", include("apps.learning.api.urls_management")),
+    path("", include("apps.learning.api.urls_flow")),
 ]

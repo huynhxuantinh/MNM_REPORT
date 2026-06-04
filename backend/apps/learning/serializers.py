@@ -90,10 +90,11 @@ class LessonProgressSerializer(serializers.ModelSerializer):
 class LearningPathLessonSerializer(serializers.ModelSerializer):
     words_total = serializers.SerializerMethodField()
     words_learned = serializers.SerializerMethodField()
+    user_progress = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
-        fields = ("id", "title", "level", "is_published", "words_total", "words_learned")
+        fields = ("id", "title", "level", "is_published", "words_total", "words_learned", "user_progress")
         read_only_fields = fields
 
     def get_words_total(self, obj) -> int:
@@ -103,6 +104,13 @@ class LearningPathLessonSerializer(serializers.ModelSerializer):
     def get_words_learned(self, obj) -> int:
         lesson_learning_map = self.context.get("lesson_learning_map", {})
         return int(lesson_learning_map.get(obj.id, 0))
+
+    def get_user_progress(self, obj) -> dict | None:
+        lesson_progress_map = self.context.get("lesson_progress_map", {})
+        progress = lesson_progress_map.get(obj.id)
+        if not progress:
+            return None
+        return LessonProgressSerializer(progress).data
 
 
 class UnitLessonPathSerializer(serializers.ModelSerializer):

@@ -13,6 +13,21 @@ QUIT_URL = lambda sid: f"/api/v1/learning/session/{sid}/quit/"
 RESUME_URL = lambda sid: f"/api/v1/learning/session/{sid}/resume/"
 RECOVER_URL = "/api/v1/learning/session/recover/"
 
+def _submit_first_answer(sc, session_id):
+    session = LearningSession.objects.get(id=session_id)
+    first = (session.exercises or [])[0]
+    payload = {
+        "step_index": first["step_index"],
+        "response_ms": 300,
+    }
+    if first["exercise_type"] in {"mc_meaning", "listen_choose_word"}:
+        payload["submitted_answer"] = {"option": first["choices"][0]}
+    elif first["exercise_type"] == "fill_blank":
+        payload["submitted_answer"] = {"text": "x"}
+    else:
+        payload["submitted_answer"] = {"tokens": first["tokens"]}
+    return sc.post(ANSWER_URL(session_id), payload, format="json")
+
 
 @pytest.fixture
 def course_with_units(lesson, unpublished_lesson):
@@ -87,6 +102,10 @@ def test_recover_returns_started_session_and_resume_works(sc, lesson, course_wit
     start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
     assert start.status_code == 201
     session_id = start.data["id"]
+
+    # Recoverable session now requires real progress (at least one attempt).
+    answer = _submit_first_answer(sc, session_id)
+    assert answer.status_code == 200
 
     recover = sc.get(RECOVER_URL)
     assert recover.status_code == 200

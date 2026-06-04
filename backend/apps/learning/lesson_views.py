@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.db.models import Count, Max, Q
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,11 +13,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import LessonFilter
-from .models import Lesson, LessonProgress, LessonWord, ReviewLog
+from .models import Lesson, LessonProgress, LessonWord, ReviewLog, UnitLesson
 from apps.accounts.permissions import IsAdmin
 from .permissions import IsOwnerOrAdmin
 from .serializers import LessonDetailSerializer, LessonSerializer, LessonWordSerializer
-from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards
+from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards, _is_unit_unlocked
 
 LESSON_CACHE_TTL = 5 * 60
 _LESSON_VER_KEY = "lesson_list_ver"
@@ -88,6 +89,34 @@ class LessonViewSet(viewsets.ModelViewSet):
         response = super().list(request, *args, **kwargs)
         cache.set(key, response.data, LESSON_CACHE_TTL)
         return response
+
+    def retrieve(self, request, *args, **kwargs):
+        lesson = get_object_or_404(
+            Lesson.objects.prefetch_related("lesson_words__word"),
+            pk=kwargs.get("pk"),
+        )
+
+        if request.user.role == "user":
+            if not lesson.is_published:
+                return Response({"detail": "Lesson not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            unit_link = (
+                UnitLesson.objects
+                .select_related("unit", "unit__course")
+                .filter(
+                    lesson=lesson,
+                    unit__is_published=True,
+                    unit__course__is_active=True,
+                )
+                .order_by("unit__order_index", "order_index")
+                .first()
+            )
+
+            if unit_link and not _is_unit_unlocked(request.user, unit_link.unit):
+                return Response({"detail": "Unit is locked."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(lesson)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

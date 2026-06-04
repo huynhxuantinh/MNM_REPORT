@@ -2,7 +2,6 @@
 
 from collections import defaultdict
 from datetime import timedelta
-import math
 import time
 
 from django.core.cache import cache
@@ -89,6 +88,7 @@ from .shared_flow import (
     _placement_cache_key,
     _refill_hearts,
     _extract_unit_words,
+    _estimate_session_minutes,
     _is_unit_unlocked,
     _track_learning_event,
     _track_onboarding_step,
@@ -114,6 +114,7 @@ ALLOWED_FLOW_SOURCES = {
     "notification",
     "deep_link",
 }
+RECOVER_EMPTY_SESSION_GRACE_MINUTES = 15
 
 
 def _resolve_client_source(request, default: str = "unknown") -> str:
@@ -131,6 +132,72 @@ def _session_last_activity_at(session: LearningSession):
         else None
     )
     return latest_attempt.created_at if latest_attempt else session.started_at
+
+
+def _is_recoverable_started_session(session: LearningSession) -> bool:
+    """
+    A started session is recoverable only when user has real progress.
+    This prevents false "continue session" banners for empty started sessions.
+    """
+    if not session or session.status != LearningSession.Status.STARTED:
+        return False
+    # No attempt -> no meaningful progress to recover.
+    if not session.attempts.exists():
+        return False
+    total_steps = len(session.exercises or [])
+    if total_steps <= 0:
+        return False
+    # Already answered all but still STARTED -> treat as non-recoverable.
+    if session.total_answered >= total_steps:
+        return False
+    return True
+
+
+def _get_latest_recoverable_started_session(user) -> LearningSession | None:
+    started_sessions = (
+        LearningSession.objects
+        .select_related("lesson", "unit")
+        .filter(user=user, status=LearningSession.Status.STARTED)
+        .order_by("-started_at", "-id")
+    )
+    for session in started_sessions:
+        if _is_recoverable_started_session(session):
+            return session
+    return None
+
+
+def _expire_empty_started_sessions(user) -> int:
+    """
+    Auto-abandon started sessions that never received any answer attempt
+    and are older than a short grace period.
+    """
+    now = timezone.now()
+    cutoff = now - timedelta(minutes=RECOVER_EMPTY_SESSION_GRACE_MINUTES)
+    stale_count = 0
+    started_sessions = (
+        LearningSession.objects
+        .filter(user=user, status=LearningSession.Status.STARTED)
+        .order_by("-started_at", "-id")
+    )
+    for session in started_sessions:
+        if session.attempts.exists():
+            continue
+        if session.started_at and session.started_at > cutoff:
+            continue
+        session.status = LearningSession.Status.ABANDONED
+        session.completed_at = now
+        session.save(update_fields=["status", "completed_at"])
+        _track_learning_event(
+            user,
+            LearningEvent.EventType.SESSION_QUIT,
+            session=session,
+            meta={
+                "reason": "auto_expire_empty_started_session",
+                "stale_minutes_threshold": RECOVER_EMPTY_SESSION_GRACE_MINUTES,
+            },
+        )
+        stale_count += 1
+    return stale_count
 
 
 def _expire_stale_started_sessions(user) -> int:
@@ -228,6 +295,19 @@ class LearningPathView(APIView):
             lesson_id: len(word_ids)
             for lesson_id, word_ids in learned_word_map.items()
         }
+        lesson_ids = [
+            link.lesson_id
+            for unit in units
+            for link in unit.unit_lessons.all()
+            if link.lesson_id
+        ]
+        lesson_progress_map = {
+            item.lesson_id: item
+            for item in LessonProgress.objects.filter(
+                user=request.user,
+                lesson_id__in=lesson_ids,
+            )
+        }
 
         progress_map = {
             item.unit_id: item
@@ -258,6 +338,7 @@ class LearningPathView(APIView):
                 "course_progress_map": course_progress_map,
                 "lesson_word_count_map": lesson_word_count_map,
                 "lesson_learning_map": lesson_learning_map,
+                "lesson_progress_map": lesson_progress_map,
             },
         )
         payload = serializer.data
@@ -269,6 +350,7 @@ class LearningPathView(APIView):
                 "progress_map": progress_map,
                 "lesson_word_count_map": lesson_word_count_map,
                 "lesson_learning_map": lesson_learning_map,
+                "lesson_progress_map": lesson_progress_map,
             },
         ).data
         return Response(payload)
@@ -414,12 +496,8 @@ class LearningPlacementStatusView(APIView):
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         stale_auto_abandoned = _expire_stale_started_sessions(request.user)
-        recoverable_session = (
-            LearningSession.objects
-            .filter(user=request.user, status=LearningSession.Status.STARTED)
-            .order_by("-started_at", "-id")
-            .first()
-        )
+        empty_auto_abandoned = _expire_empty_started_sessions(request.user)
+        recoverable_session = _get_latest_recoverable_started_session(request.user)
         latest = PlacementResult.objects.filter(user=request.user).first()
         has_started_first_lesson = LearningEvent.objects.filter(
             user=request.user,
@@ -459,6 +537,7 @@ class LearningPlacementStatusView(APIView):
                     "has_pending_placement_draft": has_pending_draft,
                     "has_started_first_lesson": has_started_first_lesson,
                     "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                    "empty_sessions_auto_abandoned": empty_auto_abandoned,
                 },
             }
         )
@@ -979,7 +1058,7 @@ class LearningSessionFinishView(APIView):
             )
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
 
-        session_minutes = max(1, min(120, math.ceil((now - session.started_at).total_seconds() / 60)))
+        session_minutes = _estimate_session_minutes(session, now=now, max_minutes=45)
         streak = _apply_learning_rewards(
             request.user,
             xp_earned=session.xp_earned,
@@ -1083,13 +1162,8 @@ class LearningSessionRecoverView(APIView):
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         stale_auto_abandoned = _expire_stale_started_sessions(request.user)
-        session = (
-            LearningSession.objects
-            .select_related("lesson", "unit")
-            .filter(user=request.user, status=LearningSession.Status.STARTED)
-            .order_by("-started_at", "-id")
-            .first()
-        )
+        empty_auto_abandoned = _expire_empty_started_sessions(request.user)
+        session = _get_latest_recoverable_started_session(request.user)
         if not session:
             return Response(
                 {
@@ -1100,6 +1174,7 @@ class LearningSessionRecoverView(APIView):
                     "recover_context": {
                         "reason": "no_started_session",
                         "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                        "empty_sessions_auto_abandoned": empty_auto_abandoned,
                         "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
                     },
                 }
@@ -1116,6 +1191,7 @@ class LearningSessionRecoverView(APIView):
                 "recover_context": {
                     "reason": "active_started_session",
                     "stale_sessions_auto_abandoned": stale_auto_abandoned,
+                    "empty_sessions_auto_abandoned": empty_auto_abandoned,
                     "stale_hours_threshold": SESSION_RECOVER_STALE_HOURS,
                 },
             }
@@ -1411,7 +1487,7 @@ class LearningCheckpointSubmitView(APIView):
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
 
         if passed:
-            session_minutes = max(1, min(120, math.ceil((now - session.started_at).total_seconds() / 60)))
+            session_minutes = _estimate_session_minutes(session, now=now, max_minutes=45)
             _apply_learning_rewards(
                 request.user,
                 xp_earned=session.xp_earned,

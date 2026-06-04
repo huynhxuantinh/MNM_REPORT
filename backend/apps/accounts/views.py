@@ -87,17 +87,26 @@ class RegisterView(APIView):
 
         try:
             send_verification_email(user, token)
-            logger.info(f"Verification email sent to {user.email}")
+            logger.info("Verification email sent to %s", user.email)
+            return Response(
+                {
+                    "detail": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
+                    "email_sent": True,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         except MAIL_SEND_ERRORS as e:
-            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
-            # Không throw exception để registration vẫn thành công
-
-
-
-        return Response(
-            {"detail": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."},
-            status=status.HTTP_201_CREATED,
-        )
+            logger.error("Failed to send verification email to %s: %s", user.email, str(e))
+            return Response(
+                {
+                    "detail": (
+                        "Tài khoản đã được tạo nhưng email xác thực chưa gửi đi được. "
+                        "Vui lòng dùng chức năng gửi lại email xác thực."
+                    ),
+                    "email_sent": False,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -402,8 +411,18 @@ class AdminUserListView(generics.ListAPIView):
             qs = qs.filter(role=role)
         search = self.request.query_params.get("search", "").strip()
         if search:
-            qs = qs.filter(Q(email__icontains=search) | Q(full_name__icontains=search))
+            qs = qs.filter(
+                Q(email__icontains=search)
+                | Q(full_name__icontains=search)
+                | Q(username__icontains=search)
+            )
         return qs
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if isinstance(response.data, dict):
+            response.data["current_user_id"] = request.user.id
+        return response
 
 
 class AdminUserUpdateView(generics.UpdateAPIView):
@@ -416,6 +435,18 @@ class AdminUserUpdateView(generics.UpdateAPIView):
         return User.objects.all()
 
     def update(self, request, *args, **kwargs):
+        target_user = self.get_object()
+        if target_user.id == request.user.id:
+            if "role" in request.data:
+                return Response(
+                    {"detail": "Bạn không thể tự thay đổi quyền của chính mình."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if "is_active" in request.data and request.data.get("is_active") in (False, "false", "False", 0, "0"):
+                return Response(
+                    {"detail": "Bạn không thể tự vô hiệu hóa tài khoản của chính mình."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         kwargs["partial"] = True
         return super().update(request, *args, **kwargs)
 
@@ -452,5 +483,3 @@ class AdminStatsView(APIView):
             "reviews_today":       ReviewLog.objects.filter(last_reviewed=today).count(),
             "total_quiz_results":  QuizResult.objects.count(),
         })
-
-

@@ -53,10 +53,16 @@ class ProfileStatsView(APIView):
         user = request.user
         logs = ReviewLog.objects.filter(user=user)
 
+        # One ReviewLog per (user, word): "total_words_studied" means words present in SRS.
         total_words_studied = logs.count()
-        total_review_sessions = logs.aggregate(s=Sum("total_reviews"))["s"] or 0
+        words_reviewed = logs.filter(total_reviews__gt=0).count()
+        total_review_attempts = logs.aggregate(s=Sum("total_reviews"))["s"] or 0
         correct_answers = logs.aggregate(s=Sum("correct_count"))["s"] or 0
-        accuracy_pct = round(correct_answers / total_review_sessions * 100) if total_review_sessions > 0 else 0
+        accuracy_pct = (
+            round(correct_answers / total_review_attempts * 100)
+            if total_review_attempts > 0
+            else 0
+        )
 
         streak_obj = _get_or_create_streak(user)
         bookmarks = Bookmark.objects.filter(user=user).count()
@@ -65,7 +71,10 @@ class ProfileStatsView(APIView):
         return Response(
             {
                 "total_words_studied": total_words_studied,
-                "total_review_sessions": total_review_sessions,
+                "words_reviewed": words_reviewed,
+                # Keep backward compatible key for existing frontend.
+                "total_review_sessions": total_review_attempts,
+                "total_review_attempts": total_review_attempts,
                 "correct_answers": correct_answers,
                 "accuracy_pct": accuracy_pct,
                 "best_streak": streak_obj.longest_streak,

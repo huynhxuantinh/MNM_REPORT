@@ -46,7 +46,7 @@ LESSONS = [
         "description": "Tu vung chao hoi va gioi thieu.",
         "level": "A1",
         "order_index": 1,
-        "words": ["hello", "goodbye", "friend", "family", "school", "yes", "no"],
+        "words": ["name", "friend", "family", "school", "good", "happy"],
     },
     {
         "title": "Bai 2 - Cuoc song hang ngay",
@@ -74,13 +74,14 @@ LESSONS = [
         "description": "Cum tu cong so can biet.",
         "level": "TOEIC",
         "order_index": 5,
-        "words": ["invoice", "contract", "client", "supplier", "profit", "budget", "deadline"],
+        "words": ["office", "project", "proposal", "budget", "deadline", "profit"],
     },
 ]
 
 
 def _csv_path() -> Path:
-    return Path(__file__).resolve().parents[5] / "data" / "words.csv"
+    project_root = Path(__file__).resolve().parents[5]
+    return project_root / "database" / "seed" / "words.csv"
 
 
 def _norm(value: str) -> str:
@@ -88,7 +89,7 @@ def _norm(value: str) -> str:
 
 
 class Command(BaseCommand):
-    help = "Seed full catalog from backend/data/words.csv (development only)"
+    help = "Seed full catalog from database/seed/words.csv (development only)"
 
     def add_arguments(self, parser):
         parser.add_argument("--clear", action="store_true", help="Xoa du lieu cu truoc khi seed")

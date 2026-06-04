@@ -1,4 +1,4 @@
-﻿"""Shared constants and helper functions for learner flow logic."""
+"""Shared constants and helper functions for learner flow logic."""
 
 import random
 from datetime import timedelta
@@ -36,7 +36,7 @@ from .models import (
     UserUnitProgress,
 )
 
-# XP constants Ă¢â‚¬â€œ Ă„â€˜Ä‚Âºng theo bĂ¡ÂºÂ£ng chĂ†Â°Ă†Â¡ng 2.6
+# XP constants - based on chapter 2.6 table
 XP_NEW_WORD = 10
 XP_LESSON_BONUS = 20
 XP_REVIEW_CORRECT = 5   # q >= 3
@@ -95,8 +95,12 @@ def _build_unlock_map(units, progress_map):
         if prev_progress:
             prev_completed = prev_progress.completed_lessons
             prev_checkpoint_passed = prev_progress.checkpoint_passed
+        published_lesson_count = previous_unit.unit_lessons.filter(lesson__is_published=True).count()
+        required_to_unlock = previous_unit.required_lessons_to_unlock
+        if published_lesson_count > 0:
+            required_to_unlock = min(required_to_unlock, published_lesson_count)
         unlocked_map[unit.id] = (
-            prev_completed >= previous_unit.required_lessons_to_unlock
+            prev_checkpoint_passed or prev_completed >= required_to_unlock
         )
         previous_unit = unit
     return unlocked_map
@@ -744,6 +748,26 @@ def _get_consecutive_correct_streak(session: LearningSession) -> int:
     return streak
 
 
+def _estimate_session_minutes(session: LearningSession, now=None, max_minutes: int = 45) -> int:
+    """
+    Estimate effective study minutes from real answer time (response_ms),
+    fallback to wall-clock only when no attempts exist.
+    """
+    response_values = list(
+        session.attempts.values_list("response_ms", flat=True)
+    )
+    total_ms = sum(_normalize_response_ms(value) for value in response_values)
+    if total_ms > 0:
+        estimated = int((total_ms + 59999) // 60000)  # ceil(ms / 60000)
+        return max(1, min(max_minutes, estimated))
+
+    if session.started_at:
+        now = now or timezone.now()
+        wall_minutes = int(((now - session.started_at).total_seconds() + 59) // 60)
+        return max(1, min(max_minutes, wall_minutes))
+    return 1
+
+
 
 __all__ = [
     "XP_NEW_WORD",
@@ -789,4 +813,5 @@ __all__ = [
     "_count_wrong_attempts_for_word",
     "_get_consecutive_wrong_streak",
     "_get_consecutive_correct_streak",
+    "_estimate_session_minutes",
 ]
