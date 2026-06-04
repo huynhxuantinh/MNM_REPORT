@@ -184,6 +184,7 @@ const LearningSessionPage = () => {
   const [frustrationGuard, setFrustrationGuard] = useState(null);
   const [quitDialogOpen, setQuitDialogOpen] = useState(false);
   const [heartsState, setHeartsState] = useState(null);
+  const [submittedStepIndex, setSubmittedStepIndex] = useState(null);
   const stepStartedAtRef = useRef(Date.now());
   const keyboardSelectedOptionRef = useRef("");
   const nextStepTimeoutRef = useRef(null);
@@ -234,7 +235,16 @@ const LearningSessionPage = () => {
     setUsedTokenIndexes(new Set());
     keyboardSelectedOptionRef.current = "";
     stepStartedAtRef.current = Date.now();
+    setSubmittedStepIndex(null);
+    answerMutation.reset();
   }, [currentStepIndex]);
+
+  useEffect(() => {
+    setFeedback(null);
+    setFrustrationGuard(null);
+    setSubmittedStepIndex(null);
+    answerMutation.reset();
+  }, [sessionId]);
 
   useEffect(() => () => {
     if (nextStepTimeoutRef.current) {
@@ -349,12 +359,13 @@ const LearningSessionPage = () => {
     })();
 
     if (!currentExercise || !hasAnswer || answerMutation.isPending) return;
-    answerMutation.mutate({
-      step_index: currentExercise.step_index,
-      submitted_answer: submitted,
-      response_ms: Math.max(100, Date.now() - stepStartedAtRef.current),
-    });
-  }, [answerMutation, currentExercise, orderedTokens, textAnswer]);
+      answerMutation.mutate({
+        step_index: currentExercise.step_index,
+        submitted_answer: submitted,
+        response_ms: Math.max(100, Date.now() - stepStartedAtRef.current),
+      });
+      setSubmittedStepIndex(currentExercise.step_index);
+    }, [answerMutation, currentExercise, orderedTokens, textAnswer]);
 
   const addToken = useCallback((token, index) => {
     setOrderedTokens((prev) => [...prev, token]);
@@ -660,7 +671,7 @@ const LearningSessionPage = () => {
                     variant="primary"
                     disabled={!canSubmit}
                     loading={answerMutation.isPending || finishMutation.isPending || checkpointSubmitMutation.isPending}
-                    onClick={handleSubmitAnswer}
+                    onClick={() => handleSubmitAnswer()}
                   >
                     Gửi đáp án
                   </SbButton>
@@ -679,9 +690,9 @@ const LearningSessionPage = () => {
               </Alert>
             )}
 
-            {!!answerMutation.error && answerMutation.error?.response?.status !== 429 && (
-              <Alert severity="error">{answerMutation.error?.response?.data?.detail || "Gửi đáp án thất bại."}</Alert>
-            )}
+              {!!answerMutation.error && submittedStepIndex === currentExercise?.step_index && answerMutation.error?.response?.status !== 429 && (
+                <Alert severity="error">{answerMutation.error?.response?.data?.detail || "Gửi đáp án thất bại."}</Alert>
+              )}
             {!!finishMutation.error && <Alert severity="error">{finishMutation.error?.response?.data?.detail || "Kết thúc phiên học thất bại."}</Alert>}
             {!!checkpointSubmitMutation.error && <Alert severity="error">{checkpointSubmitMutation.error?.response?.data?.detail || "Nộp checkpoint thất bại."}</Alert>}
             {!!quitMutation.error && <Alert severity="error">{quitMutation.error?.response?.data?.detail || "Thoát phiên học thất bại."}</Alert>}

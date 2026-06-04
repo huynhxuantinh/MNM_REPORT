@@ -169,16 +169,24 @@ def to_client_exercise(exercise: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def evaluate_exercise_answer(exercise: dict[str, Any], submitted_answer: dict[str, Any]) -> bool:
+def _answer_value(submitted_answer: Any, key: str) -> Any:
+    if isinstance(submitted_answer, dict):
+        return submitted_answer.get(key, "")
+    if key in {"option", "text"}:
+        return submitted_answer
+    return ""
+
+
+def evaluate_exercise_answer(exercise: dict[str, Any], submitted_answer: Any) -> bool:
     exercise_type = exercise.get("exercise_type")
     if exercise_type == "mc_meaning":
-        return _clean_text(str(submitted_answer.get("option", ""))).lower() == _clean_text(exercise.get("correct_option", "")).lower()
+        return _clean_text(str(_answer_value(submitted_answer, "option"))).lower() == _clean_text(exercise.get("correct_option", "")).lower()
     if exercise_type == "listen_choose_word":
-        return _clean_text(str(submitted_answer.get("option", ""))).lower() == _clean_text(exercise.get("correct_option", "")).lower()
+        return _clean_text(str(_answer_value(submitted_answer, "option"))).lower() == _clean_text(exercise.get("correct_option", "")).lower()
     if exercise_type == "fill_blank":
-        return _clean_text(str(submitted_answer.get("text", ""))).lower() == _clean_text(exercise.get("correct_text", "")).lower()
+        return _clean_text(str(_answer_value(submitted_answer, "text"))).lower() == _clean_text(exercise.get("correct_text", "")).lower()
     if exercise_type == "word_order":
-        submitted_tokens = submitted_answer.get("tokens", [])
+        submitted_tokens = submitted_answer.get("tokens", []) if isinstance(submitted_answer, dict) else submitted_answer
         if not isinstance(submitted_tokens, list):
             return False
         return [_clean_text(str(token)).lower() for token in submitted_tokens] == [
