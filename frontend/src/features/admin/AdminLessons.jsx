@@ -126,6 +126,9 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["lesson-detail-admin", lesson?.id] });
     qc.invalidateQueries({ queryKey: ["admin-lessons"] });
+    qc.invalidateQueries({ queryKey: ["learning-path"] });
+    qc.invalidateQueries({ queryKey: ["lessons"] });
+    qc.invalidateQueries({ queryKey: ["home-learning-path"] });
   };
 
   const { mutate: addWord, isPending: isAdding } = useMutation({
@@ -145,7 +148,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: "16px" } }}>
       <DialogTitle sx={{ fontWeight: 800, color: ADMIN_BG }}>
-        Quan ly tu vung
+        Quản lý từ vựng
         <Typography component="span" sx={{ fontWeight: 400, color: "text.secondary", ml: 1, fontSize: "0.95rem" }}>
           - {lesson?.title}
         </Typography>
@@ -155,7 +158,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
         <Box sx={{ display: "flex", minHeight: 420 }}>
           <Box sx={{ flex: 1, p: 2.5, borderRight: "1px solid rgba(0,0,0,0.08)", display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: ADMIN_BG, mb: 1.5 }}>
-              Tu vung trong bai
+              Từ vựng trong bài
               <Chip label={currentWords.length} size="small" sx={{ ml: 1, fontWeight: 700, fontSize: "0.7rem", bgcolor: `${ADMIN_ACCENT}18`, color: ADMIN_ACCENT }} />
             </Typography>
 
@@ -182,7 +185,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
                         {item.word.definition_vi}
                       </Typography>
                     </Box>
-                    <Tooltip title="Xoa khoi bai">
+                      <Tooltip title="Xóa khỏi bài">
                       <IconButton size="small" onClick={() => removeWord(item.word.id)} disabled={isRemoving}>
                         <RemoveCircleOutlineRoundedIcon fontSize="small" color="error" />
                       </IconButton>
@@ -195,7 +198,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
 
           <Box sx={{ flex: 1, p: 2.5, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", color: ADMIN_BG, mb: 1.5 }}>
-              Them tu vung
+              Thêm từ vựng
             </Typography>
 
             <TextField
@@ -247,7 +250,7 @@ const ManageWordsDialog = ({ lesson, open, onClose }) => {
                       {word.phonetic && <span style={{ marginLeft: 6, color: "#9e9e9e" }}>{word.phonetic}</span>}
                     </Typography>
                   </Box>
-                  <Tooltip title="Them vao bai">
+                      <Tooltip title="Thêm vào bài">
                     <IconButton size="small" onClick={() => addWord(word.id)} disabled={isAdding}>
                       <AddCircleOutlineRoundedIcon fontSize="small" sx={{ color: ADMIN_ACCENT }} />
                     </IconButton>
@@ -492,7 +495,7 @@ const AdminLessons = () => {
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Quan ly tu vung">
+                      <Tooltip title="Quản lý từ vựng">
                         <IconButton size="small" onClick={() => setManageLesson(lesson)}>
                           <MenuBookRoundedIcon fontSize="small" sx={{ color: "#00897b" }} />
                         </IconButton>
@@ -503,7 +506,14 @@ const AdminLessons = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Xoa">
-                        <IconButton size="small" onClick={() => { if (window.confirm("Chac chan xoa bai hoc nay?")) deleteLesson(lesson.id); }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            if (window.confirm("Xóa bài học này sẽ xóa luôn tiến độ học, session và liên kết từ vựng của học sinh ở bài này. Bạn có chắc muốn tiếp tục?")) {
+                              deleteLesson(lesson.id);
+                            }
+                          }}
+                        >
                           <DeleteRoundedIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>

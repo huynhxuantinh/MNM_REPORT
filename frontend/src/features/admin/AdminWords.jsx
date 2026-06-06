@@ -179,7 +179,18 @@ const AdminWords = () => {
                 </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Sửa"><IconButton size="small" onClick={() => handleOpenEdit(w)}><EditRoundedIcon fontSize="small" sx={{ color: ADMIN_ACCENT }} /></IconButton></Tooltip>
-                  <Tooltip title="Xóa"><IconButton size="small" onClick={() => { if(window.confirm("Chắc chắn xóa?")) deleteWord(w.id); }}><DeleteRoundedIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                  <Tooltip title="Xóa">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        if (window.confirm("Xóa từ này sẽ xóa luôn log ôn tập SRS, liên kết bài học và dữ liệu học của học sinh với từ đó. Bạn có chắc muốn tiếp tục?")) {
+                          deleteWord(w.id);
+                        }
+                      }}
+                    >
+                      <DeleteRoundedIcon fontSize="small" color="error" />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -255,5 +266,4 @@ const AdminWords = () => {
 };
 
 export default AdminWords;
-
 

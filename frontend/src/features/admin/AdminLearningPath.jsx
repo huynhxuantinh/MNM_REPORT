@@ -1,10 +1,31 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent,
-  DialogActions, IconButton, Chip, Collapse, Table, TableHead, TableRow,
-  TableCell, TableBody, Paper, Skeleton, Alert, Snackbar, Switch,
-  FormControlLabel, Tooltip, Stack, Divider, InputAdornment,
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Chip,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
+  Skeleton,
+  Alert,
+  Snackbar,
+  Switch,
+  FormControlLabel,
+  Tooltip,
+  Stack,
+  Divider,
+  InputAdornment,
 } from "@mui/material";
 import {
   AddRounded as AddIcon,
@@ -22,41 +43,69 @@ import learningApi from "@/services/learningApi";
 const ADMIN_BG = "#1a1f3a";
 const ADMIN_ACCENT = "#5c6bc0";
 
-// ── Course Dialog ─────────────────────────────────────────────────────────────
+const autoSlug = (name) => name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-const CourseDialog = ({ open, course, onClose, onSave }) => {
+const extractErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+  if (!data) return fallback;
+  if (typeof data.detail === "string") return data.detail;
+  if (typeof data === "string") return data;
+  const first = Object.values(data)[0];
+  if (Array.isArray(first)) return first[0];
+  if (typeof first === "string") return first;
+  return fallback;
+};
+
+const CourseDialog = ({ open, course, existingSlugs, onClose, onSave }) => {
   const [form, setForm] = useState(
     course
       ? { name: course.name, slug: course.slug, description: course.description ?? "", is_active: course.is_active }
-      : { name: "", slug: "", description: "", is_active: true }
+      : { name: "", slug: "", description: "", is_active: true },
   );
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const auto_slug = (name) => name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const normalizedSlug = form.slug.trim().toLowerCase();
+  const slugTaken = existingSlugs.has(normalizedSlug) && normalizedSlug !== (course?.slug || "").toLowerCase();
 
-  const handleNameChange = (e) => {
-    const name = e.target.value;
-    setForm((f) => ({ ...f, name, slug: course ? f.slug : auto_slug(name) }));
+  const handleNameChange = (event) => {
+    const name = event.target.value;
+    setForm((prev) => ({
+      ...prev,
+      name,
+      slug: course ? prev.slug : autoSlug(name),
+    }));
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: "16px" } }}>
       <DialogTitle sx={{ fontWeight: 700, color: ADMIN_BG }}>
-        {course ? "Sửa khoá học" : "Thêm khoá học mới"}
+        {course ? "Sửa khóa học" : "Thêm khóa học mới"}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "16px !important" }}>
-        <TextField label="Tên khoá học" value={form.name} onChange={handleNameChange} size="small" fullWidth required />
-        <TextField label="Slug (URL)" value={form.slug} onChange={set("slug")} size="small" fullWidth required
-          helperText="Dùng trong URL: /learning/courses/slug" />
-        <TextField label="Mô tả" value={form.description} onChange={set("description")} size="small" fullWidth multiline rows={3} />
+        <TextField label="Tên khóa học" value={form.name} onChange={handleNameChange} size="small" fullWidth required />
+        <TextField
+          label="Slug (URL)"
+          value={form.slug}
+          onChange={(event) => setForm((prev) => ({ ...prev, slug: autoSlug(event.target.value) }))}
+          size="small"
+          fullWidth
+          required
+          error={slugTaken}
+          helperText={slugTaken ? "Slug đã tồn tại. Hãy chọn slug khác." : "Dùng trong URL: /learning/courses/slug"}
+        />
+        <TextField label="Mô tả" value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} size="small" fullWidth multiline rows={3} />
         <FormControlLabel
-          control={<Switch checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />}
+          control={<Switch checked={form.is_active} onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))} />}
           label="Kích hoạt"
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose}>Hủy</Button>
-        <Button variant="contained" onClick={() => onSave(form)} sx={{ bgcolor: ADMIN_ACCENT }}>
+        <Button
+          variant="contained"
+          onClick={() => onSave({ ...form, slug: normalizedSlug })}
+          sx={{ bgcolor: ADMIN_ACCENT }}
+          disabled={!form.name.trim() || !normalizedSlug || slugTaken}
+        >
           {course ? "Lưu" : "Tạo"}
         </Button>
       </DialogActions>
@@ -64,9 +113,8 @@ const CourseDialog = ({ open, course, onClose, onSave }) => {
   );
 };
 
-// ── Unit Dialog ───────────────────────────────────────────────────────────────
-
 const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
+  const maxUnlockLessons = Math.max(0, Number(unit?.lesson_count ?? 0));
   const [form, setForm] = useState(
     unit
       ? {
@@ -77,10 +125,18 @@ const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
           is_published: unit.is_published,
           course: courseId,
         }
-      : { title: "", description: "", order_index: 0, required_lessons_to_unlock: 0, is_published: false, course: courseId }
+      : {
+          title: "",
+          description: "",
+          order_index: 0,
+          required_lessons_to_unlock: 0,
+          is_published: false,
+          course: courseId,
+        },
   );
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const unlockCount = Number(form.required_lessons_to_unlock) || 0;
+  const unlockInvalid = unlockCount < 0 || unlockCount > maxUnlockLessons;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: "16px" } }}>
@@ -88,36 +144,43 @@ const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
         {unit ? "Sửa unit" : "Thêm unit mới"}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "16px !important" }}>
-        <TextField label="Tiêu đề" value={form.title} onChange={set("title")} size="small" fullWidth required />
-        <TextField label="Mô tả" value={form.description} onChange={set("description")} size="small" fullWidth multiline rows={2} />
+        <TextField label="Tiêu đề" value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} size="small" fullWidth required />
+        <TextField label="Mô tả" value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} size="small" fullWidth multiline rows={2} />
         <Stack direction="row" spacing={2}>
           <TextField
-            label="Thứ tự" type="number" value={form.order_index}
-            onChange={(e) => setForm((f) => ({ ...f, order_index: Number(e.target.value) }))}
-            size="small" sx={{ flex: 1 }}
+            label="Thứ tự"
+            type="number"
+            value={form.order_index}
+            onChange={(event) => setForm((prev) => ({ ...prev, order_index: Number(event.target.value) }))}
+            size="small"
+            sx={{ flex: 1 }}
           />
           <TextField
-            label="Bài cần để mở khoá" type="number" value={form.required_lessons_to_unlock}
-            onChange={(e) => setForm((f) => ({ ...f, required_lessons_to_unlock: Number(e.target.value) }))}
-            size="small" sx={{ flex: 1 }}
+            label="Bài cần để mở khóa"
+            type="number"
+            value={form.required_lessons_to_unlock}
+            onChange={(event) => setForm((prev) => ({ ...prev, required_lessons_to_unlock: Number(event.target.value) }))}
+            size="small"
+            sx={{ flex: 1 }}
+            error={unlockInvalid}
+            helperText={unlockInvalid ? `Nhập từ 0 đến ${maxUnlockLessons}.` : `Giới hạn hiện tại: 0 đến ${maxUnlockLessons}.`}
+            inputProps={{ min: 0, max: maxUnlockLessons }}
           />
         </Stack>
         <FormControlLabel
-          control={<Switch checked={form.is_published} onChange={(e) => setForm((f) => ({ ...f, is_published: e.target.checked }))} />}
+          control={<Switch checked={form.is_published} onChange={(event) => setForm((prev) => ({ ...prev, is_published: event.target.checked }))} />}
           label="Công khai"
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose}>Hủy</Button>
-        <Button variant="contained" onClick={() => onSave(form)} sx={{ bgcolor: ADMIN_ACCENT }}>
+        <Button variant="contained" onClick={() => onSave(form)} sx={{ bgcolor: ADMIN_ACCENT }} disabled={!form.title.trim() || unlockInvalid}>
           {unit ? "Lưu" : "Tạo"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
-
-// ── Manage Lessons Dialog ─────────────────────────────────────────────────────
 
 const ManageLessonsDialog = ({ open, unit, onClose }) => {
   const qc = useQueryClient();
@@ -126,18 +189,18 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
 
   const { data: unitLessons = [], isLoading: loadingUnit } = useQuery({
     queryKey: ["admin-unit-lessons", unit?.id],
-    queryFn: () => learningApi.getAdminUnitLessons(unit.id).then((r) => r.data),
+    queryFn: () => learningApi.getAdminUnitLessons(unit.id).then((response) => response.data),
     enabled: Boolean(unit?.id),
   });
 
   const { data: lessonSearch } = useQuery({
     queryKey: ["admin-lesson-search", search],
-    queryFn: () => learningApi.getLessons({ search, page_size: 20 }).then((r) => r.data),
+    queryFn: () => learningApi.getLessons({ search, page_size: 20 }).then((response) => response.data),
     enabled: search.length > 0,
     placeholderData: (prev) => prev,
   });
 
-  const existingIds = new Set(unitLessons.map((ul) => ul.lesson));
+  const existingIds = new Set(unitLessons.map((item) => item.lesson));
 
   const { mutate: addLesson } = useMutation({
     mutationFn: (lessonId) => learningApi.addLessonToUnit(unit.id, lessonId),
@@ -145,10 +208,7 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
       qc.invalidateQueries({ queryKey: ["admin-unit-lessons", unit?.id] });
       setToast({ msg: "Đã thêm bài học vào unit.", severity: "success" });
     },
-    onError: (err) => {
-      const msg = err?.response?.data?.detail ?? "Thêm thất bại.";
-      setToast({ msg, severity: "error" });
-    },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Thêm thất bại."), severity: "error" }),
   });
 
   const { mutate: removeLesson } = useMutation({
@@ -165,30 +225,29 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: "16px" } }}>
         <DialogTitle sx={{ fontWeight: 700, color: ADMIN_BG }}>
-          Quản lý bài học — {unit?.title}
+          Quản lý bài học - {unit?.title}
         </DialogTitle>
         <DialogContent sx={{ display: "flex", gap: 2, pt: "16px !important", minHeight: 400 }}>
-          {/* Left: current lessons */}
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.secondary", mb: 0.5 }}>
               Bài học trong unit ({unitLessons.length})
             </Typography>
             <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 360 }}>
               {loadingUnit
-                ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={44} sx={{ mb: 1, borderRadius: 2 }} />)
-                : unitLessons.map((ul) => (
+                ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} height={44} sx={{ mb: 1, borderRadius: 2 }} />)
+                : unitLessons.map((item) => (
                     <Box
-                      key={ul.id}
+                      key={item.id}
                       sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: "6px 10px", borderRadius: "8px", border: "1px solid rgba(0,0,0,0.08)", mb: 0.75 }}
                     >
                       <Box>
-                        <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>{ul.lesson_title}</Typography>
+                        <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>{item.lesson_title}</Typography>
                         <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                          {ul.lesson_level} · {ul.lesson_word_count} từ
+                          {item.lesson_level} - {item.lesson_word_count} từ
                         </Typography>
                       </Box>
                       <Tooltip title="Xóa khỏi unit">
-                        <IconButton size="small" color="error" onClick={() => removeLesson(ul.lesson)}>
+                        <IconButton size="small" color="error" onClick={() => removeLesson(item.lesson)}>
                           <RemoveIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -204,16 +263,16 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
 
           <Divider orientation="vertical" flexItem />
 
-          {/* Right: search and add */}
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.secondary", mb: 0.5 }}>
               Tìm và thêm bài học
             </Typography>
             <TextField
-              size="small" fullWidth
-              placeholder="Tìm tên bài học…"
+              size="small"
+              fullWidth
+              placeholder="Tìm tên bài học..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               InputProps={{
                 startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: "text.disabled" }} /></InputAdornment>,
               }}
@@ -229,15 +288,10 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
                     <Box>
                       <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>{lesson.title}</Typography>
                       <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                        {lesson.level} · {lesson.word_count ?? 0} từ
+                        {lesson.level} - {lesson.word_count ?? 0} từ
                       </Typography>
                     </Box>
-                    <Button
-                      size="small" variant="outlined"
-                      disabled={inUnit}
-                      onClick={() => addLesson(lesson.id)}
-                      sx={{ fontSize: "0.75rem", minWidth: 60 }}
-                    >
+                    <Button size="small" variant="outlined" disabled={inUnit} onClick={() => addLesson(lesson.id)} sx={{ fontSize: "0.75rem", minWidth: 60 }}>
                       {inUnit ? "Đã có" : "Thêm"}
                     </Button>
                   </Box>
@@ -268,8 +322,6 @@ const ManageLessonsDialog = ({ open, unit, onClose }) => {
   );
 };
 
-// ── Unit Row ──────────────────────────────────────────────────────────────────
-
 const UnitRow = ({ unit, courseId, onEdit, onDelete }) => {
   const [manageLessons, setManageLessons] = useState(false);
 
@@ -285,12 +337,8 @@ const UnitRow = ({ unit, courseId, onEdit, onDelete }) => {
         <TableCell>
           <Chip label={unit.is_published ? "Công khai" : "Ẩn"} color={unit.is_published ? "success" : "default"} size="small" sx={{ fontSize: "0.72rem" }} />
         </TableCell>
-        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-          {unit.lesson_count} bài
-        </TableCell>
-        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-          Cần {unit.required_lessons_to_unlock} bài
-        </TableCell>
+        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{unit.lesson_count} bài</TableCell>
+        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>Cần {unit.required_lessons_to_unlock} bài</TableCell>
         <TableCell align="right">
           <Tooltip title="Quản lý bài học">
             <IconButton size="small" onClick={() => setManageLessons(true)} sx={{ color: ADMIN_ACCENT }}>
@@ -315,8 +363,6 @@ const UnitRow = ({ unit, courseId, onEdit, onDelete }) => {
   );
 };
 
-// ── Course Row ────────────────────────────────────────────────────────────────
-
 const CourseRow = ({ course, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const [addUnit, setAddUnit] = useState(false);
@@ -327,7 +373,7 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
 
   const { data: units = [], isLoading } = useQuery({
     queryKey: ["admin-units", course.id],
-    queryFn: () => learningApi.getAdminUnits(course.id).then((r) => r.data),
+    queryFn: () => learningApi.getAdminUnits(course.id).then((response) => response.data),
     enabled: expanded,
   });
 
@@ -339,6 +385,7 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
       setAddUnit(false);
       setToast({ msg: "Đã tạo unit.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi tạo unit."), severity: "error" }),
   });
 
   const { mutate: updateUnit } = useMutation({
@@ -348,6 +395,7 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
       setEditUnit(null);
       setToast({ msg: "Đã cập nhật unit.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi cập nhật unit."), severity: "error" }),
   });
 
   const { mutate: delUnit } = useMutation({
@@ -358,14 +406,12 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
       setDeleteUnit(null);
       setToast({ msg: "Đã xóa unit.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi xóa unit."), severity: "error" }),
   });
 
   return (
     <>
-      <TableRow
-        sx={{ cursor: "pointer", "&:hover": { bgcolor: "#f8f9ff" } }}
-        onClick={() => setExpanded((v) => !v)}
-      >
+      <TableRow sx={{ cursor: "pointer", "&:hover": { bgcolor: "#f8f9ff" } }} onClick={() => setExpanded((prev) => !prev)}>
         <TableCell>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700, color: ADMIN_BG }}>
             <SchoolIcon sx={{ fontSize: 18, color: ADMIN_ACCENT }} />
@@ -377,13 +423,11 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
         <TableCell>
           <Chip label={course.is_active ? "Hoạt động" : "Ẩn"} color={course.is_active ? "success" : "default"} size="small" sx={{ fontSize: "0.72rem" }} />
         </TableCell>
+        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{course.unit_count} unit</TableCell>
         <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-          {course.unit_count} unit
+          {course.created_at ? new Date(course.created_at).toLocaleDateString("vi-VN") : "-"}
         </TableCell>
-        <TableCell sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-          {course.created_at ? new Date(course.created_at).toLocaleDateString("vi-VN") : "—"}
-        </TableCell>
-        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+        <TableCell align="right" onClick={(event) => event.stopPropagation()}>
           <Tooltip title="Sửa">
             <IconButton size="small" onClick={() => onEdit(course)}>
               <EditIcon fontSize="small" />
@@ -397,34 +441,18 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
         </TableCell>
       </TableRow>
 
-      {/* Expanded units */}
       {expanded && (
         <>
-          {isLoading
-            ? (
-              <TableRow>
-                <TableCell colSpan={5} sx={{ pl: 6 }}>
-                  <Skeleton height={36} />
-                </TableCell>
-              </TableRow>
-            )
-            : units.map((unit) => (
-                <UnitRow
-                  key={unit.id}
-                  unit={unit}
-                  courseId={course.id}
-                  onEdit={(u) => setEditUnit(u)}
-                  onDelete={(u) => setDeleteUnit(u)}
-                />
-              ))}
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={5} sx={{ pl: 6 }}><Skeleton height={36} /></TableCell>
+            </TableRow>
+          ) : units.map((unit) => (
+            <UnitRow key={unit.id} unit={unit} courseId={course.id} onEdit={(value) => setEditUnit(value)} onDelete={(value) => setDeleteUnit(value)} />
+          ))}
           <TableRow>
             <TableCell colSpan={5} sx={{ pl: 6, py: 1 }}>
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={(e) => { e.stopPropagation(); setAddUnit(true); }}
-                sx={{ fontSize: "0.8rem", color: ADMIN_ACCENT }}
-              >
+              <Button size="small" startIcon={<AddIcon />} onClick={(event) => { event.stopPropagation(); setAddUnit(true); }} sx={{ fontSize: "0.8rem", color: ADMIN_ACCENT }}>
                 Thêm unit
               </Button>
             </TableCell>
@@ -432,33 +460,15 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
         </>
       )}
 
-      {/* Add unit dialog */}
-      {addUnit && (
-        <UnitDialog
-          open
-          unit={null}
-          courseId={course.id}
-          onClose={() => setAddUnit(false)}
-          onSave={(data) => createUnit(data)}
-        />
-      )}
+      {addUnit && <UnitDialog open unit={null} courseId={course.id} onClose={() => setAddUnit(false)} onSave={(data) => createUnit(data)} />}
+      {editUnit && <UnitDialog open unit={editUnit} courseId={course.id} onClose={() => setEditUnit(null)} onSave={(data) => updateUnit({ id: editUnit.id, data })} />}
 
-      {/* Edit unit dialog */}
-      {editUnit && (
-        <UnitDialog
-          open
-          unit={editUnit}
-          courseId={course.id}
-          onClose={() => setEditUnit(null)}
-          onSave={(data) => updateUnit({ id: editUnit.id, data })}
-        />
-      )}
-
-      {/* Delete unit confirm */}
       <Dialog open={Boolean(deleteUnit)} onClose={() => setDeleteUnit(null)} PaperProps={{ sx: { borderRadius: "16px" } }}>
         <DialogTitle sx={{ fontWeight: 700, color: ADMIN_BG }}>Xóa unit?</DialogTitle>
         <DialogContent>
-          <Typography>Bạn có chắc muốn xóa unit <strong>{deleteUnit?.title}</strong>?</Typography>
+          <Typography>
+            Xóa unit <strong>{deleteUnit?.title}</strong> sẽ gỡ toàn bộ liên kết bài học của unit này khỏi lộ trình. Bài học không bị xóa, nhưng học sinh đang học dở có thể không tìm thấy bài trong course nữa.
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteUnit(null)}>Hủy</Button>
@@ -473,8 +483,6 @@ const CourseRow = ({ course, onEdit, onDelete }) => {
   );
 };
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
 const AdminLearningPath = () => {
   const qc = useQueryClient();
   const [addCourse, setAddCourse] = useState(false);
@@ -484,16 +492,19 @@ const AdminLearningPath = () => {
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["admin-courses"],
-    queryFn: () => learningApi.getAdminCourses().then((r) => r.data),
+    queryFn: () => learningApi.getAdminCourses().then((response) => response.data),
   });
+
+  const existingSlugs = new Set(courses.map((course) => String(course.slug || "").toLowerCase()));
 
   const { mutate: createCourse } = useMutation({
     mutationFn: (data) => learningApi.createAdminCourse(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-courses"] });
       setAddCourse(false);
-      setToast({ msg: "Đã tạo khoá học.", severity: "success" });
+      setToast({ msg: "Đã tạo khóa học.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi tạo khóa học."), severity: "error" }),
   });
 
   const { mutate: updateCourse } = useMutation({
@@ -501,8 +512,9 @@ const AdminLearningPath = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-courses"] });
       setEditCourse(null);
-      setToast({ msg: "Đã cập nhật khoá học.", severity: "success" });
+      setToast({ msg: "Đã cập nhật khóa học.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi cập nhật khóa học."), severity: "error" }),
   });
 
   const { mutate: delCourse } = useMutation({
@@ -510,38 +522,28 @@ const AdminLearningPath = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-courses"] });
       setDeleteCourse(null);
-      setToast({ msg: "Đã xóa khoá học.", severity: "success" });
+      setToast({ msg: "Đã xóa khóa học.", severity: "success" });
     },
+    onError: (error) => setToast({ msg: extractErrorMessage(error, "Lỗi xóa khóa học."), severity: "error" }),
   });
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ mb: 3, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: ADMIN_BG }}>
-            Lộ trình học
-          </Typography>
-          <Typography sx={{ color: "text.secondary", fontSize: "0.875rem", mt: 0.5 }}>
-            Quản lý khoá học → unit → bài học
-          </Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: "1.5rem", color: ADMIN_BG }}>Lộ trình học</Typography>
+          <Typography sx={{ color: "text.secondary", fontSize: "0.875rem", mt: 0.5 }}>Quản lý khóa học, unit và bài học</Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setAddCourse(true)}
-          sx={{ bgcolor: ADMIN_ACCENT, borderRadius: "10px", textTransform: "none", fontWeight: 700 }}
-        >
-          Thêm khoá học
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCourse(true)} sx={{ bgcolor: ADMIN_ACCENT, borderRadius: "10px", textTransform: "none", fontWeight: 700 }}>
+          Thêm khóa học
         </Button>
       </Box>
 
-      {/* Table */}
       <Paper elevation={0} sx={{ borderRadius: "16px", border: "1px solid rgba(0,0,0,0.06)", overflow: "hidden" }}>
         <Table size="small">
           <TableHead sx={{ bgcolor: "#f5f7ff" }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG, py: 1.5 }}>Khoá học / Unit</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: ADMIN_BG, py: 1.5 }}>Khóa học / Unit</TableCell>
               <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Trạng thái</TableCell>
               <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Số lượng</TableCell>
               <TableCell sx={{ fontWeight: 700, color: ADMIN_BG }}>Ngày tạo / Yêu cầu</TableCell>
@@ -550,47 +552,32 @@ const AdminLearningPath = () => {
           </TableHead>
           <TableBody>
             {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 5 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton height={32} /></TableCell>
+              ? Array.from({ length: 4 }).map((_, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {Array.from({ length: 5 }).map((__, cellIndex) => (
+                      <TableCell key={cellIndex}><Skeleton height={32} /></TableCell>
                     ))}
                   </TableRow>
                 ))
-              : courses.map((course) => (
-                  <CourseRow
-                    key={course.id}
-                    course={course}
-                    onEdit={(c) => setEditCourse(c)}
-                    onDelete={(c) => setDeleteCourse(c)}
-                  />
-                ))}
+              : courses.map((course) => <CourseRow key={course.id} course={course} onEdit={(value) => setEditCourse(value)} onDelete={(value) => setDeleteCourse(value)} />)}
             {!isLoading && courses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.disabled" }}>
-                  Chưa có khoá học nào
-                </TableCell>
+                <TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.disabled" }}>Chưa có khóa học nào</TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </Paper>
 
-      {/* Add course dialog */}
-      {addCourse && (
-        <CourseDialog open onClose={() => setAddCourse(false)} onSave={(data) => createCourse(data)} />
-      )}
+      {addCourse && <CourseDialog open existingSlugs={existingSlugs} onClose={() => setAddCourse(false)} onSave={(data) => createCourse(data)} />}
+      {editCourse && <CourseDialog open course={editCourse} existingSlugs={existingSlugs} onClose={() => setEditCourse(null)} onSave={(data) => updateCourse({ id: editCourse.id, data })} />}
 
-      {/* Edit course dialog */}
-      {editCourse && (
-        <CourseDialog open course={editCourse} onClose={() => setEditCourse(null)} onSave={(data) => updateCourse({ id: editCourse.id, data })} />
-      )}
-
-      {/* Delete course confirm */}
       <Dialog open={Boolean(deleteCourse)} onClose={() => setDeleteCourse(null)} PaperProps={{ sx: { borderRadius: "16px" } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: ADMIN_BG }}>Xóa khoá học?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: ADMIN_BG }}>Xóa khóa học?</DialogTitle>
         <DialogContent>
-          <Typography>Bạn có chắc muốn xóa khoá học <strong>{deleteCourse?.name}</strong>?</Typography>
+          <Typography>
+            Xóa khóa học <strong>{deleteCourse?.name}</strong> sẽ xóa toàn bộ unit trong khóa này và gỡ lộ trình học tương ứng khỏi học sinh.
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteCourse(null)}>Hủy</Button>
@@ -598,7 +585,6 @@ const AdminLearningPath = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Toast */}
       <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity={toast?.severity ?? "success"} onClose={() => setToast(null)} sx={{ borderRadius: "12px" }}>{toast?.msg}</Alert>
       </Snackbar>

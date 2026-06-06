@@ -94,6 +94,8 @@ const normalizeQuestionToForm = (question) => ({
   correct_answer_text:
     question.question_type === "fill_blank"
       ? question.correct_answer?.text || ""
+      : question.question_type === "true_false"
+        ? question.correct_answer?.option || ""
       : question.correct_answer?.option || "",
   explanation: question.explanation || "",
   order_index: question.order_index || 1,
@@ -203,7 +205,7 @@ const QuestionManagerDialog = ({ passage, open, onClose, onToast }) => {
                       <IconButton
                         size="small"
                         aria-label={`xoa-cau-hoi-${question.id}`}
-                        onClick={() => window.confirm("Xoa cau hoi nay?") && deleteMutation.mutate(question.id)}
+                        onClick={() => window.confirm("Xóa câu hỏi này khỏi passage nghe?") && deleteMutation.mutate(question.id)}
                       >
                         <DeleteRoundedIcon fontSize="small" color="error" />
                       </IconButton>
@@ -466,7 +468,11 @@ const AdminListening = () => {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Xoa passage">
-                    <IconButton size="small" aria-label={`xoa-passage-${passage.id}`} onClick={() => window.confirm("Xoa passage nay?") && deleteMutation.mutate(passage.id)}>
+                    <IconButton
+                      size="small"
+                      aria-label={`xoa-passage-${passage.id}`}
+                      onClick={() => window.confirm("Xóa passage này sẽ xóa luôn toàn bộ câu hỏi nghe hiểu gắn với passage. Bạn có chắc muốn tiếp tục?") && deleteMutation.mutate(passage.id)}
+                    >
                       <DeleteRoundedIcon fontSize="small" color="error" />
                     </IconButton>
                   </Tooltip>
