@@ -58,6 +58,7 @@ const NAV_ITEMS = [
   { label: "Bài học", to: "/admin/lessons" },
   { label: "Nội dung", to: "/admin/content" },
   { label: "Lộ trình học", to: "/admin/learning" },
+  { label: "Luyện nghe", to: "/admin/listening" },
   { label: "Kết quả Quiz", to: "/admin/quizzes" },
 ];
 

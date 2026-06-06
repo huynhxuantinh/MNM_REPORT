@@ -8,6 +8,7 @@ from .flow_views import (
     LearningCheckpointStartView,
     LearningCheckpointSubmitView,
     LearningPathView,
+    ListeningPathView,
     LearningPlacementQuestionsView,
     LearningPlacementSkipView,
     LearningPlacementStatusView,
@@ -20,6 +21,8 @@ from .flow_views import (
     LearningSessionResumeView,
     LearningSessionStartView,
     LearningSessionSwitchEasyView,
+    ListeningSessionDetailView,
+    ListeningSessionStartView,
     ReviewAnswerView,
     ReviewHistoryView,
     ReviewListView,
@@ -30,11 +33,13 @@ from .flow_views import (
 
 urlpatterns = [
     path("path/", LearningPathView.as_view(), name="learning-path"),
+    path("listening/", ListeningPathView.as_view(), name="listening-path"),
     path("placement/status/", LearningPlacementStatusView.as_view(), name="learning-placement-status"),
     path("placement/questions/", LearningPlacementQuestionsView.as_view(), name="learning-placement-questions"),
     path("placement/submit/", LearningPlacementSubmitView.as_view(), name="learning-placement-submit"),
     path("placement/skip/", LearningPlacementSkipView.as_view(), name="learning-placement-skip"),
     path("session/start/", LearningSessionStartView.as_view(), name="learning-session-start"),
+    path("listening/session/start/", ListeningSessionStartView.as_view(), name="listening-session-start"),
     path("session/recover/", LearningSessionRecoverView.as_view(), name="learning-session-recover"),
     path("session/<int:session_id>/resume/", LearningSessionResumeView.as_view(), name="learning-session-resume"),
     path(
@@ -43,6 +48,7 @@ urlpatterns = [
         name="learning-session-switch-easy",
     ),
     path("session/<int:session_id>/", LearningSessionDetailView.as_view(), name="learning-session-detail"),
+    path("listening/session/<int:session_id>/", ListeningSessionDetailView.as_view(), name="listening-session-detail"),
     path("session/<int:session_id>/answer/", LearningSessionAnswerView.as_view(), name="learning-session-answer"),
     path("session/<int:session_id>/finish/", LearningSessionFinishView.as_view(), name="learning-session-finish"),
     path("session/<int:session_id>/quit/", LearningSessionQuitView.as_view(), name="learning-session-quit"),

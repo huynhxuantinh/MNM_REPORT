@@ -10,6 +10,10 @@ from .models import (
     Lesson,
     LessonProgress,
     LessonWord,
+    ListeningAnswer,
+    ListeningPassage,
+    ListeningQuestion,
+    ListeningSession,
     Notification,
     PlacementResult,
     ReviewLog,
@@ -45,6 +49,11 @@ class LessonSerializer(serializers.ModelSerializer):
             "topic",
             "skill_tag",
             "content_difficulty",
+            "listening_transcript",
+            "listening_translation_vi",
+            "listening_estimated_seconds",
+            "listening_tts_lang",
+            "listening_tts_rate",
             "level",
             "order_index",
             "is_published",
@@ -55,6 +64,31 @@ class LessonSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+        skill_tag = attrs.get("skill_tag", getattr(instance, "skill_tag", Lesson.SkillTag.VOCAB))
+        transcript = attrs.get(
+            "listening_transcript",
+            getattr(instance, "listening_transcript", ""),
+        )
+        is_published = attrs.get("is_published", getattr(instance, "is_published", False))
+
+        if skill_tag == Lesson.SkillTag.LISTENING and not (transcript or "").strip():
+            raise serializers.ValidationError(
+                {"listening_transcript": "Listening lesson requires a transcript."}
+            )
+
+        if skill_tag == Lesson.SkillTag.LISTENING and is_published:
+            if instance is None:
+                word_count = 0
+            else:
+                word_count = instance.lesson_words.count()
+            if word_count < 3:
+                raise serializers.ValidationError(
+                    {"is_published": "Listening lesson needs at least 3 lesson words before publishing."}
+                )
+        return attrs
 
     def get_created_by_name(self, obj) -> str | None:
         if obj.created_by:
@@ -94,7 +128,17 @@ class LearningPathLessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = ("id", "title", "level", "is_published", "words_total", "words_learned", "user_progress")
+        fields = (
+            "id",
+            "title",
+            "level",
+            "skill_tag",
+            "listening_estimated_seconds",
+            "is_published",
+            "words_total",
+            "words_learned",
+            "user_progress",
+        )
         read_only_fields = fields
 
     def get_words_total(self, obj) -> int:
@@ -197,6 +241,12 @@ class UserCourseProgressSerializer(serializers.ModelSerializer):
 
 class LearningSessionSerializer(serializers.ModelSerializer):
     lesson_title = serializers.CharField(source="lesson.title", read_only=True)
+    lesson_skill_tag = serializers.CharField(source="lesson.skill_tag", read_only=True)
+    lesson_listening_transcript = serializers.CharField(source="lesson.listening_transcript", read_only=True)
+    lesson_listening_translation_vi = serializers.CharField(source="lesson.listening_translation_vi", read_only=True)
+    lesson_listening_estimated_seconds = serializers.IntegerField(source="lesson.listening_estimated_seconds", read_only=True)
+    lesson_listening_tts_lang = serializers.CharField(source="lesson.listening_tts_lang", read_only=True)
+    lesson_listening_tts_rate = serializers.FloatField(source="lesson.listening_tts_rate", read_only=True)
     unit_title = serializers.CharField(source="unit.title", read_only=True)
 
     class Meta:
@@ -210,6 +260,12 @@ class LearningSessionSerializer(serializers.ModelSerializer):
             "unit_title",
             "lesson",
             "lesson_title",
+            "lesson_skill_tag",
+            "lesson_listening_transcript",
+            "lesson_listening_translation_vi",
+            "lesson_listening_estimated_seconds",
+            "lesson_listening_tts_lang",
+            "lesson_listening_tts_rate",
             "total_answered",
             "correct_answered",
             "xp_earned",
@@ -325,3 +381,197 @@ class PlacementSkipResponseSerializer(serializers.Serializer):
     already_completed = serializers.BooleanField()
     detail = serializers.CharField()
     recommended_level = serializers.CharField()
+
+
+class ListeningQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListeningQuestion
+        fields = (
+            "id",
+            "question_type",
+            "prompt",
+            "choices_json",
+            "correct_answer",
+            "explanation",
+            "order_index",
+        )
+        read_only_fields = fields
+
+
+class ListeningQuestionAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListeningQuestion
+        fields = (
+            "id",
+            "passage",
+            "question_type",
+            "prompt",
+            "choices_json",
+            "correct_answer",
+            "explanation",
+            "order_index",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        question_type = attrs.get("question_type") or getattr(self.instance, "question_type", None)
+        choices = attrs.get("choices_json", getattr(self.instance, "choices_json", [])) or []
+        correct_answer = attrs.get("correct_answer", getattr(self.instance, "correct_answer", {})) or {}
+
+        if question_type in {
+            ListeningQuestion.QuestionType.MULTIPLE_CHOICE,
+            ListeningQuestion.QuestionType.TRUE_FALSE,
+        }:
+            if not isinstance(choices, list) or len(choices) < 2:
+                raise serializers.ValidationError({"choices_json": "Can it nhat 2 lua chon."})
+            option = correct_answer.get("option") if isinstance(correct_answer, dict) else None
+            if not option:
+                raise serializers.ValidationError({"correct_answer": "Can dap an dung dang option."})
+        elif question_type == ListeningQuestion.QuestionType.FILL_BLANK:
+            answer_text = correct_answer.get("text") if isinstance(correct_answer, dict) else None
+            if not answer_text:
+                raise serializers.ValidationError({"correct_answer": "Can dap an dung dang text."})
+
+        return attrs
+
+
+class ListeningQuestionPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListeningQuestion
+        fields = (
+            "id",
+            "question_type",
+            "prompt",
+            "choices_json",
+            "order_index",
+        )
+        read_only_fields = fields
+
+
+class ListeningPassageSerializer(serializers.ModelSerializer):
+    question_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = ListeningPassage
+        fields = (
+            "id",
+            "title",
+            "topic",
+            "level",
+            "transcript",
+            "translation_vi",
+            "estimated_seconds",
+            "tts_lang",
+            "tts_rate",
+            "is_published",
+            "question_count",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class ListeningPassageAdminSerializer(serializers.ModelSerializer):
+    question_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = ListeningPassage
+        fields = (
+            "id",
+            "title",
+            "topic",
+            "level",
+            "transcript",
+            "translation_vi",
+            "estimated_seconds",
+            "tts_lang",
+            "tts_rate",
+            "is_published",
+            "question_count",
+            "created_by",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "question_count", "created_by", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        is_published = attrs.get("is_published")
+        if is_published is None and self.instance is not None:
+            is_published = self.instance.is_published
+
+        transcript = attrs.get("transcript")
+        if transcript is None and self.instance is not None:
+            transcript = self.instance.transcript
+
+        if not transcript or not transcript.strip():
+            raise serializers.ValidationError({"transcript": "Transcript la bat buoc."})
+
+        if is_published:
+            question_count = self.instance.questions.count() if self.instance is not None else 0
+            if question_count < 3:
+                raise serializers.ValidationError({"is_published": "Can it nhat 3 cau hoi truoc khi public."})
+
+        return attrs
+
+
+class ListeningPassageDetailSerializer(ListeningPassageSerializer):
+    questions = ListeningQuestionPublicSerializer(many=True, read_only=True)
+
+    class Meta(ListeningPassageSerializer.Meta):
+        fields = ListeningPassageSerializer.Meta.fields + ("questions",)
+
+
+class ListeningPassageAdminDetailSerializer(ListeningPassageAdminSerializer):
+    questions = ListeningQuestionAdminSerializer(many=True, read_only=True)
+
+    class Meta(ListeningPassageAdminSerializer.Meta):
+        fields = ListeningPassageAdminSerializer.Meta.fields + ("questions",)
+
+
+class ListeningSessionSerializer(serializers.ModelSerializer):
+    passage = ListeningPassageSerializer(read_only=True)
+
+    class Meta:
+        model = ListeningSession
+        fields = (
+            "id",
+            "status",
+            "current_question_index",
+            "score",
+            "score_pct",
+            "started_at",
+            "completed_at",
+            "updated_at",
+            "passage",
+        )
+        read_only_fields = fields
+
+
+class ListeningAnswerSerializer(serializers.ModelSerializer):
+    question_id = serializers.IntegerField(source="question.id", read_only=True)
+
+    class Meta:
+        model = ListeningAnswer
+        fields = (
+            "id",
+            "question_id",
+            "submitted_answer",
+            "is_correct",
+            "answered_at",
+        )
+        read_only_fields = fields
+
+
+class ListeningSessionStartSerializer(serializers.Serializer):
+    passage_id = serializers.PrimaryKeyRelatedField(
+        source="passage", queryset=ListeningPassage.objects.filter(is_published=True)
+    )
+
+
+class ListeningSubmitAnswerSerializer(serializers.Serializer):
+    question_id = serializers.PrimaryKeyRelatedField(
+        source="question", queryset=ListeningQuestion.objects.all()
+    )
+    submitted_answer = serializers.JSONField(required=False, default=dict)

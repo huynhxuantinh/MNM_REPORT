@@ -84,7 +84,7 @@ def _build_unlock_map(units, progress_map):
     unlocked_map = {}
     previous_unit = None
     for index, unit in enumerate(units):
-        if index == 0:
+        if index == 0 or unit.required_lessons_to_unlock == 0:
             unlocked_map[unit.id] = True
             previous_unit = unit
             continue

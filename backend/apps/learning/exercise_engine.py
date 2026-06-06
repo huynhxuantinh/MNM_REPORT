@@ -14,6 +14,22 @@ def _split_tokens(sentence: str) -> list[str]:
     return [token for token in re.findall(r"[A-Za-z']+|[.,!?;:]", sentence) if token]
 
 
+def _pick_listening_audio_text(word, lesson=None) -> str:
+    transcript = _clean_text(getattr(lesson, "listening_transcript", ""))
+    if not transcript:
+        return _clean_text(word.example_en or word.text)
+
+    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", transcript) if item.strip()]
+    if not sentences:
+        return transcript
+
+    pattern = re.compile(rf"\b{re.escape(word.text)}\b", re.IGNORECASE)
+    for sentence in sentences:
+        if pattern.search(sentence):
+            return sentence
+    return sentences[0]
+
+
 def _make_multiple_choice(word, definition_pool: list[str], step_index: int) -> dict[str, Any]:
     correct = _clean_text(word.definition_vi or word.definition_en or word.text)
     distractors = [item for item in definition_pool if item and item != correct]
@@ -71,8 +87,8 @@ def _make_fill_blank(word, step_index: int) -> dict[str, Any] | None:
     }
 
 
-def _make_listen_choose_word(word, lesson_words, step_index: int) -> dict[str, Any] | None:
-    audio_text = _clean_text(word.example_en or word.text)
+def _make_listen_choose_word(word, lesson_words, step_index: int, lesson=None) -> dict[str, Any] | None:
+    audio_text = _pick_listening_audio_text(word, lesson=lesson)
     if not audio_text:
         return None
     distractors = [item.text for item in lesson_words if item.id != word.id and item.text]
@@ -113,7 +129,13 @@ def _make_word_order(word, step_index: int) -> dict[str, Any] | None:
     }
 
 
-def generate_exercises_from_words(words, max_questions: int = 10, difficulty: str = "normal", global_words=None) -> list[dict[str, Any]]:
+def generate_exercises_from_words(
+    words,
+    max_questions: int = 10,
+    difficulty: str = "normal",
+    global_words=None,
+    lesson=None,
+) -> list[dict[str, Any]]:
     words = list(words)
     random.shuffle(words)
     words = words[:max_questions]
@@ -133,7 +155,7 @@ def generate_exercises_from_words(words, max_questions: int = 10, difficulty: st
         exercises.append(_make_multiple_choice(word, distractor_pool, step))
         step += 1
 
-        listen = _make_listen_choose_word(word, words, step)
+        listen = _make_listen_choose_word(word, words, step, lesson=lesson)
         if listen:
             exercises.append(listen)
             step += 1

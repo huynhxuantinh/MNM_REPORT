@@ -44,6 +44,41 @@ class TestLessonList:
         item = next(d for d in r.data["results"] if d["id"] == lesson.id)
         assert item["word_count"] == 2
 
+    def test_list_can_filter_by_skill_tag(self, tc, teacher):
+        teacher.lessons_created.create(
+            title="Listening Filter",
+            level="A1",
+            skill_tag="listening",
+            listening_transcript="The student takes a bus to school.",
+            order_index=12,
+        )
+        r = tc.get(f"{LIST_URL}?skill_tag=listening")
+        assert r.status_code == 200
+        titles = [item["title"] for item in r.data["results"]]
+        assert "Listening Filter" in titles
+        assert "Lesson 1" not in titles
+
+    def test_list_returns_listening_metadata_fields(self, tc, teacher):
+        r = tc.post(
+            LIST_URL,
+            {
+                "title": "Listening Demo",
+                "level": "A1",
+                "skill_tag": "listening",
+                "listening_transcript": "Tom opens the door and sees his room.",
+                "listening_translation_vi": "Tom mo canh cua va nhin thay phong cua minh.",
+                "listening_estimated_seconds": 35,
+                "listening_tts_lang": "en-US",
+                "listening_tts_rate": 0.85,
+                "order_index": 9,
+            },
+        )
+        assert r.status_code == 201
+        assert r.data["skill_tag"] == "listening"
+        assert r.data["listening_estimated_seconds"] == 35
+        assert r.data["listening_tts_lang"] == "en-US"
+        assert r.data["listening_tts_rate"] == 0.85
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # RETRIEVE
@@ -68,6 +103,21 @@ class TestLessonRetrieve:
     def test_student_cannot_retrieve_unpublished(self, sc, unpublished_lesson):
         r = sc.get(DETAIL_URL(unpublished_lesson.id))
         assert r.status_code == 404
+
+    def test_detail_includes_listening_metadata(self, tc, teacher):
+        lesson = teacher.lessons_created.create(
+            title="Listening Detail",
+            level="A1",
+            skill_tag="listening",
+            listening_transcript="Mary takes a bus to school every day.",
+            listening_translation_vi="Mary di xe buyt den truong moi ngay.",
+            listening_estimated_seconds=42,
+        )
+        r = tc.get(DETAIL_URL(lesson.id))
+        assert r.status_code == 200
+        assert r.data["skill_tag"] == "listening"
+        assert r.data["listening_transcript"] == "Mary takes a bus to school every day."
+        assert r.data["listening_estimated_seconds"] == 42
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -101,6 +151,32 @@ class TestLessonCUD:
     def test_student_cannot_delete(self, sc, lesson):
         r = sc.delete(DETAIL_URL(lesson.id))
         assert r.status_code == 403
+
+    def test_listening_lesson_requires_transcript(self, tc):
+        r = tc.post(
+            LIST_URL,
+            {
+                "title": "Listening Missing Transcript",
+                "level": "A1",
+                "skill_tag": "listening",
+            },
+        )
+        assert r.status_code == 400
+        assert "listening_transcript" in r.data
+
+    def test_listening_lesson_needs_three_words_before_publish(self, tc):
+        r = tc.post(
+            LIST_URL,
+            {
+                "title": "Listening Published Too Early",
+                "level": "A1",
+                "skill_tag": "listening",
+                "listening_transcript": "I wake up at six and brush my teeth.",
+                "is_published": True,
+            },
+        )
+        assert r.status_code == 400
+        assert "is_published" in r.data
 
 
 # ══════════════════════════════════════════════════════════════════════════════

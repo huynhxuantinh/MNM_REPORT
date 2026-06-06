@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -47,6 +47,7 @@ const PAGE_TITLES = {
   "/": "Trang chủ",
   "/vocabulary": "Từ vựng",
   "/learning": "Học tập",
+  "/listening": "Luyện nghe",
   "/quiz": "Quiz",
   "/profile": "Hồ sơ",
 };
@@ -63,7 +64,11 @@ const Header = ({ onMenuClick }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifAnchor, setNotifAnchor] = useState(null);
 
-  const pageTitle = PAGE_TITLES[location.pathname] ?? "NoroStu";
+  const pageTitle = (() => {
+    if (location.pathname.startsWith("/learning/session/")) return "Phiên học";
+    if (location.pathname.startsWith("/listening/session/")) return "Phiên luyện nghe";
+    return PAGE_TITLES[location.pathname] ?? "NoroStu";
+  })();
   const unreadCount = 0;
 
   const handleUserMenuOpen = (e) => setAnchorEl(e.currentTarget);

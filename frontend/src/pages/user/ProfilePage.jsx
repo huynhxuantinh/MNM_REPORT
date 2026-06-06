@@ -23,6 +23,7 @@ import { TrackChangesRounded as TrackChangesRoundedIcon } from "@mui/icons-mater
 import { WorkspacePremiumRounded as WorkspacePremiumRoundedIcon } from "@mui/icons-material";
 import { AutoAwesomeRounded as AutoAwesomeRoundedIcon } from "@mui/icons-material";
 import { LocalLibraryRounded as LocalLibraryRoundedIcon } from "@mui/icons-material";
+import { HearingRounded as HearingRoundedIcon } from "@mui/icons-material";
 import { SbCard, SbButton, SbInput } from "@/components/ui";
 import { setUser, logout } from "@/features/auth/authSlice";
 import { colors } from "@/styles/theme";
@@ -228,6 +229,8 @@ const LearningStatsCard = () => {
   const s = stats ?? {};
   const totalReviewAttempts = s.total_review_attempts ?? s.total_review_sessions ?? 0;
   const hasReliableAccuracy = totalReviewAttempts >= 10;
+  const listeningAnswered = s.listening_questions_answered ?? 0;
+  const listeningAccuracy = s.listening_accuracy_pct ?? 0;
 
   return (
     <SbCard>
@@ -308,6 +311,70 @@ const LearningStatsCard = () => {
         <Typography sx={{ mt: 1, fontSize: "0.75rem", color: "text.secondary" }}>
           Độ chính xác sẽ ổn định hơn khi có từ 10 lượt review trở lên.
         </Typography>
+      )}
+
+      <Divider sx={{ my: 2 }} />
+
+      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: colors.greenStarbucks, mb: 1.5 }}>
+        Luyện nghe
+      </Typography>
+      <Grid container spacing={0}>
+        <Grid item xs={12} sm={6}>
+          <StatItem
+            icon={<HearingRoundedIcon />}
+            color="#8e24aa"
+            value={s.listening_sessions_completed ?? 0}
+            label="Bài nghe hoàn thành"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<TrackChangesRoundedIcon />}
+            color="#3949ab"
+            value={listeningAnswered}
+            label="Câu nghe đã trả lời"
+            loading={isLoading}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <StatItem
+            icon={<CheckCircleRoundedIcon />}
+            color="#00897b"
+            value={listeningAnswered > 0 ? `${listeningAccuracy}%` : "-"}
+            label="Độ chính xác listening"
+            loading={isLoading}
+          />
+          <StatItem
+            icon={<EmojiEventsRoundedIcon />}
+            color={colors.greenAccent}
+            value={s.listening_correct_answers ?? 0}
+            label="Câu nghe đúng"
+            loading={isLoading}
+          />
+        </Grid>
+      </Grid>
+
+      {!isLoading && listeningAnswered > 0 && (
+        <Box sx={{ mt: 1.25 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>Độ chính xác listening</Typography>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: listeningAccuracy >= 70 ? "#43a047" : listeningAccuracy >= 40 ? colors.gold : "#ef5350" }}>
+              {s.listening_correct_answers ?? 0} / {listeningAnswered} đúng
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(listeningAccuracy, 100)}
+            sx={{
+              height: 6,
+              borderRadius: 3,
+              bgcolor: "rgba(0,0,0,0.06)",
+              "& .MuiLinearProgress-bar": {
+                bgcolor: listeningAccuracy >= 70 ? "#43a047" : listeningAccuracy >= 40 ? colors.gold : "#ef5350",
+                borderRadius: 3,
+              },
+            }}
+          />
+        </Box>
       )}
     </SbCard>
   );

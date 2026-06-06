@@ -8,21 +8,64 @@ from apps.learning.models import (
     ExerciseAttempt,
     LearningSession,
     LessonProgress,
+    LessonWord,
     Unit,
     UnitLesson,
     UserCourseProgress,
     UserUnitProgress,
 )
+from apps.learning.models import Lesson
+from apps.vocabulary.models import Word
 
 pytestmark = pytest.mark.django_db
 
 PATH_URL = "/api/v1/learning/path/"
+LISTENING_PATH_URL = "/api/v1/learning/listening/"
 START_URL = "/api/v1/learning/session/start/"
+LISTENING_START_URL = "/api/v1/learning/listening/session/start/"
 DETAIL_URL = lambda sid: f"/api/v1/learning/session/{sid}/"
+LISTENING_DETAIL_URL = lambda sid: f"/api/v1/learning/listening/session/{sid}/"
 ANSWER_URL = lambda sid: f"/api/v1/learning/session/{sid}/answer/"
 FINISH_URL = lambda sid: f"/api/v1/learning/session/{sid}/finish/"
 CHECKPOINT_START_URL = "/api/v1/learning/checkpoint/start/"
 CHECKPOINT_SUBMIT_URL = lambda sid: f"/api/v1/learning/checkpoint/{sid}/submit/"
+
+
+@pytest.fixture
+def listening_lesson(db, teacher):
+    lesson = Lesson.objects.create(
+        title="Listening Demo",
+        level="A1",
+        order_index=3,
+        is_published=True,
+        created_by=teacher,
+        skill_tag=Lesson.SkillTag.LISTENING,
+        listening_transcript="Anna takes a bus to school every morning.",
+        listening_translation_vi="Anna di xe buyt den truong moi buoi sang.",
+        listening_estimated_seconds=35,
+    )
+    for index, text in enumerate(["bus", "school", "morning"], start=1):
+        word = Word.objects.create(text=text, level="A1", created_by=teacher)
+        LessonWord.objects.create(lesson=lesson, word=word, order_index=index)
+    return lesson
+
+
+@pytest.fixture
+def course_with_dedicated_listening_unit(listening_lesson):
+    course = Course.objects.create(
+        name="English Foundation",
+        slug="english-foundation",
+        is_active=True,
+    )
+    unit = Unit.objects.create(
+        course=course,
+        title="Listening Lab",
+        order_index=6,
+        required_lessons_to_unlock=0,
+        is_published=True,
+    )
+    UnitLesson.objects.create(unit=unit, lesson=listening_lesson, order_index=1)
+    return course, unit
 
 
 @pytest.fixture
@@ -44,6 +87,32 @@ def course_with_units(lesson, unpublished_lesson):
         title="Unit 2",
         order_index=2,
         required_lessons_to_unlock=1,
+        is_published=True,
+    )
+    UnitLesson.objects.create(unit=unit1, lesson=lesson, order_index=1)
+    UnitLesson.objects.create(unit=unit2, lesson=unpublished_lesson, order_index=1)
+    return course, unit1, unit2
+
+
+@pytest.fixture
+def course_with_listening_unit(lesson, unpublished_lesson):
+    course = Course.objects.create(
+        name="Listening Path",
+        slug="listening-path",
+        is_active=True,
+    )
+    unit1 = Unit.objects.create(
+        course=course,
+        title="Unit 1",
+        order_index=1,
+        required_lessons_to_unlock=2,
+        is_published=True,
+    )
+    unit2 = Unit.objects.create(
+        course=course,
+        title="Listening Lab",
+        order_index=2,
+        required_lessons_to_unlock=0,
         is_published=True,
     )
     UnitLesson.objects.create(unit=unit1, lesson=lesson, order_index=1)
@@ -90,6 +159,23 @@ class TestLearningPath:
         assert first_lesson["words_total"] == 2
         assert first_lesson["words_learned"] == 1
 
+    def test_unit_with_zero_unlock_requirement_is_open(self, sc, course_with_listening_unit):
+        response = sc.get(PATH_URL)
+        assert response.status_code == 200
+        assert len(response.data["units"]) == 2
+        assert response.data["units"][1]["required_lessons_to_unlock"] == 0
+        assert response.data["units"][1]["unlocked"] is True
+
+    def test_listening_path_returns_only_listening_units(self, sc, course_with_dedicated_listening_unit):
+        response = sc.get(LISTENING_PATH_URL)
+        assert response.status_code == 200
+        assert response.data["slug"] == "english-foundation"
+        assert len(response.data["units"]) == 1
+        assert response.data["units"][0]["title"] == "Listening Lab"
+        lesson = response.data["units"][0]["lessons"][0]["lesson"]
+        assert lesson["skill_tag"] == "listening"
+        assert lesson["listening_estimated_seconds"] == 35
+
 
 class TestLearningSession:
     def test_start_session_success(self, sc, lesson, course_with_units):
@@ -101,6 +187,55 @@ class TestLearningSession:
     def test_start_session_locked_unit_forbidden(self, sc, unpublished_lesson, course_with_units):
         response = sc.post(START_URL, {"lesson_id": unpublished_lesson.id}, format="json")
         assert response.status_code == 400
+
+    def test_start_session_prefers_primary_course_link_when_same_lesson_is_duplicated(self, sc, lesson):
+        primary = Course.objects.create(name="Primary", slug="primary-path", is_active=True)
+        primary_unit = Unit.objects.create(
+            course=primary,
+            title="Primary Unit",
+            order_index=6,
+            required_lessons_to_unlock=1,
+            is_published=True,
+        )
+        UnitLesson.objects.create(unit=primary_unit, lesson=lesson, order_index=1)
+
+        secondary = Course.objects.create(name="Secondary", slug="secondary-path", is_active=True)
+        secondary_unit_1 = Unit.objects.create(
+            course=secondary,
+            title="Secondary Unit 1",
+            order_index=1,
+            required_lessons_to_unlock=1,
+            is_published=True,
+        )
+        secondary_unit_2 = Unit.objects.create(
+            course=secondary,
+            title="Secondary Unit 2",
+            order_index=2,
+            required_lessons_to_unlock=1,
+            is_published=True,
+        )
+        UnitLesson.objects.create(unit=secondary_unit_2, lesson=lesson, order_index=1)
+
+        response = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+        assert response.status_code == 201
+        session = LearningSession.objects.get(id=response.data["id"])
+        assert session.unit_id == primary_unit.id
+
+    def test_start_listening_session_success(self, sc, listening_lesson, course_with_dedicated_listening_unit):
+        response = sc.post(LISTENING_START_URL, {"lesson_id": listening_lesson.id}, format="json")
+        assert response.status_code == 201
+        assert response.data["lesson_skill_tag"] == "listening"
+        assert LearningSession.objects.filter(id=response.data["id"], lesson=listening_lesson).exists()
+
+    def test_listening_session_detail_returns_listening_metadata(self, sc, listening_lesson, course_with_dedicated_listening_unit):
+        start = sc.post(LISTENING_START_URL, {"lesson_id": listening_lesson.id}, format="json")
+        assert start.status_code == 201
+
+        detail = sc.get(LISTENING_DETAIL_URL(start.data["id"]))
+        assert detail.status_code == 200
+        assert detail.data["session"]["lesson_skill_tag"] == "listening"
+        assert detail.data["session"]["lesson_listening_transcript"] == "Anna takes a bus to school every morning."
+        assert detail.data["session"]["lesson_listening_estimated_seconds"] == 35
 
     def test_answer_then_finish_updates_progress(self, sc, student, lesson, course_with_units):
         start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")

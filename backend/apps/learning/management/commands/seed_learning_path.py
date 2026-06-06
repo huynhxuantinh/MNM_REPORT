@@ -5,16 +5,61 @@ from django.db import transaction
 from apps.learning.models import Course, Lesson, Unit, UnitLesson
 
 
-COURSE_SLUG = "english-foundation-a1a2"
+PRIMARY_COURSE_SLUG = "english-foundation"
+FALLBACK_COURSE_SLUG = "english-foundation-a1a2"
 COURSE_DEFAULTS = {
     "name": "English Foundation A1-A2",
     "description": "Duolingo-style pilot path for A1-A2 learners.",
     "is_active": True,
 }
+LISTENING_UNIT_TITLE = "Unit 6 - Listening Lab"
 
 
 class Command(BaseCommand):
     help = "Seed Course/Unit/UnitLesson for learning path (phase 1)"
+
+    def _get_target_course(self):
+        course = Course.objects.filter(slug=PRIMARY_COURSE_SLUG).first()
+        if course:
+            return course, False
+
+        course = Course.objects.filter(slug=FALLBACK_COURSE_SLUG).first()
+        if course:
+            return course, False
+
+        course = Course.objects.create(
+            slug=FALLBACK_COURSE_SLUG,
+            **COURSE_DEFAULTS,
+        )
+        return course, True
+
+    def _sync_listening_unit(self, course, listening_lessons):
+        existing_order = (
+            course.units.exclude(title=LISTENING_UNIT_TITLE)
+            .order_by("-order_index")
+            .values_list("order_index", flat=True)
+            .first()
+            or 0
+        )
+        order_index = max(existing_order + 1, 1)
+        listening_unit, _ = Unit.objects.update_or_create(
+            course=course,
+            title=LISTENING_UNIT_TITLE,
+            defaults={
+                "order_index": order_index,
+                "description": "Short listening passages with browser TTS support.",
+                "required_lessons_to_unlock": 0,
+                "is_published": True,
+            },
+        )
+        UnitLesson.objects.filter(unit=listening_unit).delete()
+        for index, lesson in enumerate(listening_lessons[:10], start=1):
+            UnitLesson.objects.create(
+                unit=listening_unit,
+                lesson=lesson,
+                order_index=index,
+            )
+        return listening_unit, min(len(listening_lessons), 10)
 
     def handle(self, *args, **kwargs):
         lessons = list(
@@ -26,59 +71,72 @@ class Command(BaseCommand):
             )
             return
 
-        unit_specs = [
-            {
-                "order_index": 1,
-                "title": "Unit 1 - Basics",
-                "description": "Greeting, daily life, and simple objects.",
-                "required_lessons_to_unlock": 2,
-                "is_published": True,
-                "lessons": lessons[:3],
-            },
-            {
-                "order_index": 2,
-                "title": "Unit 2 - Daily Routines",
-                "description": "Communication and everyday activities.",
-                "required_lessons_to_unlock": 2,
-                "is_published": True,
-                "lessons": lessons[3:6] if len(lessons) >= 6 else lessons[3:],
-            },
-        ]
+        core_lessons = [lesson for lesson in lessons if lesson.skill_tag != Lesson.SkillTag.LISTENING]
+        listening_lessons = [lesson for lesson in lessons if lesson.skill_tag == Lesson.SkillTag.LISTENING]
 
         with transaction.atomic():
-            course, _ = Course.objects.update_or_create(
-                slug=COURSE_SLUG,
-                defaults=COURSE_DEFAULTS,
-            )
-
-            units = []
-            for spec in unit_specs:
-                unit, _ = Unit.objects.update_or_create(
-                    course=course,
-                    order_index=spec["order_index"],
-                    defaults={
-                        "title": spec["title"],
-                        "description": spec["description"],
-                        "required_lessons_to_unlock": spec["required_lessons_to_unlock"],
-                        "is_published": spec["is_published"],
-                    },
-                )
-                units.append((unit, spec["lessons"]))
-
-            UnitLesson.objects.filter(unit__course=course).delete()
+            course, created = self._get_target_course()
+            course.is_active = True
+            if not course.name:
+                course.name = COURSE_DEFAULTS["name"]
+            if not course.description:
+                course.description = COURSE_DEFAULTS["description"]
+            course.save(update_fields=["is_active", "name", "description"])
+            if course.slug == PRIMARY_COURSE_SLUG:
+                Course.objects.filter(slug=FALLBACK_COURSE_SLUG).exclude(id=course.id).update(is_active=False)
 
             created_links = 0
-            for unit, mapped_lessons in units:
-                for index, lesson in enumerate(mapped_lessons, start=1):
-                    UnitLesson.objects.create(
-                        unit=unit,
-                        lesson=lesson,
-                        order_index=index,
+
+            existing_units = course.units.exclude(title=LISTENING_UNIT_TITLE).count()
+            if created or existing_units == 0:
+                unit_specs = [
+                    {
+                        "order_index": 1,
+                        "title": "Unit 1 - Basics",
+                        "description": "Greeting, daily life, and simple objects.",
+                        "required_lessons_to_unlock": 2,
+                        "is_published": True,
+                        "lessons": core_lessons[:3],
+                    },
+                    {
+                        "order_index": 2,
+                        "title": "Unit 2 - Daily Routines",
+                        "description": "Communication and everyday activities.",
+                        "required_lessons_to_unlock": 2,
+                        "is_published": True,
+                        "lessons": core_lessons[3:6] if len(core_lessons) >= 6 else core_lessons[3:],
+                    },
+                ]
+                units = []
+                for spec in unit_specs:
+                    unit, _ = Unit.objects.update_or_create(
+                        course=course,
+                        order_index=spec["order_index"],
+                        defaults={
+                            "title": spec["title"],
+                            "description": spec["description"],
+                            "required_lessons_to_unlock": spec["required_lessons_to_unlock"],
+                            "is_published": spec["is_published"],
+                        },
                     )
-                    created_links += 1
+                    units.append((unit, spec["lessons"]))
+
+                UnitLesson.objects.filter(unit__course=course).delete()
+                for unit, mapped_lessons in units:
+                    for index, lesson in enumerate(mapped_lessons, start=1):
+                        UnitLesson.objects.create(
+                            unit=unit,
+                            lesson=lesson,
+                            order_index=index,
+                        )
+                        created_links += 1
+
+            if listening_lessons:
+                _, listening_links = self._sync_listening_unit(course, listening_lessons)
+                created_links += listening_links
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded learning path successfully. Units: {len(units)}, links: {created_links}"
+                f"Seeded learning path successfully. Course: {course.slug}, links: {created_links}"
             )
         )

@@ -24,6 +24,8 @@ from .models import (
     LearningEvent,
     LearningSession,
     LessonProgress,
+    ListeningAnswer,
+    ListeningSession,
     Notification,
     ReviewLog,
     UserStreak,
@@ -67,6 +69,18 @@ class ProfileStatsView(APIView):
         streak_obj = _get_or_create_streak(user)
         bookmarks = Bookmark.objects.filter(user=user).count()
         lessons_completed = LessonProgress.objects.filter(user=user, completed_at__isnull=False).count()
+        listening_sessions_completed = ListeningSession.objects.filter(
+            user=user,
+            status=ListeningSession.Status.COMPLETED,
+        ).count()
+        listening_answers = ListeningAnswer.objects.filter(session__user=user)
+        listening_questions_answered = listening_answers.count()
+        listening_correct_answers = listening_answers.filter(is_correct=True).count()
+        listening_accuracy_pct = (
+            round(listening_correct_answers / listening_questions_answered * 100)
+            if listening_questions_answered > 0
+            else 0
+        )
 
         return Response(
             {
@@ -81,6 +95,10 @@ class ProfileStatsView(APIView):
                 "current_streak": streak_obj.current_streak,
                 "bookmarks": bookmarks,
                 "lessons_completed": lessons_completed,
+                "listening_sessions_completed": listening_sessions_completed,
+                "listening_questions_answered": listening_questions_answered,
+                "listening_correct_answers": listening_correct_answers,
+                "listening_accuracy_pct": listening_accuracy_pct,
             }
         )
 

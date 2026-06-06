@@ -241,6 +241,10 @@ const LearningPage = () => {
   });
 
   const units = useMemo(() => data?.units || [], [data]);
+  const mainUnits = useMemo(
+    () => units.filter((unit) => !(unit.lessons || []).every((item) => item?.lesson?.skill_tag === "listening")),
+    [units],
+  );
   const shouldShowOnboarding = !!placementStatus?.should_show_onboarding;
   const startingLessonId = startMutation.variables;
   const startingCheckpointUnitId = checkpointStartMutation.variables;
@@ -265,7 +269,7 @@ const LearningPage = () => {
   };
   const recoverSession = recoverData?.session;
   const getNextLessonId = () => {
-    const unlockedUnits = [...units]
+    const unlockedUnits = [...mainUnits]
       .filter((unit) => !!unit?.unlocked)
       .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
     const fallbackLessonIds = [];
@@ -596,13 +600,13 @@ const LearningPage = () => {
         <Alert severity="error">{quickStudyError}</Alert>
       )}
 
-      {units.length === 0 && (
+      {mainUnits.length === 0 && (
         <Alert severity="info">
           Chưa có learning path. Chạy lệnh seed: <strong>python manage.py seed_learning_path</strong>
         </Alert>
       )}
 
-      {units.map((unit) => (
+      {mainUnits.map((unit) => (
         <UnitCard
           key={unit.id}
           unit={unit}

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+﻿import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   Avatar,
@@ -13,6 +13,7 @@ import {
   AutoStoriesRounded as VocabIcon,
   StyleRounded as WordSetsIcon,
   SchoolRounded as LearningIcon,
+  HeadphonesRounded as ListeningIcon,
   QuizRounded as QuizIcon,
   EmojiEventsRounded as LeaderboardIcon,
   NotificationsRounded as NotifIcon,
@@ -25,25 +26,26 @@ import { colors } from "@/styles/theme";
 export const SIDEBAR_WIDTH = 260;
 
 const BASE_NAV = [
-  { label: "Trang chủ",  to: "/",             end: true, Icon: HomeIcon },
-  { label: "Từ vựng",    to: "/vocabulary",              Icon: VocabIcon },
-  { label: "Bộ từ",      to: "/wordsets",                Icon: WordSetsIcon },
-  { label: "Học tập",    to: "/learning",                Icon: LearningIcon },
-  { label: "Quiz",       to: "/quiz",                    Icon: QuizIcon },
-  { label: "Xếp hạng",  to: "/leaderboard",             Icon: LeaderboardIcon },
-  { label: "Thông báo",  to: "/notifications",           Icon: NotifIcon },
-  { label: "Hồ sơ",     to: "/profile",                 Icon: ProfileIcon },
+  { label: "Trang chủ", to: "/", end: true, Icon: HomeIcon },
+  { label: "Từ vựng", to: "/vocabulary", Icon: VocabIcon },
+  { label: "Bộ từ", to: "/wordsets", Icon: WordSetsIcon },
+  { label: "Học tập", to: "/learning", Icon: LearningIcon },
+  { label: "Luyện nghe", to: "/listening", Icon: ListeningIcon },
+  { label: "Quiz", to: "/quiz", Icon: QuizIcon },
+  { label: "Xếp hạng", to: "/leaderboard", Icon: LeaderboardIcon },
+  { label: "Thông báo", to: "/notifications", Icon: NotifIcon },
+  { label: "Hồ sơ", to: "/profile", Icon: ProfileIcon },
 ];
 
 const ADMIN_NAV = [
-  { label: "Quản trị",  to: "/admin",  Icon: AdminIcon },
+  { label: "Quản trị", to: "/admin", Icon: AdminIcon },
 ];
 
 const PROFILE_ONLY = [
-  { label: "Hồ sơ",    to: "/profile", Icon: ProfileIcon },
+  { label: "Hồ sơ", to: "/profile", Icon: ProfileIcon },
 ];
 
-const NavItem = ({ label, to, end, Icon, onClick, isActive }) => (
+const NavItem = ({ label, Icon, onClick, isActive }) => (
   <Tooltip title={label} placement="right" arrow disableHoverListener>
     <Box
       onClick={onClick}
@@ -115,8 +117,8 @@ const SidebarContent = () => {
     user?.role === "admin"
       ? ADMIN_NAV
       : user?.role === "user"
-      ? BASE_NAV
-      : PROFILE_ONLY;
+        ? BASE_NAV
+        : PROFILE_ONLY;
 
   const avatarLetter = (user?.username || user?.email || "U")[0].toUpperCase();
   const streak = user?.streak ?? 0;
@@ -132,7 +134,6 @@ const SidebarContent = () => {
         overflow: "hidden",
       }}
     >
-      {/* ── Logo ──────────────────────────────────── */}
       <Box sx={{ px: 2.5, pt: 3, pb: 2.5 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Box
@@ -158,7 +159,6 @@ const SidebarContent = () => {
         </Stack>
       </Box>
 
-      {/* ── Section label ─────────────────────────── */}
       <Typography
         sx={{
           px: 2.5,
@@ -173,7 +173,6 @@ const SidebarContent = () => {
         Menu
       </Typography>
 
-      {/* ── Nav items ─────────────────────────────── */}
       <Box sx={{ px: 1.5, flex: 1, overflowY: "auto" }}>
         {navItems.map(({ label, to, end, Icon }) => {
           const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
@@ -181,8 +180,6 @@ const SidebarContent = () => {
             <NavItem
               key={to}
               label={label}
-              to={to}
-              end={end}
               Icon={Icon}
               isActive={isActive}
               onClick={() => navigate(to)}
@@ -191,7 +188,6 @@ const SidebarContent = () => {
         })}
       </Box>
 
-      {/* ── Streak badge (chỉ hiện với user) ─────── */}
       {user?.role === "user" && streak > 0 && (
         <Box sx={{ px: 2, pb: 1.5 }}>
           <Box
@@ -213,50 +209,27 @@ const SidebarContent = () => {
         </Box>
       )}
 
-      {/* ── User profile ──────────────────────────── */}
       <Box
         sx={{
           mx: 1.5,
           mb: 2,
-          p: 1.5,
-          borderRadius: "12px",
-          bgcolor: "rgba(255,255,255,0.07)",
-          cursor: "pointer",
-          transition: "background 0.15s",
-          "&:hover": { bgcolor: "rgba(255,255,255,0.11)" },
+          px: 1.5,
+          py: 1.5,
+          borderRadius: "16px",
+          bgcolor: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.04)",
         }}
-        onClick={() => navigate("/profile")}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              bgcolor: colors.greenAccent,
-              fontSize: "0.9rem",
-              fontWeight: 800,
-              flexShrink: 0,
-            }}
-          >
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Avatar sx={{ bgcolor: colors.greenAccent, width: 44, height: 44, fontWeight: 700 }}>
             {avatarLetter}
           </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography
-              sx={{
-                fontSize: "0.85rem",
-                fontWeight: 700,
-                lineHeight: 1.2,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }} noWrap>
               {user?.username || user?.email || "Người dùng"}
             </Typography>
-            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.50)", lineHeight: 1.3 }}>
-              {user?.level ? `Lv.${user.level}` : ""}
-              {user?.level && user?.xp !== undefined ? " · " : ""}
-              {user?.xp !== undefined ? `${user.xp} XP` : ""}
+            <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.65)" }} noWrap>
+              Lv.{user?.level ?? 1} · {user?.xp ?? 0} XP
             </Typography>
           </Box>
         </Stack>
@@ -269,10 +242,17 @@ const Sidebar = ({ open, onClose, mobile = false }) => {
   if (mobile) {
     return (
       <Drawer
+        variant="temporary"
         open={open}
         onClose={onClose}
         ModalProps={{ keepMounted: true }}
-        PaperProps={{ sx: { width: SIDEBAR_WIDTH, bgcolor: colors.greenHouse, border: "none" } }}
+        sx={{
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            width: SIDEBAR_WIDTH,
+            borderRight: "none",
+          },
+        }}
       >
         <SidebarContent />
       </Drawer>
@@ -282,13 +262,13 @@ const Sidebar = ({ open, onClose, mobile = false }) => {
   return (
     <Drawer
       variant="permanent"
-      PaperProps={{
-        sx: {
+      open
+      sx={{
+        display: { xs: "none", md: "block" },
+        "& .MuiDrawer-paper": {
           width: SIDEBAR_WIDTH,
-          bgcolor: colors.greenHouse,
-          border: "none",
-          boxShadow: "2px 0 16px rgba(0,0,0,0.22)",
-          overflow: "hidden",
+          boxSizing: "border-box",
+          borderRight: "none",
         },
       }}
     >

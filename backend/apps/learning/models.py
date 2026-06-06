@@ -43,6 +43,11 @@ class Lesson(models.Model):
         choices=ContentDifficulty.choices,
         default=ContentDifficulty.NORMAL,
     )
+    listening_transcript = models.TextField("Listening transcript", blank=True)
+    listening_translation_vi = models.TextField("Listening translation", blank=True)
+    listening_estimated_seconds = models.PositiveIntegerField("Listening duration", default=30)
+    listening_tts_lang = models.CharField("Listening TTS language", max_length=16, default="en-US")
+    listening_tts_rate = models.FloatField("Listening TTS rate", default=0.9)
     level = models.CharField("Cấp độ", max_length=10, choices=Level.choices, blank=True)
     order_index = models.PositiveIntegerField("Thứ tự", default=0)
     is_published = models.BooleanField("Đã công bố", default=False)
@@ -459,6 +464,164 @@ class LearningSession(models.Model):
         return f"{self.user} - {self.lesson} ({self.status})"
 
 
+class ListeningPassage(models.Model):
+    """Standalone listening passage for the dedicated listening module."""
+
+    title = models.CharField("Title", max_length=200)
+    topic = models.CharField("Topic", max_length=100, blank=True)
+    level = models.CharField(
+        "Level",
+        max_length=10,
+        choices=Lesson.Level.choices,
+        default=Lesson.Level.A1,
+    )
+    transcript = models.TextField("Transcript")
+    translation_vi = models.TextField("Vietnamese translation", blank=True)
+    estimated_seconds = models.PositiveIntegerField("Estimated seconds", default=30)
+    tts_lang = models.CharField("TTS language", max_length=16, default="en-US")
+    tts_rate = models.FloatField("TTS rate", default=0.9)
+    is_published = models.BooleanField("Published", default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="listening_passages_created",
+        verbose_name="Created by",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Listening passage"
+        verbose_name_plural = "Listening passages"
+        db_table = "listening_passages"
+        ordering = ["level", "title"]
+        indexes = [
+            models.Index(fields=["is_published", "level"]),
+            models.Index(fields=["topic", "level"]),
+        ]
+
+    def __str__(self):
+        return f"[{self.level}] {self.title}"
+
+
+class ListeningQuestion(models.Model):
+    """Question attached to one listening passage."""
+
+    class QuestionType(models.TextChoices):
+        MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
+        TRUE_FALSE = "true_false", "True/False"
+        FILL_BLANK = "fill_blank", "Fill Blank"
+
+    passage = models.ForeignKey(
+        ListeningPassage,
+        on_delete=models.CASCADE,
+        related_name="questions",
+        verbose_name="Passage",
+    )
+    question_type = models.CharField(
+        "Question type",
+        max_length=32,
+        choices=QuestionType.choices,
+        default=QuestionType.MULTIPLE_CHOICE,
+    )
+    prompt = models.TextField("Prompt")
+    choices_json = models.JSONField("Choices", default=list, blank=True)
+    correct_answer = models.JSONField("Correct answer", default=dict, blank=True)
+    explanation = models.TextField("Explanation", blank=True)
+    order_index = models.PositiveIntegerField("Order", default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Listening question"
+        verbose_name_plural = "Listening questions"
+        db_table = "listening_questions"
+        ordering = ["order_index", "id"]
+        unique_together = [("passage", "order_index")]
+        indexes = [
+            models.Index(fields=["passage", "order_index"]),
+        ]
+
+    def __str__(self):
+        return f"{self.passage.title} - Q{self.order_index}"
+
+
+class ListeningSession(models.Model):
+    """One user attempt for a listening passage."""
+
+    class Status(models.TextChoices):
+        STARTED = "started", "Started"
+        COMPLETED = "completed", "Completed"
+        ABANDONED = "abandoned", "Abandoned"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="listening_sessions",
+        verbose_name="User",
+    )
+    passage = models.ForeignKey(
+        ListeningPassage,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+        verbose_name="Passage",
+    )
+    status = models.CharField(
+        "Status", max_length=16, choices=Status.choices, default=Status.STARTED
+    )
+    current_question_index = models.PositiveIntegerField("Current question index", default=0)
+    score = models.PositiveIntegerField("Score", default=0)
+    score_pct = models.FloatField("Score percent", default=0)
+    started_at = models.DateTimeField("Started at", auto_now_add=True)
+    completed_at = models.DateTimeField("Completed at", null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Listening session"
+        verbose_name_plural = "Listening sessions"
+        db_table = "listening_sessions"
+        ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["passage", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.passage} ({self.status})"
+
+
+class ListeningAnswer(models.Model):
+    """One submitted answer inside a listening session."""
+
+    session = models.ForeignKey(
+        ListeningSession,
+        on_delete=models.CASCADE,
+        related_name="answers",
+        verbose_name="Session",
+    )
+    question = models.ForeignKey(
+        ListeningQuestion,
+        on_delete=models.CASCADE,
+        related_name="answers",
+        verbose_name="Question",
+    )
+    submitted_answer = models.JSONField("Submitted answer", default=dict, blank=True)
+    is_correct = models.BooleanField("Correct", default=False)
+    answered_at = models.DateTimeField("Answered at", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Listening answer"
+        verbose_name_plural = "Listening answers"
+        db_table = "listening_answers"
+        unique_together = [("session", "question")]
+        indexes = [
+            models.Index(fields=["session", "question"]),
+        ]
+
+    def __str__(self):
+        return f"Session {self.session_id} - question {self.question_id}"
+
+
 class Exercise(models.Model):
     """Exercise template bank attached to a lesson."""
 
@@ -873,3 +1036,4 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.get_type_display()}: {self.message[:60]}"
+

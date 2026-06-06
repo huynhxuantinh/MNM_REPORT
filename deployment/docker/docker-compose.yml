@@ -53,6 +53,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.development
     volumes:
       - ../../backend:/app
+      - ../../database:/database:ro
       - static_files:/app/static
       - media_files:/app/media
     ports:

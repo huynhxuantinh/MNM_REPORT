@@ -20,6 +20,18 @@ const learningApi = {
   getCurrentLeague: () => axiosClient.get("/learning/league/current/"),
 
   getLearningPath: () => axiosClient.get("/learning/path/"),
+  getListeningPath: () => axiosClient.get("/learning/listening/"),
+  getListeningPassages: () => axiosClient.get("/listening/passages/"),
+  getListeningPassage: (passageId) => axiosClient.get(`/listening/passages/${passageId}/`),
+  getAdminListeningPassages: (params) => axiosClient.get("/listening/admin/passages/", { params }),
+  getAdminListeningPassage: (id) => axiosClient.get(`/listening/admin/passages/${id}/`),
+  createAdminListeningPassage: (data) => axiosClient.post("/listening/admin/passages/", data),
+  updateAdminListeningPassage: (id, data) => axiosClient.patch(`/listening/admin/passages/${id}/`, data),
+  deleteAdminListeningPassage: (id) => axiosClient.delete(`/listening/admin/passages/${id}/`),
+  getAdminListeningQuestions: (params) => axiosClient.get("/listening/admin/questions/", { params }),
+  createAdminListeningQuestion: (data) => axiosClient.post("/listening/admin/questions/", data),
+  updateAdminListeningQuestion: (id, data) => axiosClient.patch(`/listening/admin/questions/${id}/`, data),
+  deleteAdminListeningQuestion: (id) => axiosClient.delete(`/listening/admin/questions/${id}/`),
   getPlacementStatus: () => axiosClient.get("/learning/placement/status/"),
   getPlacementQuestions: (count = 12) => axiosClient.get("/learning/placement/questions/", { params: { count } }),
   submitPlacement: (answers, source = "placement_page") =>
@@ -27,13 +39,21 @@ const learningApi = {
   skipPlacement: () => axiosClient.post("/learning/placement/skip/"),
   startLearningSession: (lessonId, source = "learning_page") =>
     axiosClient.post("/learning/session/start/", { lesson_id: lessonId }, { params: { source } }),
+  startListeningSession: (lessonId, source = "listening_page") =>
+    axiosClient.post("/learning/listening/session/start/", { lesson_id: lessonId }, { params: { source } }),
+  startListeningPassageSession: (passageId) =>
+    axiosClient.post("/listening/session/start/", { passage_id: passageId }),
   getRecoverableSession: () => axiosClient.get("/learning/session/recover/"),
   resumeLearningSession: (sessionId, source = "learning_page") =>
     axiosClient.post(`/learning/session/${sessionId}/resume/`, {}, { params: { source } }),
   switchSessionEasy: (sessionId) => axiosClient.post(`/learning/session/${sessionId}/switch-easy/`),
   getLearningSession: (sessionId) => axiosClient.get(`/learning/session/${sessionId}/`),
+  getListeningSession: (sessionId) => axiosClient.get(`/learning/listening/session/${sessionId}/`),
+  getListeningModuleSession: (sessionId) => axiosClient.get(`/listening/session/${sessionId}/`),
   answerLearningSession: (sessionId, data) => axiosClient.post(`/learning/session/${sessionId}/answer/`, data),
+  answerListeningModuleSession: (sessionId, data) => axiosClient.post(`/listening/session/${sessionId}/answer/`, data),
   finishLearningSession: (sessionId) => axiosClient.post(`/learning/session/${sessionId}/finish/`),
+  finishListeningModuleSession: (sessionId) => axiosClient.post(`/listening/session/${sessionId}/finish/`),
   quitLearningSession: (sessionId, reason = "") => axiosClient.post(`/learning/session/${sessionId}/quit/`, { reason }),
   startCheckpoint: (unitId) => axiosClient.post("/learning/checkpoint/start/", { unit_id: unitId }),
   submitCheckpoint: (sessionId) => axiosClient.post(`/learning/checkpoint/${sessionId}/submit/`),

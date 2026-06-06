@@ -239,4 +239,119 @@ describe("Student Learning Flow", () => {
     cy.contains("New assignment available").click({ force: true });
     cy.wait("@markRead");
   });
+
+  it("shows listening lessons and opens a listening session", () => {
+    cy.intercept("GET", "**/api/v1/learning/path/**", {
+      statusCode: 200,
+      body: {
+        id: 1,
+        name: "Core English",
+        units: [
+          {
+            id: 100,
+            title: "Basics",
+            order_index: 1,
+            unlocked: true,
+            lesson_count: 1,
+            progress: { completed_lessons: 0 },
+            lessons: [{ order_index: 1, lesson: { id: 1, title: "Greetings", level: "A1", words_learned: 0, words_total: 10 } }],
+          },
+          {
+            id: 200,
+            title: "Unit 6 - Listening Lab",
+            order_index: 6,
+            unlocked: true,
+            lesson_count: 1,
+            progress: null,
+            lessons: [{ order_index: 1, lesson: { id: 60, title: "Listening Demo", level: "A1", skill_tag: "listening", listening_estimated_seconds: 30, words_learned: 0, words_total: 5 } }],
+          },
+        ],
+      },
+    }).as("learningPath");
+    cy.intercept("GET", "**/api/v1/learning/session/recover/**", {
+      statusCode: 200,
+      body: { has_recoverable_session: false },
+    });
+    cy.intercept("GET", "**/api/v1/learning/daily-goal/**", {
+      statusCode: 200,
+      body: {
+        target_minutes: 10,
+        reward_xp: 15,
+        today: { studied_minutes: 3, goal_minutes: 10, is_achieved: false, claimed_at: null },
+        hearts: { current: 5, max: 10 },
+        streak: { freeze_count: 0 },
+      },
+    });
+    cy.intercept("POST", "**/api/v1/learning/session/start/**", {
+      statusCode: 201,
+      body: { id: 901 },
+    }).as("startListeningSession");
+    cy.intercept("GET", "**/api/v1/learning/session/901/**", {
+      statusCode: 200,
+      body: {
+        session: {
+          id: 901,
+          lesson_title: "Listening Demo",
+          lesson_skill_tag: "listening",
+          lesson_listening_transcript: "Anna takes a bus to school every morning.",
+          lesson_listening_translation_vi: "Anna di xe buyt den truong moi buoi sang.",
+          lesson_listening_estimated_seconds: 35,
+          lesson_listening_tts_lang: "en-US",
+          lesson_listening_tts_rate: 0.9,
+          unit_title: "Unit 6 - Listening Lab",
+          session_type: "lesson",
+          status: "started",
+          total_answered: 0,
+          correct_answered: 0,
+          xp_earned: 0,
+        },
+        attempts: [],
+        exercises: [
+          {
+            step_index: 1,
+            exercise_type: "listen_choose_word",
+            prompt: "Chon tu ban nghe thay",
+            audio_text: "Anna takes a bus to school every morning.",
+            choices: ["bus", "train", "car", "ticket"],
+          },
+        ],
+        hearts: { current: 5, max: 10 },
+      },
+    }).as("listeningSession");
+
+    cy.visit("/learning", {
+      onBeforeLoad(win) {
+        win.speechSynthesis = {
+          speak: cy.stub().as("speakStub"),
+          cancel: cy.stub().as("cancelStub"),
+          pause: cy.stub().as("pauseStub"),
+          getVoices: cy.stub().returns([{ lang: "en-US", name: "Demo Voice" }]),
+        };
+        win.SpeechSynthesisUtterance = function SpeechSynthesisUtterance(text) {
+          this.text = text;
+          this.lang = "";
+          this.rate = 1;
+          this.voice = null;
+        };
+      },
+    });
+    cy.wait("@refresh");
+    cy.wait("@me");
+    cy.wait("@placementStatus");
+    cy.wait("@learningPath");
+
+    cy.contains(/Luyện nghe/i).should("be.visible");
+    cy.contains(/Listening Demo/i).should("be.visible");
+    cy.contains("button", /Nghe và làm bài/i).click({ force: true });
+    cy.wait("@startListeningSession");
+    cy.wait("@listeningSession");
+
+    cy.contains("button", /^Nghe$/i).should("be.visible").click({ force: true });
+    cy.get("@cancelStub").should("have.been.called");
+    cy.get("@speakStub").should("have.been.called");
+
+    cy.contains("button", /Xem transcript/i).click({ force: true });
+    cy.contains(/Anna takes a bus to school every morning\./i).should("be.visible");
+    cy.contains(/Anna di xe buyt den truong moi buoi sang\./i).should("be.visible");
+  });
 });

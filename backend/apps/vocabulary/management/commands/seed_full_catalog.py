@@ -78,10 +78,130 @@ LESSONS = [
     },
 ]
 
+LISTENING_LESSONS = [
+    {
+        "title": "Listening 1 - Family Greeting",
+        "description": "Doan nghe ngan ve gia dinh va ban be.",
+        "level": "A1",
+        "topic": "family",
+        "order_index": 101,
+        "estimated_seconds": 30,
+        "transcript": "Hello, my name is Anna. My family is very kind, and my friend walks with me to school every day.",
+        "translation_vi": "Xin chao, ten toi la Anna. Gia dinh toi rat tot bung, va nguoi ban cua toi di bo den truong cung toi moi ngay.",
+        "words": ["name", "family", "friend", "school", "walk"],
+    },
+    {
+        "title": "Listening 2 - In The House",
+        "description": "Doan nghe ve do vat trong nha.",
+        "level": "A1",
+        "topic": "home",
+        "order_index": 102,
+        "estimated_seconds": 28,
+        "transcript": "I walk into the house and open the door. A chair is next to the window, and my cat sleeps near it.",
+        "translation_vi": "Toi di vao nha va mo canh cua. Mot cai ghe o canh cua so, va con meo cua toi ngu o gan do.",
+        "words": ["house", "open", "door", "chair", "window", "sleep"],
+    },
+    {
+        "title": "Listening 3 - Breakfast Time",
+        "description": "Doan nghe ngan ve bua sang.",
+        "level": "A1",
+        "topic": "food",
+        "order_index": 103,
+        "estimated_seconds": 26,
+        "transcript": "Every morning, I eat an apple and drink milk. Then I read a book before I go to class.",
+        "translation_vi": "Moi buoi sang, toi an mot qua tao va uong sua. Sau do toi doc sach truoc khi den lop.",
+        "words": ["eat", "apple", "milk", "book"],
+    },
+    {
+        "title": "Listening 4 - Play Outside",
+        "description": "Doan nghe ve hoat dong ngoai troi.",
+        "level": "A1",
+        "topic": "daily_life",
+        "order_index": 104,
+        "estimated_seconds": 29,
+        "transcript": "The dog and the cat play in the yard. The children run, talk, and feel happy when they watch them.",
+        "translation_vi": "Con cho va con meo choi trong san. Bọn tre chay, noi chuyen va cam thay vui ve khi nhin chung.",
+        "words": ["dog", "cat", "play", "run", "talk", "happy"],
+    },
+    {
+        "title": "Listening 5 - A Good Idea",
+        "description": "Doan nghe ngan trong lop hoc.",
+        "level": "A1",
+        "topic": "school",
+        "order_index": 105,
+        "estimated_seconds": 27,
+        "transcript": "Our teacher has a good idea for class. We use a new game, and now all students know the answer.",
+        "translation_vi": "Giao vien cua chung toi co mot y tuong hay cho lop hoc. Chung toi dung mot tro choi moi, va bay gio tat ca hoc sinh deu biet cau tra loi.",
+        "words": ["good", "idea", "use", "know"],
+    },
+    {
+        "title": "Listening 6 - Around The City",
+        "description": "Doan nghe ve di lai trong thanh pho.",
+        "level": "A1",
+        "topic": "travel",
+        "order_index": 106,
+        "estimated_seconds": 31,
+        "transcript": "My family takes a bus into the city on Sunday. We walk to the park and talk about our plans for the week.",
+        "translation_vi": "Gia dinh toi di xe buyt vao thanh pho vao Chu nhat. Chung toi di bo den cong vien va noi ve ke hoach cho tuan moi.",
+        "words": ["family", "bus", "city", "walk", "talk"],
+    },
+    {
+        "title": "Listening 7 - Morning At School",
+        "description": "Doan nghe A2 ve buoi sang den truong.",
+        "level": "A2",
+        "topic": "school",
+        "order_index": 107,
+        "estimated_seconds": 38,
+        "transcript": "On Monday morning, the teacher meets every student at the school gate. We talk for a minute before the first lesson begins.",
+        "translation_vi": "Vao sang thu Hai, giao vien gap tung hoc sinh o cong truong. Chung toi noi chuyen mot luc truoc khi tiet hoc dau tien bat dau.",
+        "words": ["morning", "teacher", "student", "school", "talk"],
+    },
+    {
+        "title": "Listening 8 - Lunch At The Market",
+        "description": "Doan nghe A2 ve an trua va mua sam.",
+        "level": "A2",
+        "topic": "shopping",
+        "order_index": 108,
+        "estimated_seconds": 40,
+        "transcript": "At lunch time, I go to the market with my brother. We buy coffee, check our phone, and choose a small meal for lunch.",
+        "translation_vi": "Vao gio an trua, toi di cho voi anh trai. Chung toi mua ca phe, kiem tra dien thoai va chon mot bua nho cho bua trua.",
+        "words": ["lunch", "market", "coffee", "phone"],
+    },
+    {
+        "title": "Listening 9 - Travel By Train",
+        "description": "Doan nghe A2 ve chuyen di.",
+        "level": "A2",
+        "topic": "travel",
+        "order_index": 109,
+        "estimated_seconds": 42,
+        "transcript": "We travel to the next city by train because the airport is far away. My father buys the ticket before we leave home.",
+        "translation_vi": "Chung toi di den thanh pho ke ben bang tau hoa vi san bay o rat xa. Bo toi mua ve truoc khi ca nha roi nha.",
+        "words": ["travel", "city", "train", "airport", "ticket"],
+    },
+    {
+        "title": "Listening 10 - Office Weekend Plan",
+        "description": "Doan nghe A2 ve cong viec va ke hoach cuoi tuan.",
+        "level": "A2",
+        "topic": "work",
+        "order_index": 110,
+        "estimated_seconds": 44,
+        "transcript": "At the office, our team talks about a new project on Friday. We also check the weekend weather before planning a short trip.",
+        "translation_vi": "Tai van phong, nhom chung toi noi ve mot du an moi vao thu Sau. Chung toi cung xem thoi tiet cuoi tuan truoc khi len ke hoach cho mot chuyen di ngan.",
+        "words": ["office", "project", "weekend", "weather"],
+    },
+]
+
 
 def _csv_path() -> Path:
-    project_root = Path(__file__).resolve().parents[5]
-    return project_root / "database" / "seed" / "words.csv"
+    candidates = [
+        Path("/database/seed/words.csv"),
+        Path(__file__).resolve().parents[4] / "database" / "seed" / "words.csv",
+        Path(__file__).resolve().parents[4].parent / "database" / "seed" / "words.csv",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 
 
 def _norm(value: str) -> str:
@@ -103,6 +223,7 @@ class Command(BaseCommand):
             words = self._seed_words(admin)
             self._seed_wordsets(admin, words)
             self._seed_lessons(admin, words)
+            self._seed_listening_lessons(admin, words)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -240,6 +361,37 @@ class Command(BaseCommand):
                 title=spec["title"],
                 defaults={
                     "description": spec["description"],
+                    "level": spec["level"],
+                    "order_index": spec["order_index"],
+                    "is_published": True,
+                    "created_by": admin,
+                },
+            )
+            for idx, text in enumerate(spec["words"]):
+                word = word_map.get(text.lower())
+                if not word:
+                    continue
+                LessonWord.objects.get_or_create(
+                    lesson=lesson,
+                    word=word,
+                    defaults={"order_index": idx},
+                )
+
+    def _seed_listening_lessons(self, admin, word_map):
+        self.stdout.write("Dang tao bai nghe demo...")
+        for spec in LISTENING_LESSONS:
+            lesson, _ = Lesson.objects.get_or_create(
+                title=spec["title"],
+                defaults={
+                    "description": spec["description"],
+                    "topic": spec["topic"],
+                    "skill_tag": Lesson.SkillTag.LISTENING,
+                    "content_difficulty": Lesson.ContentDifficulty.NORMAL,
+                    "listening_transcript": spec["transcript"],
+                    "listening_translation_vi": spec["translation_vi"],
+                    "listening_estimated_seconds": spec["estimated_seconds"],
+                    "listening_tts_lang": "en-US",
+                    "listening_tts_rate": 0.9,
                     "level": spec["level"],
                     "order_index": spec["order_index"],
                     "is_published": True,

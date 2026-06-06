@@ -17,9 +17,11 @@ const HomePage = lazy(() => import("@/pages/user/HomePage"));
 const VocabularyPage = lazy(() => import("@/pages/user/VocabularyPage"));
 const WordSetsPage = lazy(() => import("@/pages/user/WordSetsPage"));
 const LearningPage = lazy(() => import("@/pages/user/LearningPage"));
+const ListeningPage = lazy(() => import("@/pages/user/ListeningPage"));
 const LearningPlacementPage = lazy(() => import("@/pages/user/LearningPlacementPage"));
 const OnboardingPage = lazy(() => import("@/pages/user/OnboardingPage"));
 const LearningSessionPage = lazy(() => import("@/pages/user/LearningSessionPage"));
+const ListeningSessionPage = lazy(() => import("@/pages/user/ListeningSessionPage"));
 const StudyPage = lazy(() => import("@/pages/user/StudyPage"));
 const ReviewPage = lazy(() => import("@/pages/user/ReviewPage"));
 const QuizPage = lazy(() => import("@/pages/user/QuizPage"));
@@ -36,6 +38,7 @@ const AdminLessons = lazy(() => import("@/features/admin/AdminLessons"));
 const AdminContent = lazy(() => import("@/features/admin/AdminContent"));
 const AdminQuizResults = lazy(() => import("@/features/admin/AdminQuizResults"));
 const AdminLearningPath = lazy(() => import("@/features/admin/AdminLearningPath"));
+const AdminListening = lazy(() => import("@/features/admin/AdminListening"));
 
 import { initAuth } from "@/features/auth/authSlice";
 import learningApi from "@/services/learningApi";
@@ -155,9 +158,11 @@ const App = () => {
           <Route path="vocabulary/:id" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordDetailPage /></Suspense></ErrorBoundary>} />
           <Route path="wordsets" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordSetsPage /></Suspense></ErrorBoundary>} />
           <Route path="learning" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
+          <Route path="listening" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ListeningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/onboarding" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><OnboardingPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/placement" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPlacementPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningSessionPage /></Suspense></ErrorBoundary>} />
+          <Route path="listening/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ListeningSessionPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/:id/study" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><StudyPage /></Suspense></ErrorBoundary>} />
           <Route path="review" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />
           <Route path="quiz" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />
@@ -182,6 +187,7 @@ const App = () => {
           <Route path="content" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminContent /></Suspense></ErrorBoundary>} />
           <Route path="quizzes" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminQuizResults /></Suspense></ErrorBoundary>} />
           <Route path="learning" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminLearningPath /></Suspense></ErrorBoundary>} />
+          <Route path="listening" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><AdminListening /></Suspense></ErrorBoundary>} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
@@ -191,5 +197,4 @@ const App = () => {
 };
 
 export default App;
-
 

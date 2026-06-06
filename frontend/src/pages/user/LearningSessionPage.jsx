@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -64,12 +64,13 @@ const isTypingTarget = (target) => {
   return tagName === "input" || tagName === "textarea" || !!target.isContentEditable;
 };
 
-const SessionSummary = ({ session, result, onBack }) => {
+const SessionSummary = ({ session, result, onBack, backLabel = "Về lộ trình học" }) => {
   const passed = !!result?.passed;
   const isCheckpoint = session?.session_type === "checkpoint";
   const summary = result?.summary;
   const accuracyByType = summary?.accuracy_by_type || {};
   const reviewWords = summary?.review_words || [];
+  const isListeningLesson = session?.lesson_skill_tag === "listening";
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 560, mx: "auto", py: 4, textAlign: "center" }}>
@@ -116,7 +117,23 @@ const SessionSummary = ({ session, result, onBack }) => {
         </SbCard>
       )}
 
-      <SbButton variant="primary" onClick={onBack}>Về lộ trình học</SbButton>
+      {isListeningLesson && !!session?.lesson_listening_transcript && (
+        <SbCard>
+          <Stack spacing={1}>
+            <Typography sx={{ fontWeight: 700 }}>Transcript</Typography>
+            <Typography sx={{ fontSize: "0.92rem", lineHeight: 1.7 }}>
+              {session.lesson_listening_transcript}
+            </Typography>
+            {!!session?.lesson_listening_translation_vi && (
+              <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", lineHeight: 1.7 }}>
+                {session.lesson_listening_translation_vi}
+              </Typography>
+            )}
+          </Stack>
+        </SbCard>
+      )}
+
+      <SbButton variant="primary" onClick={onBack}>{backLabel}</SbButton>
     </Stack>
   );
 };
@@ -170,8 +187,9 @@ const HeartsEmptyScreen = ({ heartsInfo, onBack, onRefillReady }) => {
   );
 };
 
-const LearningSessionPage = () => {
+const LearningSessionPage = ({ mode = "learning" }) => {
   const { sessionId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -185,14 +203,22 @@ const LearningSessionPage = () => {
   const [quitDialogOpen, setQuitDialogOpen] = useState(false);
   const [heartsState, setHeartsState] = useState(null);
   const [submittedStepIndex, setSubmittedStepIndex] = useState(null);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [ttsRate, setTtsRate] = useState(0.9);
+  const [ttsWarning, setTtsWarning] = useState("");
   const stepStartedAtRef = useRef(Date.now());
   const keyboardSelectedOptionRef = useRef("");
   const nextStepTimeoutRef = useRef(null);
+
+  const isListeningSessionRoute = mode === "listening" || location.pathname.startsWith("/listening/session/");
+  const backPath = isListeningSessionRoute ? "/listening" : "/learning";
+  const backLabel = isListeningSessionRoute ? "Về phần luyện nghe" : "Về lộ trình học";
 
   const invalidateLearningCaches = () => {
     queryClient.invalidateQueries({ queryKey: ["learning-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["home-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["learning-path"] });
+    queryClient.invalidateQueries({ queryKey: ["listening-path"] });
     queryClient.invalidateQueries({ queryKey: ["daily-goal"] });
     queryClient.invalidateQueries({ queryKey: ["home-daily-goal"] });
     queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
@@ -201,7 +227,11 @@ const LearningSessionPage = () => {
 
   const { data: payload, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["learning-session", sessionId],
-    queryFn: () => learningApi.getLearningSession(sessionId).then((response) => response.data),
+    queryFn: () => (
+      isListeningSessionRoute
+        ? learningApi.getListeningSession(sessionId).then((response) => response.data)
+        : learningApi.getLearningSession(sessionId).then((response) => response.data)
+    ),
   });
 
   const session = payload?.session;
@@ -243,6 +273,8 @@ const LearningSessionPage = () => {
     setFeedback(null);
     setFrustrationGuard(null);
     setSubmittedStepIndex(null);
+    setShowTranscript(false);
+    setTtsWarning("");
     answerMutation.reset();
   }, [sessionId]);
 
@@ -250,6 +282,9 @@ const LearningSessionPage = () => {
     if (nextStepTimeoutRef.current) {
       clearTimeout(nextStepTimeoutRef.current);
       nextStepTimeoutRef.current = null;
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
   }, []);
 
@@ -278,7 +313,7 @@ const LearningSessionPage = () => {
     mutationFn: () => learningApi.quitLearningSession(sessionId, "user_clicked_quit").then((response) => response.data),
     onSuccess: () => {
       invalidateLearningCaches();
-      navigate("/learning");
+      navigate(backPath);
     },
   });
 
@@ -329,6 +364,46 @@ const LearningSessionPage = () => {
   });
 
   const currentExercise = useMemo(() => exercises[currentStepIndex] || null, [exercises, currentStepIndex]);
+  const isListeningLesson = session?.lesson_skill_tag === "listening";
+  const listeningTranscript = session?.lesson_listening_transcript || "";
+  const listeningTranslation = session?.lesson_listening_translation_vi || "";
+  const listeningDuration = session?.lesson_listening_estimated_seconds || 30;
+
+  useEffect(() => {
+    setTtsRate(session?.lesson_listening_tts_rate || 0.9);
+  }, [session?.lesson_listening_tts_rate, sessionId]);
+
+  const speakText = useCallback((text, restart = true) => {
+    if (!text) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      setTtsWarning("Thiết bị không hỗ trợ giọng đọc tiếng Anh phù hợp.");
+      return;
+    }
+    if (typeof SpeechSynthesisUtterance === "undefined") {
+      setTtsWarning("Thiết bị hiện tại chưa hỗ trợ trình đọc văn bản.");
+      return;
+    }
+    const voices = typeof window.speechSynthesis.getVoices === "function"
+      ? window.speechSynthesis.getVoices()
+      : [];
+    const preferredLang = session?.lesson_listening_tts_lang || "en-US";
+    const voice = voices.find((item) => item.lang === preferredLang)
+      || voices.find((item) => item.lang?.startsWith("en-GB"))
+      || voices.find((item) => item.lang?.startsWith("en"));
+
+    if (voices.length > 0 && !voice) {
+      setTtsWarning("Thiết bị không hỗ trợ giọng đọc tiếng Anh phù hợp.");
+      return;
+    }
+
+    setTtsWarning("");
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = preferredLang;
+    utterance.rate = ttsRate;
+    if (voice) utterance.voice = voice;
+    if (restart) window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, [session?.lesson_listening_tts_lang, ttsRate]);
 
   const buildSubmittedAnswer = (answerOverride = null) => {
     if (!currentExercise) return {};
@@ -441,7 +516,7 @@ const LearningSessionPage = () => {
 
   const handleBack = () => {
     invalidateLearningCaches();
-    navigate("/learning");
+    navigate(backPath);
   };
 
   if (isLoading) {
@@ -467,6 +542,7 @@ const LearningSessionPage = () => {
         session={session}
         result={finishPayload}
         onBack={handleBack}
+        backLabel={backLabel}
       />
     );
   }
@@ -475,7 +551,7 @@ const LearningSessionPage = () => {
     return (
       <Stack spacing={2}>
         <Alert severity="warning">Không tìm thấy câu hỏi cho phiên học này.</Alert>
-        <SbButton variant="outlined" onClick={() => navigate("/learning")}>Quay lại</SbButton>
+        <SbButton variant="outlined" onClick={() => navigate(backPath)}>Quay lại</SbButton>
       </Stack>
     );
   }
@@ -515,6 +591,72 @@ const LearningSessionPage = () => {
           />
         ) : (
           <>
+            {isListeningLesson && (
+              <SbCard>
+                <Stack spacing={1.25}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip label="Listening" color="primary" size="small" />
+                      <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>
+                        {listeningDuration}s
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <SbButton size="small" variant="outlined" onClick={() => speakText(listeningTranscript, true)}>
+                        Nghe
+                      </SbButton>
+                      <SbButton
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          if (typeof window !== "undefined" && window.speechSynthesis) {
+                            window.speechSynthesis.pause();
+                          }
+                        }}
+                      >
+                        Tạm dừng
+                      </SbButton>
+                      <SbButton size="small" variant="outlined" onClick={() => speakText(listeningTranscript, true)}>
+                        Đọc lại
+                      </SbButton>
+                    </Stack>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <SbButton size="small" variant={ttsRate === 0.8 ? "primary" : "outlined"} onClick={() => setTtsRate(0.8)}>
+                      0.8x
+                    </SbButton>
+                    <SbButton size="small" variant={ttsRate === 1 ? "primary" : "outlined"} onClick={() => setTtsRate(1)}>
+                      1.0x
+                    </SbButton>
+                  </Stack>
+                  <SbButton
+                    size="small"
+                    variant="text"
+                    onClick={() => setShowTranscript((prev) => !prev)}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    {showTranscript ? "Ẩn transcript" : "Xem transcript"}
+                  </SbButton>
+                  {showTranscript && (
+                    <Stack spacing={0.75}>
+                      <Typography sx={{ fontSize: "0.95rem", lineHeight: 1.7 }}>
+                        {listeningTranscript}
+                      </Typography>
+                      {!!listeningTranslation && (
+                        <Typography sx={{ fontSize: "0.84rem", color: "text.secondary", lineHeight: 1.7 }}>
+                          {listeningTranslation}
+                        </Typography>
+                      )}
+                    </Stack>
+                  )}
+                </Stack>
+              </SbCard>
+            )}
+
+            {!!ttsWarning && (
+              <Alert severity="warning">{ttsWarning}</Alert>
+            )}
+
             {!!difficultyHint?.context && (
               <Alert severity="info">
                 Tự động chỉnh độ khó: {getDifficultyLabel(difficultyHint.difficulty || session.difficulty)}. Lý do:{" "}
@@ -600,21 +742,20 @@ const LearningSessionPage = () => {
 
                 {currentExercise.exercise_type === "listen_choose_word" && (
                   <Stack spacing={1}>
-                    <SbButton
-                      variant="outlined"
-                      startIcon={<VolumeUpRoundedIcon />}
-                      onClick={() => {
-                        const text = currentExercise.audio_text || "";
-                        if (typeof window !== "undefined" && window.speechSynthesis && text) {
-                          const utter = new SpeechSynthesisUtterance(text);
-                          utter.lang = "en-US";
-                          window.speechSynthesis.cancel();
-                          window.speechSynthesis.speak(utter);
-                        }
-                      }}
-                    >
-                      Phát âm thanh
-                    </SbButton>
+                    {!isListeningSessionRoute && (
+                      <SbButton
+                        variant="outlined"
+                        startIcon={<VolumeUpRoundedIcon />}
+                        onClick={() => speakText(currentExercise.audio_text || "", true)}
+                      >
+                        Phát âm thanh
+                      </SbButton>
+                    )}
+                    {isListeningSessionRoute && (
+                      <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                        Dùng cụm điều khiển ở phía trên để nghe lại đoạn audio.
+                      </Typography>
+                    )}
                     {(currentExercise.choices || []).map((option) => (
                       <SbButton
                         key={option}

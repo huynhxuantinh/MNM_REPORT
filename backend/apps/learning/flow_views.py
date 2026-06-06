@@ -117,6 +117,297 @@ ALLOWED_FLOW_SOURCES = {
 RECOVER_EMPTY_SESSION_GRACE_MINUTES = 15
 
 
+def _get_primary_active_course():
+    return (
+        Course.objects
+        .filter(is_active=True)
+        .prefetch_related("units__unit_lessons__lesson")
+        .order_by("id")
+        .first()
+    )
+
+
+def _get_filtered_units(course, skill_tag: str | None = None):
+    units = [unit for unit in course.units.all() if unit.is_published]
+    if skill_tag is None:
+        return units
+
+    filtered = []
+    for unit in units:
+        published_links = [
+            link for link in unit.unit_lessons.all()
+            if link.lesson and link.lesson.is_published and link.lesson.skill_tag == skill_tag
+        ]
+        if not published_links:
+            continue
+        unit.unit_lessons_filtered = published_links
+        filtered.append(unit)
+    return filtered
+
+
+def _build_course_path_payload_for_units(request, course, units):
+    lesson_ids = []
+    for unit in units:
+        links = getattr(unit, "unit_lessons_filtered", None) or list(unit.unit_lessons.all())
+        for link in links:
+            if link.lesson and link.lesson.is_published:
+                lesson_ids.append(link.lesson_id)
+    lesson_ids = sorted(set(lesson_ids))
+
+    lesson_word_count_map = {
+        item["lesson_id"]: int(item["total"])
+        for item in (
+            LessonWord.objects
+            .filter(lesson_id__in=lesson_ids)
+            .values("lesson_id")
+            .annotate(total=Count("word_id", distinct=True))
+        )
+    }
+    learned_word_map = defaultdict(set)
+    sessions = (
+        LearningSession.objects
+        .filter(
+            user=request.user,
+            lesson_id__in=lesson_ids,
+            session_type=LearningSession.SessionType.LESSON,
+        )
+        .prefetch_related("attempts")
+    )
+    for session in sessions:
+        attempted_steps = set(session.attempts.values_list("step_index", flat=True))
+        if not attempted_steps:
+            continue
+        for exercise in session.exercises or []:
+            step_index = int(exercise.get("step_index") or 0)
+            if step_index not in attempted_steps:
+                continue
+            word_id = int(exercise.get("word_id") or 0)
+            if word_id > 0:
+                learned_word_map[session.lesson_id].add(word_id)
+    lesson_learning_map = {
+        lesson_id: len(word_ids)
+        for lesson_id, word_ids in learned_word_map.items()
+    }
+    lesson_progress_map = {
+        item.lesson_id: item
+        for item in LessonProgress.objects.filter(
+            user=request.user,
+            lesson_id__in=lesson_ids,
+        )
+    }
+
+    progress_map = {
+        item.unit_id: item
+        for item in UserUnitProgress.objects.filter(
+            user=request.user, unit_id__in=[unit.id for unit in units]
+        )
+    }
+    course_progress_map = {
+        item.course_id: item
+        for item in UserCourseProgress.objects.filter(
+            user=request.user, course_id=course.id
+        )
+    }
+    unlocked_map = _build_unlock_map(units, progress_map)
+
+    for unit in units:
+        links = getattr(unit, "unit_lessons_filtered", None) or list(unit.unit_lessons.all())
+        unit.lesson_count = sum(
+            1 for link in links
+            if link.lesson and link.lesson.is_published
+        )
+        unit.unlocked = unlocked_map.get(unit.id, False)
+
+    serializer = CoursePathSerializer(
+        course,
+        context={
+            "request": request,
+            "progress_map": progress_map,
+            "course_progress_map": course_progress_map,
+            "lesson_word_count_map": lesson_word_count_map,
+            "lesson_learning_map": lesson_learning_map,
+            "lesson_progress_map": lesson_progress_map,
+        },
+    )
+    payload = serializer.data
+    payload["units"] = LearningPathUnitSerializer(
+        units,
+        many=True,
+        context={
+            "request": request,
+            "progress_map": progress_map,
+            "lesson_word_count_map": lesson_word_count_map,
+            "lesson_learning_map": lesson_learning_map,
+            "lesson_progress_map": lesson_progress_map,
+        },
+    ).data
+    return payload
+
+
+def _build_session_detail_payload(request, session):
+    hearts = _refill_hearts(_get_or_create_hearts(request.user))
+    attempts = session.attempts.order_by("step_index")
+    answered_steps = {attempt.step_index for attempt in attempts}
+    safe_exercises = [to_client_exercise(item) for item in (session.exercises or [])]
+    next_step = 1
+    for exercise in safe_exercises:
+        if exercise["step_index"] not in answered_steps:
+            next_step = exercise["step_index"]
+            break
+    else:
+        if safe_exercises:
+            next_step = safe_exercises[-1]["step_index"]
+    difficulty_hint_event = (
+        LearningEvent.objects
+        .filter(
+            user=request.user,
+            session=session,
+            event_type=LearningEvent.EventType.EXPERIMENT_METRIC,
+            meta__metric_key="difficulty_auto_adjust",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    return {
+        "session": LearningSessionSerializer(session).data,
+        "attempts": ExerciseAttemptSerializer(attempts, many=True).data,
+        "exercises": safe_exercises,
+        "next_step": next_step,
+        "hearts": _build_hearts_payload(hearts),
+        "difficulty_hint": (
+            {
+                "difficulty": (difficulty_hint_event.meta or {}).get("difficulty"),
+                "context": (difficulty_hint_event.meta or {}).get("context"),
+            }
+            if difficulty_hint_event
+            else None
+        ),
+    }
+
+
+def _start_lesson_session(request, default_source: str, required_skill_tag: str | None = None):
+    start_source = _resolve_client_source(request, default=default_source)
+    serializer = LearningSessionStartSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    lesson = serializer.validated_data["lesson"]
+
+    if required_skill_tag and lesson.skill_tag != required_skill_tag:
+        return Response({"detail": "Lesson này không đúng loại nội dung yêu cầu."}, status=status.HTTP_400_BAD_REQUEST)
+
+    unit_link = (
+        UnitLesson.objects
+        .select_related("unit", "unit__course")
+        .filter(
+            lesson=lesson,
+            unit__is_published=True,
+            unit__course__is_active=True,
+        )
+        .order_by("unit__course_id", "unit__order_index", "order_index")
+        .first()
+    )
+    if not unit_link:
+        return Response(
+            {"detail": "Bai hoc chua duoc gan vao unit cong khai."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not _is_unit_unlocked(request.user, unit_link.unit):
+        return Response({"detail": "Unit nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
+
+    hearts = _refill_hearts(_get_or_create_hearts(request.user))
+    if hearts.current_hearts <= 0:
+        return Response(
+            {
+                "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
+                "hearts": _build_hearts_payload(hearts),
+            },
+            status=HEARTS_MIN_RESPONSE_STATUS,
+        )
+
+    lesson_words = Word.objects.filter(lessons=lesson).distinct()
+    difficulty, difficulty_context = _detect_difficulty_with_context(request.user)
+    max_questions = 6 if difficulty == "easy" else 8
+    exercises = _build_exercises_from_bank(lesson, max_questions=max_questions)
+    if not exercises:
+        global_words = Word.objects.filter(level=lesson.level).exclude(id__in=lesson_words.values("id"))[:100]
+        exercises = generate_exercises_from_words(
+            lesson_words,
+            max_questions=max_questions,
+            difficulty=difficulty,
+            global_words=global_words,
+            lesson=lesson,
+        )
+    if not exercises:
+        return Response(
+            {"detail": "Bai hoc chua co du lieu de sinh bai tap."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    session = LearningSession.objects.create(
+        user=request.user,
+        unit=unit_link.unit,
+        lesson=lesson,
+        session_type=LearningSession.SessionType.LESSON,
+        difficulty=difficulty,
+        exercises=exercises,
+    )
+    has_previous_lesson_session = LearningSession.objects.filter(
+        user=request.user,
+        session_type=LearningSession.SessionType.LESSON,
+    ).exclude(id=session.id).exists()
+    if not has_previous_lesson_session:
+        _track_onboarding_step(
+            request.user,
+            "first_lesson_start",
+            meta={
+                "lesson_id": lesson.id,
+                "unit_id": unit_link.unit_id,
+                "session_id": session.id,
+                "onboarding_source": start_source,
+            },
+        )
+    _track_learning_event(
+        request.user,
+        LearningEvent.EventType.SESSION_START,
+        session=session,
+        meta={
+            "session_type": session.session_type,
+            "difficulty": session.difficulty,
+            "exercise_count": len(exercises),
+            "unit_id": session.unit_id,
+            "lesson_id": session.lesson_id,
+            "start_source": start_source,
+        },
+    )
+    _track_learning_event(
+        request.user,
+        LearningEvent.EventType.EXPERIMENT_METRIC,
+        session=session,
+        meta={
+            "metric_key": "difficulty_auto_adjust",
+            "difficulty": difficulty,
+            "context": difficulty_context,
+            "start_source": start_source,
+        },
+    )
+
+    unit_progress, _ = UserUnitProgress.objects.get_or_create(
+        user=request.user,
+        unit=unit_link.unit,
+    )
+    if not unit_progress.started_at:
+        unit_progress.started_at = timezone.now()
+        unit_progress.save(update_fields=["started_at", "updated_at"])
+
+    payload = LearningSessionSerializer(session).data
+    payload["exercise_count"] = len(exercises)
+    payload["difficulty"] = difficulty
+    payload["difficulty_context"] = difficulty_context
+    payload["hearts"] = hearts.current_hearts
+    payload["hearts_info"] = _build_hearts_payload(hearts)
+    return Response(payload, status=status.HTTP_201_CREATED)
+
+
 def _resolve_client_source(request, default: str = "unknown") -> str:
     source = request.query_params.get("source")
     if not source and hasattr(request, "data"):
@@ -238,122 +529,26 @@ class LearningPathView(APIView):
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
-        course = (
-            Course.objects
-            .filter(is_active=True)
-            .prefetch_related(
-                "units__unit_lessons__lesson",
-            )
-            .order_by("id")
-            .first()
-        )
+        course = _get_primary_active_course()
         if not course:
             return Response({"detail": "Chua co khoa hoc kha dung."}, status=status.HTTP_404_NOT_FOUND)
+        units = _get_filtered_units(course)
+        return Response(_build_course_path_payload_for_units(request, course, units))
 
-        units = [
-            unit for unit in course.units.all()
-            if unit.is_published
-        ]
-        lesson_ids = []
-        for unit in units:
-            for link in unit.unit_lessons.all():
-                if link.lesson and link.lesson.is_published:
-                    lesson_ids.append(link.lesson_id)
-        lesson_ids = sorted(set(lesson_ids))
 
-        lesson_word_count_map = {
-            item["lesson_id"]: int(item["total"])
-            for item in (
-                LessonWord.objects
-                .filter(lesson_id__in=lesson_ids)
-                .values("lesson_id")
-                .annotate(total=Count("word_id", distinct=True))
-            )
-        }
-        learned_word_map = defaultdict(set)
-        sessions = (
-            LearningSession.objects
-            .filter(
-                user=request.user,
-                lesson_id__in=lesson_ids,
-                session_type=LearningSession.SessionType.LESSON,
-            )
-            .prefetch_related("attempts")
-        )
-        for session in sessions:
-            attempted_steps = set(session.attempts.values_list("step_index", flat=True))
-            if not attempted_steps:
-                continue
-            for exercise in session.exercises or []:
-                step_index = int(exercise.get("step_index") or 0)
-                if step_index not in attempted_steps:
-                    continue
-                word_id = int(exercise.get("word_id") or 0)
-                if word_id > 0:
-                    learned_word_map[session.lesson_id].add(word_id)
-        lesson_learning_map = {
-            lesson_id: len(word_ids)
-            for lesson_id, word_ids in learned_word_map.items()
-        }
-        lesson_ids = [
-            link.lesson_id
-            for unit in units
-            for link in unit.unit_lessons.all()
-            if link.lesson_id
-        ]
-        lesson_progress_map = {
-            item.lesson_id: item
-            for item in LessonProgress.objects.filter(
-                user=request.user,
-                lesson_id__in=lesson_ids,
-            )
-        }
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class ListeningPathView(APIView):
+    """GET /learning/listening/ - Return listening-only unit path."""
 
-        progress_map = {
-            item.unit_id: item
-            for item in UserUnitProgress.objects.filter(
-                user=request.user, unit_id__in=[unit.id for unit in units]
-            )
-        }
-        course_progress_map = {
-            item.course_id: item
-            for item in UserCourseProgress.objects.filter(
-                user=request.user, course_id=course.id
-            )
-        }
-        unlocked_map = _build_unlock_map(units, progress_map)
+    permission_classes = [IsAuthenticated]
 
-        for unit in units:
-            unit.lesson_count = sum(
-                1 for link in unit.unit_lessons.all()
-                if link.lesson and link.lesson.is_published
-            )
-            unit.unlocked = unlocked_map.get(unit.id, False)
-
-        serializer = CoursePathSerializer(
-            course,
-            context={
-                "request": request,
-                "progress_map": progress_map,
-                "course_progress_map": course_progress_map,
-                "lesson_word_count_map": lesson_word_count_map,
-                "lesson_learning_map": lesson_learning_map,
-                "lesson_progress_map": lesson_progress_map,
-            },
-        )
-        payload = serializer.data
-        payload["units"] = LearningPathUnitSerializer(
-            units,
-            many=True,
-            context={
-                "request": request,
-                "progress_map": progress_map,
-                "lesson_word_count_map": lesson_word_count_map,
-                "lesson_learning_map": lesson_learning_map,
-                "lesson_progress_map": lesson_progress_map,
-            },
-        ).data
-        return Response(payload)
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        course = _get_primary_active_course()
+        if not course:
+            return Response({"detail": "Chua co khoa hoc kha dung."}, status=status.HTTP_404_NOT_FOUND)
+        units = _get_filtered_units(course, skill_tag=Lesson.SkillTag.LISTENING)
+        return Response(_build_course_path_payload_for_units(request, course, units))
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -365,126 +560,23 @@ class LearningSessionStartView(APIView):
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
-        start_source = _resolve_client_source(request, default="learning_page")
-        serializer = LearningSessionStartSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        lesson = serializer.validated_data["lesson"]
+        return _start_lesson_session(request, default_source="learning_page")
 
-        unit_link = (
-            UnitLesson.objects
-            .select_related("unit", "unit__course")
-            .filter(
-                lesson=lesson,
-                unit__is_published=True,
-                unit__course__is_active=True,
-            )
-            .order_by("unit__order_index", "order_index")
-            .first()
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class ListeningSessionStartView(APIView):
+    """POST /learning/listening/session/start/ - Start a listening session."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [LearningSessionStartRateThrottle]
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
+    def post(self, request):
+        return _start_lesson_session(
+            request,
+            default_source="listening_page",
+            required_skill_tag=Lesson.SkillTag.LISTENING,
         )
-        if not unit_link:
-            return Response(
-                {"detail": "Bai hoc chua duoc gan vao unit cong khai."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not _is_unit_unlocked(request.user, unit_link.unit):
-            return Response({"detail": "Unit nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
-
-        hearts = _refill_hearts(_get_or_create_hearts(request.user))
-        if hearts.current_hearts <= 0:
-            return Response(
-                {
-                    "detail": "Bạn đã hết hearts. Vui lòng đợi refill.",
-                    "hearts": _build_hearts_payload(hearts),
-                },
-                status=HEARTS_MIN_RESPONSE_STATUS,
-            )
-
-        lesson_words = (
-            Word.objects
-            .filter(lessons=lesson)
-            .distinct()
-        )
-        difficulty, difficulty_context = _detect_difficulty_with_context(request.user)
-        max_questions = 6 if difficulty == "easy" else 8
-        exercises = _build_exercises_from_bank(lesson, max_questions=max_questions)
-        if not exercises:
-            global_words = Word.objects.filter(level=lesson.level).exclude(id__in=lesson_words.values("id"))[:100]
-            exercises = generate_exercises_from_words(
-                lesson_words,
-                max_questions=max_questions,
-                difficulty=difficulty,
-                global_words=global_words,
-            )
-        if not exercises:
-            return Response(
-                {"detail": "Bai hoc chua co du lieu de sinh bai tap."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        session = LearningSession.objects.create(
-            user=request.user,
-            unit=unit_link.unit,
-            lesson=lesson,
-            session_type=LearningSession.SessionType.LESSON,
-            difficulty=difficulty,
-            exercises=exercises,
-        )
-        has_previous_lesson_session = LearningSession.objects.filter(
-            user=request.user,
-            session_type=LearningSession.SessionType.LESSON,
-        ).exclude(id=session.id).exists()
-        if not has_previous_lesson_session:
-            _track_onboarding_step(
-                request.user,
-                "first_lesson_start",
-                meta={
-                    "lesson_id": lesson.id,
-                    "unit_id": unit_link.unit_id,
-                    "session_id": session.id,
-                    "onboarding_source": start_source,
-                },
-            )
-        _track_learning_event(
-            request.user,
-            LearningEvent.EventType.SESSION_START,
-            session=session,
-            meta={
-                "session_type": session.session_type,
-                "difficulty": session.difficulty,
-                "exercise_count": len(exercises),
-                "unit_id": session.unit_id,
-                "lesson_id": session.lesson_id,
-                "start_source": start_source,
-            },
-        )
-        _track_learning_event(
-            request.user,
-            LearningEvent.EventType.EXPERIMENT_METRIC,
-            session=session,
-            meta={
-                "metric_key": "difficulty_auto_adjust",
-                "difficulty": difficulty,
-                "context": difficulty_context,
-                "start_source": start_source,
-            },
-        )
-
-        unit_progress, _ = UserUnitProgress.objects.get_or_create(
-            user=request.user,
-            unit=unit_link.unit,
-        )
-        if not unit_progress.started_at:
-            unit_progress.started_at = timezone.now()
-            unit_progress.save(update_fields=["started_at", "updated_at"])
-
-        payload = LearningSessionSerializer(session).data
-        payload["exercise_count"] = len(exercises)
-        payload["difficulty"] = difficulty
-        payload["difficulty_context"] = difficulty_context
-        payload["hearts"] = hearts.current_hearts
-        payload["hearts_info"] = _build_hearts_payload(hearts)
-        return Response(payload, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -747,46 +839,30 @@ class LearningSessionDetailView(APIView):
         )
         if not session:
             return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
-        hearts = _refill_hearts(_get_or_create_hearts(request.user))
-        attempts = session.attempts.order_by("step_index")
-        answered_steps = {attempt.step_index for attempt in attempts}
-        safe_exercises = [to_client_exercise(item) for item in (session.exercises or [])]
-        next_step = 1
-        for exercise in safe_exercises:
-            if exercise["step_index"] not in answered_steps:
-                next_step = exercise["step_index"]
-                break
-        else:
-            if safe_exercises:
-                next_step = safe_exercises[-1]["step_index"]
-        difficulty_hint_event = (
-            LearningEvent.objects
+        return Response(_build_session_detail_payload(request, session))
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class ListeningSessionDetailView(APIView):
+    """GET /learning/listening/session/{id}/ - Listening session detail for current learner."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    def get(self, request, session_id):
+        session = (
+            LearningSession.objects
+            .select_related("lesson", "unit")
             .filter(
+                id=session_id,
                 user=request.user,
-                session=session,
-                event_type=LearningEvent.EventType.EXPERIMENT_METRIC,
-                meta__metric_key="difficulty_auto_adjust",
+                lesson__skill_tag=Lesson.SkillTag.LISTENING,
             )
-            .order_by("-created_at")
             .first()
         )
-        return Response(
-            {
-                "session": LearningSessionSerializer(session).data,
-                "attempts": ExerciseAttemptSerializer(attempts, many=True).data,
-                "exercises": safe_exercises,
-                "next_step": next_step,
-                "hearts": _build_hearts_payload(hearts),
-                "difficulty_hint": (
-                    {
-                        "difficulty": (difficulty_hint_event.meta or {}).get("difficulty"),
-                        "context": (difficulty_hint_event.meta or {}).get("context"),
-                    }
-                    if difficulty_hint_event
-                    else None
-                ),
-            }
-        )
+        if not session:
+            return Response({"detail": "Không tìm thấy phiên luyện nghe."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(_build_session_detail_payload(request, session))
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -1827,14 +1903,17 @@ class ReviewHistoryView(APIView):
 
 __all__ = [
     "LearningPathView",
+    "ListeningPathView",
     "LearningPlacementStatusView",
     "LearningPlacementQuestionsView",
     "LearningPlacementSubmitView",
     "LearningSessionStartView",
+    "ListeningSessionStartView",
     "LearningSessionRecoverView",
     "LearningSessionResumeView",
     "LearningSessionSwitchEasyView",
     "LearningSessionDetailView",
+    "ListeningSessionDetailView",
     "LearningSessionAnswerView",
     "LearningSessionFinishView",
     "LearningSessionQuitView",

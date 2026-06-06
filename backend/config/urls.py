@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/vocabulary/", include("apps.vocabulary.urls")),
     path("api/v1/learning/", include("apps.learning.urls")),
+    path("api/v1/listening/", include("apps.learning.urls_listening")),
     path("api/v1/quiz/", include("apps.quiz.urls")),
 ]
 
