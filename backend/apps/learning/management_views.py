@@ -28,19 +28,13 @@ from .models import (
     ListeningSession,
     Notification,
     ReviewLog,
-    UserStreak,
 )
 from .serializers import NotificationSerializer
+from .shared_flow import _get_or_create_streak
 
 LEADERBOARD_CACHE_TTL_SECONDS = 120
 LEAGUE_CACHE_TTL_SECONDS = 60
 KPI_CACHE_TTL_SECONDS = 300
-
-
-def _get_or_create_streak(user) -> UserStreak:
-    streak, _ = UserStreak.objects.get_or_create(user=user)
-    return streak
-
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class ProfileStatsView(APIView):

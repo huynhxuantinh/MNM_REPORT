@@ -240,6 +240,11 @@ class TestLessonComplete:
         r = sc.post(COMPLETE_URL(lesson.id))
         assert r.status_code == 200
         assert ReviewLog.objects.filter(user=student).count() == 2
+        review_log = ReviewLog.objects.filter(user=student, word=word_a).first()
+        assert review_log is not None
+        assert review_log.repetitions == 0
+        assert review_log.interval_days == 1
+        assert review_log.easiness_factor == 2.5
 
     def test_complete_returns_xp_and_streak(self, sc, lesson):
         r = sc.post(COMPLETE_URL(lesson.id))
@@ -247,6 +252,7 @@ class TestLessonComplete:
         assert "xp_earned" in r.data
         assert "streak" in r.data
         assert "new_words" in r.data
+        assert "total_xp" in r.data
 
     def test_complete_xp_correct_amount(self, sc, student, lesson):
         # 2 từ mới × 10 + 20 bonus = 40
@@ -270,3 +276,9 @@ class TestLessonComplete:
         sc.post(COMPLETE_URL(lesson.id))
         progress = LessonProgress.objects.get(user=student, lesson=lesson)
         assert progress.completed_at is not None
+
+    def test_complete_returns_refreshed_total_xp(self, sc, student, lesson):
+        response = sc.post(COMPLETE_URL(lesson.id))
+        assert response.status_code == 200
+        student.refresh_from_db()
+        assert response.data["total_xp"] == student.xp

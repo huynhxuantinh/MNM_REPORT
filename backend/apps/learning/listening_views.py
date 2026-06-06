@@ -1,5 +1,6 @@
 """Dedicated listening module API views."""
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -20,6 +21,7 @@ from .serializers import (
     ListeningSessionStartSerializer,
     ListeningSubmitAnswerSerializer,
 )
+from .shared_flow import _apply_learning_rewards
 
 
 def _serialize_listening_session(session: ListeningSession) -> dict:
@@ -162,43 +164,43 @@ class ListeningSessionAnswerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id: int):
-        session = get_object_or_404(
-            ListeningSession.objects.select_related("passage"),
-            id=session_id,
-            user=request.user,
-        )
-        if session.status != ListeningSession.Status.STARTED:
-            return Response(
-                {"detail": "Listening session is not active."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = ListeningSubmitAnswerSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
-        if question.passage_id != session.passage_id:
-            return Response(
-                {"detail": "Question does not belong to this listening passage."},
-                status=status.HTTP_400_BAD_REQUEST,
+        submitted_answer = serializer.validated_data["submitted_answer"]
+        with transaction.atomic():
+            session = get_object_or_404(
+                ListeningSession.objects.select_for_update().select_related("passage"),
+                id=session_id,
+                user=request.user,
+            )
+            if session.status != ListeningSession.Status.STARTED:
+                return Response(
+                    {"detail": "Listening session is not active."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if question.passage_id != session.passage_id:
+                return Response(
+                    {"detail": "Question does not belong to this listening passage."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            is_correct = _is_answer_correct(question, submitted_answer)
+            answer, _ = ListeningAnswer.objects.update_or_create(
+                session=session,
+                question=question,
+                defaults={
+                    "submitted_answer": submitted_answer,
+                    "is_correct": is_correct,
+                },
             )
 
-        submitted_answer = serializer.validated_data["submitted_answer"]
-        is_correct = _is_answer_correct(question, submitted_answer)
-        answer, _ = ListeningAnswer.objects.update_or_create(
-            session=session,
-            question=question,
-            defaults={
-                "submitted_answer": submitted_answer,
-                "is_correct": is_correct,
-            },
-        )
-
-        answered_count = session.answers.count()
-        session.current_question_index = min(answered_count + 1, session.passage.questions.count())
-        session.score = session.answers.filter(is_correct=True).count()
-        total_questions = max(session.passage.questions.count(), 1)
-        session.score_pct = round((session.score / total_questions) * 100, 2)
-        session.save(update_fields=["current_question_index", "score", "score_pct", "updated_at"])
+            answered_count = session.answers.count()
+            session.current_question_index = min(answered_count + 1, session.passage.questions.count())
+            session.score = session.answers.filter(is_correct=True).count()
+            total_questions = max(session.passage.questions.count(), 1)
+            session.score_pct = round((session.score / total_questions) * 100, 2)
+            session.save(update_fields=["current_question_index", "score", "score_pct", "updated_at"])
 
         return Response(
             {
@@ -216,27 +218,36 @@ class ListeningSessionFinishView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id: int):
-        session = get_object_or_404(
-            ListeningSession.objects.select_related("passage"),
-            id=session_id,
-            user=request.user,
-        )
-        if session.status == ListeningSession.Status.COMPLETED:
-            return Response(_serialize_listening_session(session))
+        with transaction.atomic():
+            session = get_object_or_404(
+                ListeningSession.objects.select_for_update().select_related("passage"),
+                id=session_id,
+                user=request.user,
+            )
+            if session.status == ListeningSession.Status.COMPLETED:
+                return Response(_serialize_listening_session(session))
+            if session.status != ListeningSession.Status.STARTED:
+                return Response(
+                    {"detail": "Listening session is not active."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        total_questions = max(session.passage.questions.count(), 1)
-        answered_questions = session.answers.count()
-        score = session.answers.filter(is_correct=True).count()
-        session.status = ListeningSession.Status.COMPLETED
-        session.score = score
-        session.score_pct = round((score / total_questions) * 100, 2)
-        from django.utils import timezone
-        session.completed_at = timezone.now()
-        session.save(update_fields=["status", "score", "score_pct", "completed_at", "updated_at"])
-        xp_earned = (score * 3 + 2) if answered_questions > 0 else 0
-        leveled_up = False
-        if xp_earned > 0:
-            leveled_up = request.user.add_xp(xp_earned)
+            total_questions = max(session.passage.questions.count(), 1)
+            answered_questions = session.answers.count()
+            score = session.answers.filter(is_correct=True).count()
+            session.status = ListeningSession.Status.COMPLETED
+            session.score = score
+            session.score_pct = round((score / total_questions) * 100, 2)
+            from django.utils import timezone
+            session.completed_at = timezone.now()
+            session.save(update_fields=["status", "score", "score_pct", "completed_at", "updated_at"])
+            xp_earned = (score * 3 + 2) if answered_questions > 0 else 0
+            streak = None
+            previous_level = request.user.level
+            if xp_earned > 0:
+                streak = _apply_learning_rewards(request.user, xp_earned=xp_earned, study_minutes=1)
+                request.user.refresh_from_db(fields=["xp", "level"])
+            leveled_up = request.user.level > previous_level
 
         payload = _serialize_listening_session(session)
         payload["summary"] = {
@@ -248,6 +259,7 @@ class ListeningSessionFinishView(APIView):
             "total_xp": request.user.xp,
             "level": request.user.level,
             "leveled_up": leveled_up,
+            "streak": streak.current_streak if streak else None,
         }
         return Response(payload)
 

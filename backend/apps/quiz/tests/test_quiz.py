@@ -151,6 +151,47 @@ class TestQuizSubmit:
         assert r.data["score"] == 100
         assert r.data["correct_answers"] == 4
 
+    def test_submit_ignores_client_score_and_recomputes(self, sc, quiz_id):
+        payload = {
+            "quiz_id": quiz_id,
+            "score": 9999,
+            "total_questions": 4,
+            "correct_answers": 3,
+        }
+        r = sc.post(SUBMIT_URL, payload, format="json")
+        assert r.status_code == 201
+        assert float(r.data["score"]) == 75.0
+
+    def test_submit_rejects_invalid_correct_answers(self, sc, quiz_id):
+        payload = {
+            "quiz_id": quiz_id,
+            "score": 100,
+            "total_questions": 4,
+            "correct_answers": 5,
+        }
+        r = sc.post(SUBMIT_URL, payload, format="json")
+        assert r.status_code == 400
+
+    def test_submit_rejects_negative_correct_answers(self, sc, quiz_id):
+        payload = {
+            "quiz_id": quiz_id,
+            "score": 100,
+            "total_questions": 4,
+            "correct_answers": -1,
+        }
+        r = sc.post(SUBMIT_URL, payload, format="json")
+        assert r.status_code == 400
+
+    def test_submit_rejects_non_positive_total_questions(self, sc, quiz_id):
+        payload = {
+            "quiz_id": quiz_id,
+            "score": 100,
+            "total_questions": 0,
+            "correct_answers": 0,
+        }
+        r = sc.post(SUBMIT_URL, payload, format="json")
+        assert r.status_code == 400
+
     def test_submit_without_quiz_id_returns_400(self, sc):
         r = sc.post(SUBMIT_URL, {"score": 50}, format="json")
         assert r.status_code == 400

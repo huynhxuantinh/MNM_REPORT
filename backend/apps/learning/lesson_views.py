@@ -4,6 +4,7 @@ import hashlib
 from datetime import timedelta
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -181,44 +182,50 @@ class LessonViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         lesson = self.get_object()
         user = request.user
+        with transaction.atomic():
+            progress, _ = LessonProgress.objects.get_or_create(
+                user=user,
+                lesson=lesson,
+                defaults={"started_at": timezone.now()},
+            )
+            progress = LessonProgress.objects.select_for_update().get(pk=progress.pk)
+            if progress.completed_at:
+                return Response(
+                    {"detail": "Bai hoc nay \u0111\u00e3 ho\u00e0n th\u00e0nh truoc do."},
+                    status=status.HTTP_200_OK,
+                )
 
-        progress, _ = LessonProgress.objects.get_or_create(
-            user=user,
-            lesson=lesson,
-            defaults={"started_at": timezone.now()},
-        )
-        if progress.completed_at:
-            return Response(
-                {"detail": "Bai hoc nay \u0111\u00e3 ho\u00e0n th\u00e0nh truoc do."},
-                status=status.HTTP_200_OK,
+            word_ids = list(lesson.words.values_list("id", flat=True))
+            existing_word_ids = set(
+                ReviewLog.objects.filter(user=user, word_id__in=word_ids).values_list("word_id", flat=True)
             )
 
-        word_ids = list(lesson.words.values_list("id", flat=True))
-        existing_word_ids = set(
-            ReviewLog.objects.filter(user=user, word_id__in=word_ids).values_list("word_id", flat=True)
-        )
-
-        tomorrow = _user_localdate(user) + timedelta(days=1)
-        new_logs = []
-        for word_id in word_ids:
-            if word_id not in existing_word_ids:
-                new_logs.append(
-                    ReviewLog(
-                        user=user,
-                        word_id=word_id,
-                        next_review_date=tomorrow,
+            today = _user_localdate(user)
+            tomorrow = today + timedelta(days=1)
+            new_logs = []
+            for word_id in word_ids:
+                if word_id not in existing_word_ids:
+                    new_logs.append(
+                        ReviewLog(
+                            user=user,
+                            word_id=word_id,
+                            repetitions=0,
+                            interval_days=1,
+                            easiness_factor=2.5,
+                            next_review_date=tomorrow,
+                        )
                     )
-                )
-        ReviewLog.objects.bulk_create(new_logs, ignore_conflicts=True)
+            ReviewLog.objects.bulk_create(new_logs, ignore_conflicts=True)
 
-        progress.completed_at = timezone.now()
-        if not progress.started_at:
-            progress.started_at = progress.completed_at
-        progress.save(update_fields=["completed_at", "started_at"])
+            progress.completed_at = timezone.now()
+            if not progress.started_at:
+                progress.started_at = progress.completed_at
+            progress.save(update_fields=["completed_at", "started_at"])
 
-        new_word_count = len(new_logs)
-        xp_earned = new_word_count * XP_NEW_WORD + XP_LESSON_BONUS
-        streak = _apply_learning_rewards(user, xp_earned=xp_earned, study_minutes=1)
+            new_word_count = len(new_logs)
+            xp_earned = new_word_count * XP_NEW_WORD + XP_LESSON_BONUS
+            streak = _apply_learning_rewards(user, xp_earned=xp_earned, study_minutes=1)
+            user.refresh_from_db(fields=["xp", "level"])
 
         return Response(
             {

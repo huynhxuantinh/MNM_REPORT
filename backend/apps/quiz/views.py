@@ -146,12 +146,34 @@ class QuizSubmitView(APIView):
         except Quiz.DoesNotExist:
             return Response({"detail": "Quiz không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            total_questions = int(request.data.get("total_questions", 0))
+            correct_answers = int(request.data.get("correct_answers", 0))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "total_questions va correct_answers phai la so nguyen."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if total_questions <= 0:
+            return Response(
+                {"detail": "total_questions phai lon hon 0."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if correct_answers < 0 or correct_answers > total_questions:
+            return Response(
+                {"detail": "correct_answers khong hop le."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        score = round((correct_answers / total_questions) * 100, 2)
+
         result = QuizResult.objects.create(
             user=request.user,
             quiz=quiz,
-            score=request.data.get("score", 0),
-            total_questions=request.data.get("total_questions", 0),
-            correct_answers=request.data.get("correct_answers", 0),
+            score=score,
+            total_questions=total_questions,
+            correct_answers=correct_answers,
         )
         return Response(QuizResultSerializer(result).data, status=status.HTTP_201_CREATED)
 
@@ -202,3 +224,4 @@ class AdminQuizResultListView(viewsets.ReadOnlyModelViewSet):
         if quiz_id:
             qs = qs.filter(quiz_id=quiz_id)
         return qs
+

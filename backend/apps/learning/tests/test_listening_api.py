@@ -109,3 +109,15 @@ class TestListeningAPI:
         assert finish.data["summary"]["xp_earned"] == 8
         user.refresh_from_db()
         assert user.xp == xp_before + 8
+        assert finish.data["summary"]["total_xp"] == user.xp
+        assert finish.data["summary"]["level"] == user.level
+        assert finish.data["summary"]["streak"] == 1
+
+    def test_finish_abandoned_session_returns_400(self, sc, listening_passage):
+        start = sc.post(START_URL, {"passage_id": listening_passage.id}, format="json")
+        session = ListeningSession.objects.get(id=start.data["id"])
+        session.status = ListeningSession.Status.ABANDONED
+        session.save(update_fields=["status"])
+
+        finish = sc.post(FINISH_URL(session.id))
+        assert finish.status_code == 400
