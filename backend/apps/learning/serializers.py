@@ -174,6 +174,9 @@ class UserUnitProgressSerializer(serializers.ModelSerializer):
             "total_xp_earned",
             "checkpoint_passed",
             "checkpoint_passed_at",
+            "checkpoint_attempts",
+            "checkpoint_last_attempt_at",
+            "checkpoint_locked_until",
             "started_at",
             "completed_at",
         )
@@ -185,6 +188,7 @@ class LearningPathUnitSerializer(serializers.ModelSerializer):
     lesson_count = serializers.IntegerField(read_only=True, default=0)
     progress = serializers.SerializerMethodField()
     unlocked = serializers.BooleanField(read_only=True, default=False)
+    placement_recommended = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = Unit
@@ -196,6 +200,7 @@ class LearningPathUnitSerializer(serializers.ModelSerializer):
             "required_lessons_to_unlock",
             "lesson_count",
             "unlocked",
+            "placement_recommended",
             "progress",
             "lessons",
         )

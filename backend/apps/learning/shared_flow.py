@@ -2,6 +2,7 @@
 
 import random
 from datetime import timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db import transaction
 from django.db.models import Min, Sum
@@ -55,6 +56,45 @@ PLACEMENT_MIN_SUBMIT_QUESTIONS = 5
 PLACEMENT_CACHE_TTL_SECONDS = 30 * 60
 PLACEMENT_LEVEL_ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"]
 SESSION_RECOVER_STALE_HOURS = 24
+CHECKPOINT_BASE_COOLDOWN_MINUTES = 10
+
+
+def _get_user_timezone(user):
+    tz_name = getattr(user, "timezone", "") or "Asia/Ho_Chi_Minh"
+    try:
+        return ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        return ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def _user_localdate(user, when=None):
+    when = when or timezone.now()
+    return timezone.localtime(when, _get_user_timezone(user)).date()
+
+
+def _user_localtime(user, when=None):
+    when = when or timezone.now()
+    return timezone.localtime(when, _get_user_timezone(user))
+
+
+def _get_user_recommended_level(user) -> str:
+    assignment = getattr(user, "_cached_recommended_level", None)
+    if assignment:
+        return assignment
+    result = (
+        getattr(user, "placement_results", None)
+        and user.placement_results.order_by("-created_at").first()
+    )
+    level = (result.recommended_level if result else "A1") or "A1"
+    user._cached_recommended_level = level
+    return level
+
+
+def _level_rank(level: str) -> int:
+    try:
+        return PLACEMENT_LEVEL_ORDER.index((level or "A1").upper())
+    except ValueError:
+        return 0
 
 
 def _get_or_create_streak(user) -> UserStreak:
@@ -104,6 +144,35 @@ def _build_unlock_map(units, progress_map):
         )
         previous_unit = unit
     return unlocked_map
+
+
+def _resolve_recommended_start_unit(units, recommended_level: str):
+    target_rank = _level_rank(recommended_level)
+    best_unit = None
+    best_rank = None
+    for unit in units:
+        lesson_levels = []
+        links = getattr(unit, "unit_lessons_filtered", None) or list(unit.unit_lessons.all())
+        for link in links:
+            lesson = getattr(link, "lesson", None)
+            if lesson and lesson.is_published and lesson.level:
+                lesson_levels.append(_level_rank(lesson.level))
+        if not lesson_levels:
+            continue
+        unit_rank = min(lesson_levels)
+        if unit_rank >= target_rank and (best_rank is None or unit_rank < best_rank):
+            best_unit = unit
+            best_rank = unit_rank
+    return best_unit
+
+
+def _build_placement_context(user, units) -> dict:
+    recommended_level = _get_user_recommended_level(user)
+    start_unit = _resolve_recommended_start_unit(units, recommended_level)
+    return {
+        "recommended_level": recommended_level,
+        "recommended_start_unit_id": start_unit.id if start_unit else None,
+    }
 
 
 def _is_unit_unlocked(user, target_unit: Unit) -> bool:
@@ -376,11 +445,11 @@ def _get_or_create_daily_goal(user) -> DailyGoal:
     return goal
 
 
-def _get_today_goal_log(user, goal: DailyGoal) -> DailyGoalLog:
+def _get_today_goal_log(user, goal: DailyGoal, now=None) -> DailyGoalLog:
     log, _ = DailyGoalLog.objects.get_or_create(
         user=user,
         goal=goal,
-        goal_date=timezone.localdate(),
+        goal_date=_user_localdate(user, when=now),
         defaults={"goal_minutes": goal.target_minutes},
     )
     return log
@@ -392,22 +461,23 @@ def _add_study_minutes(user, minutes: int) -> DailyGoalLog | None:
     goal = _get_or_create_daily_goal(user)
     if not goal.is_active:
         return None
+    now = timezone.now()
     with transaction.atomic():
-        log = _get_today_goal_log(user, goal)  # tạo row nếu chưa có
+        log = _get_today_goal_log(user, goal, now=now)
         log = DailyGoalLog.objects.select_for_update().get(pk=log.pk)
         log.goal_minutes = goal.target_minutes
         log.studied_minutes += minutes
         fields = ["goal_minutes", "studied_minutes", "updated_at"]
         if not log.is_achieved and log.studied_minutes >= log.goal_minutes:
             log.is_achieved = True
-            log.achieved_at = timezone.now()
+            log.achieved_at = now
             fields.extend(["is_achieved", "achieved_at"])
         log.save(update_fields=fields)
     return log
 
 
-def _update_streak_with_freeze(streak: UserStreak) -> None:
-    today = timezone.localdate()
+def _update_streak_with_freeze(streak: UserStreak, now=None) -> None:
+    today = _user_localdate(streak.user, when=now)
     if streak.last_active_date == today:
         return
 
@@ -448,7 +518,7 @@ def _update_streak_with_freeze(streak: UserStreak) -> None:
 def _record_user_activity(user, when=None) -> None:
     when = when or timezone.now()
     pref, _ = UserReminderPreference.objects.get_or_create(user=user)
-    local = timezone.localtime(when)
+    local = _user_localtime(user, when=when)
     pref.preferred_hour = local.hour
     pref.last_activity_at = when
     pref.save(update_fields=["preferred_hour", "last_activity_at", "updated_at"])
@@ -460,7 +530,7 @@ def _apply_learning_rewards(user, xp_earned: int, study_minutes: int, when=None)
     if leveled_up:
         _create_level_up_notification(user, user.level)
     streak = _get_or_create_streak(user)
-    _update_streak_with_freeze(streak)
+    _update_streak_with_freeze(streak, now=when)
     _record_user_activity(user, when=when)
     _add_study_minutes(user, max(0, int(study_minutes)))
     _create_streak_notification(user, streak.current_streak)
@@ -649,7 +719,7 @@ def _extract_unit_words(unit: Unit):
 def _bump_word_to_early_review(user, word_id: int) -> None:
     if not word_id:
         return
-    today = timezone.now().date()
+    today = _user_localdate(user)
     log, _ = ReviewLog.objects.get_or_create(
         user=user,
         word_id=word_id,
@@ -658,6 +728,72 @@ def _bump_word_to_early_review(user, word_id: int) -> None:
     if log.next_review_date is None or log.next_review_date > today:
         log.next_review_date = today
         log.save(update_fields=["next_review_date", "updated_at"])
+
+
+def _ensure_session_words_in_review(user, session: LearningSession) -> list[int]:
+    word_ids = sorted(
+        {
+            int(item.get("word_id") or 0)
+            for item in (session.exercises or [])
+            if int(item.get("word_id") or 0) > 0
+        }
+    )
+    if not word_ids:
+        return []
+    tomorrow = _user_localdate(user) + timedelta(days=1)
+    existing_word_ids = set(
+        ReviewLog.objects.filter(user=user, word_id__in=word_ids).values_list("word_id", flat=True)
+    )
+    new_logs = [
+        ReviewLog(user=user, word_id=word_id, next_review_date=tomorrow)
+        for word_id in word_ids
+        if word_id not in existing_word_ids
+    ]
+    if new_logs:
+        ReviewLog.objects.bulk_create(new_logs, ignore_conflicts=True)
+    return word_ids
+
+
+def _get_checkpoint_lock_info(progress: UserUnitProgress | None, now=None) -> dict:
+    now = now or timezone.now()
+    if not progress or not progress.checkpoint_locked_until or progress.checkpoint_locked_until <= now:
+        return {"locked": False, "remaining_seconds": 0}
+    remaining_seconds = max(0, int((progress.checkpoint_locked_until - now).total_seconds()))
+    return {"locked": True, "remaining_seconds": remaining_seconds}
+
+
+def _register_checkpoint_result(progress: UserUnitProgress, passed: bool, now=None) -> None:
+    now = now or timezone.now()
+    progress.checkpoint_last_attempt_at = now
+    if passed:
+        progress.checkpoint_passed = True
+        progress.checkpoint_passed_at = now
+        progress.checkpoint_attempts = 0
+        progress.checkpoint_locked_until = None
+        progress.save(
+            update_fields=[
+                "checkpoint_passed",
+                "checkpoint_passed_at",
+                "checkpoint_attempts",
+                "checkpoint_last_attempt_at",
+                "checkpoint_locked_until",
+                "updated_at",
+            ]
+        )
+        return
+
+    next_attempt_count = progress.checkpoint_attempts + 1
+    cooldown_minutes = CHECKPOINT_BASE_COOLDOWN_MINUTES * min(next_attempt_count, 3)
+    progress.checkpoint_attempts = next_attempt_count
+    progress.checkpoint_locked_until = now + timedelta(minutes=cooldown_minutes)
+    progress.save(
+        update_fields=[
+            "checkpoint_attempts",
+            "checkpoint_last_attempt_at",
+            "checkpoint_locked_until",
+            "updated_at",
+        ]
+    )
 
 
 def _build_session_summary(session: LearningSession) -> dict:
@@ -784,6 +920,7 @@ __all__ = [
     "_get_or_create_streak",
     "_create_level_up_notification",
     "_build_unlock_map",
+    "_build_placement_context",
     "_is_unit_unlocked",
     "_detect_difficulty",
     "_detect_difficulty_with_context",
@@ -795,6 +932,10 @@ __all__ = [
     "_grant_heart_bonus",
     "_get_or_create_daily_goal",
     "_get_today_goal_log",
+    "_get_user_recommended_level",
+    "_get_user_timezone",
+    "_user_localdate",
+    "_user_localtime",
     "_apply_learning_rewards",
     "_build_hearts_payload",
     "_track_learning_event",
@@ -809,9 +950,14 @@ __all__ = [
     "_build_placement_questions",
     "_extract_unit_words",
     "_bump_word_to_early_review",
+    "_ensure_session_words_in_review",
+    "_get_checkpoint_lock_info",
+    "_register_checkpoint_result",
+    "_resolve_recommended_start_unit",
     "_build_session_summary",
     "_count_wrong_attempts_for_word",
     "_get_consecutive_wrong_streak",
     "_get_consecutive_correct_streak",
     "_estimate_session_minutes",
 ]
+

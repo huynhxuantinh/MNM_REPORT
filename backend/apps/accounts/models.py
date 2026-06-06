@@ -19,6 +19,7 @@ class User(AbstractUser):
     xp = models.IntegerField("Diem kinh nghiem", default=0)
     level = models.IntegerField("Cap do", default=1)
     avatar_url = models.CharField("Anh dai dien", max_length=500, blank=True)
+    timezone = models.CharField("Mui gio", max_length=64, default="Asia/Ho_Chi_Minh")
     # Keep inactive until email verification succeeds.
     is_active = models.BooleanField("Hoat dong", default=False)
     email_verified = models.BooleanField("Email da xac thuc", default=False)

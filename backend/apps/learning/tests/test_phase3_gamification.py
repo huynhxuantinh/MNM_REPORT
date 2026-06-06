@@ -1,5 +1,6 @@
 import pytest
-from datetime import timedelta
+from datetime import timedelta, timezone as dt_timezone
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -74,6 +75,23 @@ def test_claim_daily_goal_success(sc, student):
     assert response.status_code == 200
     assert response.data["already_claimed"] is False
     assert response.data["reward_xp"] == 15
+
+
+def test_daily_goal_uses_user_timezone(sc, student):
+    student.timezone = "Pacific/Honolulu"
+    student.save(update_fields=["timezone"])
+    goal = DailyGoal.objects.create(user=student, target_minutes=5, reward_xp=15, is_active=True)
+    fixed_now = timezone.datetime(2026, 6, 6, 1, 30, tzinfo=dt_timezone.utc)
+    expected_goal_date = fixed_now.astimezone(timezone.get_fixed_timezone(-600)).date()
+
+    with patch("apps.learning.shared_flow.timezone.now", return_value=fixed_now), patch(
+        "apps.learning.flow_views.timezone.now", return_value=fixed_now
+    ):
+        response = sc.get(DAILY_GOAL_URL)
+
+    assert response.status_code == 200
+    assert str(response.data["today"]["date"]) == str(expected_goal_date)
+    assert DailyGoalLog.objects.filter(user=student, goal=goal, goal_date=expected_goal_date).exists()
 
 
 def test_hearts_consumed_and_blocked_when_zero(sc, lesson, student, course_with_units):

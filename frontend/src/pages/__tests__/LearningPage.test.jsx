@@ -50,6 +50,7 @@ describe("LearningPage excludes listening lessons", () => {
     learningApi.getLearningPath.mockResolvedValue({
       data: {
         name: "English Foundation A1-A2",
+        placement: { recommended_level: "A2", recommended_start_unit_id: 1 },
         units: [
           {
             id: 1,
@@ -58,7 +59,7 @@ describe("LearningPage excludes listening lessons", () => {
             description: "Core path",
             unlocked: true,
             lesson_count: 1,
-            lessons: [{ order_index: 1, lesson: { id: 11, title: "Lesson 1", level: "A1", is_published: true, skill_tag: "vocab", words_total: 4, words_learned: 1 } }],
+            lessons: [{ order_index: 1, lesson: { id: 11, title: "Lesson 1", level: "A1", is_published: true, skill_tag: "vocab", words_total: 4, words_learned: 0 } }],
           },
           {
             id: 2,
@@ -78,11 +79,18 @@ describe("LearningPage excludes listening lessons", () => {
     renderWithProviders(<LearningPage />, { initialEntries: ["/learning"] });
 
     await waitFor(() => {
-      expect(screen.getByText(/Basics/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unit 1: Basics/i)).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/Luyện nghe/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Listening Demo/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Nghe và làm bài/i })).not.toBeInTheDocument();
+  });
+
+  it("shows placement recommendation banner when user has no progress", async () => {
+    renderWithProviders(<LearningPage />, { initialEntries: ["/learning"] });
+    await waitFor(() => {
+      expect(screen.getByText(/Placement đề xuất bạn bắt đầu từ Basics \(A2\)\./i)).toBeInTheDocument();
+    });
   });
 });

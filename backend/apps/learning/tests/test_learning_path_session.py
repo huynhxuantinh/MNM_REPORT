@@ -9,6 +9,8 @@ from apps.learning.models import (
     LearningSession,
     LessonProgress,
     LessonWord,
+    PlacementResult,
+    ReviewLog,
     Unit,
     UnitLesson,
     UserCourseProgress,
@@ -175,6 +177,27 @@ class TestLearningPath:
         lesson = response.data["units"][0]["lessons"][0]["lesson"]
         assert lesson["skill_tag"] == "listening"
         assert lesson["listening_estimated_seconds"] == 35
+
+    def test_placement_recommends_start_unit_in_path(self, sc, student, teacher):
+        lesson_a1 = Lesson.objects.create(title="A1 Start", level="A1", order_index=1, is_published=True, created_by=teacher)
+        lesson_b1 = Lesson.objects.create(title="B1 Start", level="B1", order_index=2, is_published=True, created_by=teacher)
+        for idx, lesson_item in enumerate([lesson_a1, lesson_b1], start=1):
+            word = Word.objects.create(text=f"placement_{idx}", level=lesson_item.level, created_by=teacher)
+            LessonWord.objects.create(lesson=lesson_item, word=word, order_index=1)
+
+        course = Course.objects.create(name="Placement Path", slug="placement-path", is_active=True)
+        unit_a1 = Unit.objects.create(course=course, title="Unit A1", order_index=1, required_lessons_to_unlock=1, is_published=True)
+        unit_b1 = Unit.objects.create(course=course, title="Unit B1", order_index=2, required_lessons_to_unlock=1, is_published=True)
+        UnitLesson.objects.create(unit=unit_a1, lesson=lesson_a1, order_index=1)
+        UnitLesson.objects.create(unit=unit_b1, lesson=lesson_b1, order_index=1)
+        PlacementResult.objects.create(user=student, recommended_level="B1", score_pct=80, total_questions=10, correct_answers=8)
+
+        response = sc.get(PATH_URL)
+        assert response.status_code == 200
+        assert response.data["placement"]["recommended_level"] == "B1"
+        assert response.data["placement"]["recommended_start_unit_id"] == unit_b1.id
+        assert response.data["units"][1]["placement_recommended"] is True
+        assert response.data["units"][1]["unlocked"] is True
 
 
 class TestLearningSession:
@@ -407,3 +430,84 @@ class TestLearningSession:
             user=student, course=session.unit.course
         ).first()
         assert progress is not None
+
+    def test_finish_session_seeds_review_logs_for_all_session_words(self, sc, student, teacher):
+        word1 = Word.objects.create(text="seed_one", level="A1", created_by=teacher)
+        word2 = Word.objects.create(text="seed_two", level="A1", created_by=teacher)
+        lesson = Lesson.objects.create(title="Seed Review", level="A1", order_index=1, is_published=True, created_by=teacher)
+        LessonWord.objects.create(lesson=lesson, word=word1, order_index=1)
+        LessonWord.objects.create(lesson=lesson, word=word2, order_index=2)
+        course = Course.objects.create(name="Seed Review Course", slug="seed-review-course", is_active=True)
+        unit = Unit.objects.create(course=course, title="Unit 1", order_index=1, required_lessons_to_unlock=1, is_published=True)
+        UnitLesson.objects.create(unit=unit, lesson=lesson, order_index=1)
+
+        start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+        assert start.status_code == 201
+        session = LearningSession.objects.get(id=start.data["id"])
+        session.exercises = [
+            {"step_index": 1, "exercise_type": "mc_meaning", "prompt": "p1", "choices": ["A", "B"], "word_id": word1.id, "correct_option": "A"},
+            {"step_index": 2, "exercise_type": "mc_meaning", "prompt": "p2", "choices": ["A", "B"], "word_id": word2.id, "correct_option": "A"},
+        ]
+        session.save(update_fields=["exercises"])
+
+        sc.post(ANSWER_URL(session.id), {"step_index": 1, "submitted_answer": {"option": "A"}, "response_ms": 200}, format="json")
+        sc.post(ANSWER_URL(session.id), {"step_index": 2, "submitted_answer": {"option": "A"}, "response_ms": 200}, format="json")
+        finish = sc.post(FINISH_URL(session.id))
+        assert finish.status_code == 200
+        assert set(finish.data["review_seeded_word_ids"]) == {word1.id, word2.id}
+        assert ReviewLog.objects.filter(user=student, word_id__in=[word1.id, word2.id]).count() == 2
+
+    def test_checkpoint_fail_locks_retry_temporarily(self, sc, student, lesson):
+        course = Course.objects.create(name="Checkpoint Course", slug="checkpoint-course", is_active=True)
+        unit = Unit.objects.create(course=course, title="Unit 1", order_index=1, required_lessons_to_unlock=1, is_published=True)
+        UnitLesson.objects.create(unit=unit, lesson=lesson, order_index=1)
+        LessonProgress.objects.create(user=student, lesson=lesson, started_at=timezone.now(), completed_at=timezone.now())
+        UserUnitProgress.objects.create(user=student, unit=unit, completed_lessons=1)
+
+        start = sc.post(CHECKPOINT_START_URL, {"unit_id": unit.id}, format="json")
+        assert start.status_code == 201
+        session = LearningSession.objects.get(id=start.data["id"])
+        session.total_answered = 4
+        session.correct_answered = 1
+        session.exercises = [
+            {"step_index": idx, "exercise_type": "mc_meaning", "prompt": f"q{idx}", "choices": ["A", "B"], "word_id": lesson.words.first().id, "correct_option": "A"}
+            for idx in range(1, 5)
+        ]
+        session.save(update_fields=["total_answered", "correct_answered", "exercises"])
+
+        submit = sc.post(CHECKPOINT_SUBMIT_URL(session.id))
+        assert submit.status_code == 200
+        assert submit.data["passed"] is False
+        assert submit.data["checkpoint_lock"]["locked_until"] is not None
+
+        retry = sc.post(CHECKPOINT_START_URL, {"unit_id": unit.id}, format="json")
+        assert retry.status_code == 429
+
+    def test_adaptive_difficulty_can_raise_session_out_of_easy(self, sc, lesson, course_with_units):
+        words = list(lesson.words.all())
+        for word in words:
+            word.example_en = f"I use {word.text} every day."
+            word.save(update_fields=["example_en"])
+
+        start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")
+        assert start.status_code == 201
+        session = LearningSession.objects.get(id=start.data["id"])
+        session.difficulty = LearningSession.Difficulty.EASY
+        session.exercises = [
+            {"step_index": idx, "exercise_type": "mc_meaning", "prompt": f"p{idx}", "choices": ["A", "B"], "word_id": words[(idx - 1) % len(words)].id, "correct_option": "A"}
+            for idx in range(1, 7)
+        ]
+        session.save(update_fields=["difficulty", "exercises"])
+
+        third = None
+        for step_index in range(1, 4):
+            third = sc.post(
+                ANSWER_URL(session.id),
+                {"step_index": step_index, "submitted_answer": {"option": "A"}, "response_ms": 250},
+                format="json",
+            )
+            assert third.status_code == 200
+        session.refresh_from_db()
+        assert third is not None
+        assert third.data["feedback"]["difficulty_adjustment"]["difficulty"] == "normal"
+        assert session.difficulty == LearningSession.Difficulty.NORMAL

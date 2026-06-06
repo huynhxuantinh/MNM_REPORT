@@ -66,6 +66,13 @@ const UnitCard = ({
             <Chip icon={<LockRoundedIcon sx={{ fontSize: "14px !important" }} />} label="Khóa" size="small" />
           )}
         </Stack>
+        {unit.placement_recommended && (
+          <Chip
+            label="Gợi ý từ placement"
+            size="small"
+            sx={{ width: "fit-content", bgcolor: `${colors.greenStarbucks}15`, color: colors.greenStarbucks, fontWeight: 700 }}
+          />
+        )}
 
         <Typography sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
           {unit.description || "Chưa có mô tả."}
@@ -246,6 +253,19 @@ const LearningPage = () => {
     [units],
   );
   const shouldShowOnboarding = !!placementStatus?.should_show_onboarding;
+  const recommendedStartUnitId = data?.placement?.recommended_start_unit_id ?? null;
+  const recommendedLevel = data?.placement?.recommended_level ?? null;
+  const hasLearningProgress = useMemo(
+    () => mainUnits.some((unit) => {
+      const progress = unit?.progress;
+      if (progress?.started_at || progress?.completed_at || (progress?.completed_lessons || 0) > 0) return true;
+      return (unit?.lessons || []).some((item) => {
+        const lesson = item?.lesson || {};
+        return Boolean(lesson?.user_progress?.started_at || lesson?.user_progress?.completed_at || (lesson?.words_learned || 0) > 0);
+      });
+    }),
+    [mainUnits],
+  );
   const startingLessonId = startMutation.variables;
   const startingCheckpointUnitId = checkpointStartMutation.variables;
   const studiedMinutes = dailyGoalData?.today?.studied_minutes ?? 0;
@@ -269,9 +289,15 @@ const LearningPage = () => {
   };
   const recoverSession = recoverData?.session;
   const getNextLessonId = () => {
-    const unlockedUnits = [...mainUnits]
+    let unlockedUnits = [...mainUnits]
       .filter((unit) => !!unit?.unlocked)
       .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+    if (!hasLearningProgress && recommendedStartUnitId) {
+      const recommendedIndex = unlockedUnits.findIndex((unit) => unit?.id === recommendedStartUnitId);
+      if (recommendedIndex >= 0) {
+        unlockedUnits = unlockedUnits.slice(recommendedIndex);
+      }
+    }
     const fallbackLessonIds = [];
 
     for (const unit of unlockedUnits) {
@@ -425,6 +451,12 @@ const LearningPage = () => {
           )}
         >
           Bạn đang có phiên học chưa xong: {recoverSession.lesson_title} (bước {recoverData.next_step_index || 1}).
+        </Alert>
+      )}
+
+      {!hasLearningProgress && recommendedStartUnitId && recommendedLevel && (
+        <Alert severity="info">
+          Placement đề xuất bạn bắt đầu từ {mainUnits.find((unit) => unit.id === recommendedStartUnitId)?.title || "unit phù hợp"} ({recommendedLevel}).
         </Alert>
       )}
 

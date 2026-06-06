@@ -2,10 +2,21 @@
 Models cho module học tập: Lesson, ReviewLog (SRS), UserStreak, Notification.
 """
 from datetime import timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+
+def _localdate_for_user(user, when=None):
+    when = when or timezone.now()
+    tz_name = getattr(user, "timezone", "") or "Asia/Ho_Chi_Minh"
+    try:
+        tzinfo = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tzinfo = ZoneInfo("Asia/Ho_Chi_Minh")
+    return timezone.localtime(when, tzinfo).date()
 
 
 class Lesson(models.Model):
@@ -198,7 +209,14 @@ class ReviewLog(models.Model):
             - (5 - quality) * (0.08 + (5 - quality) * 0.02),
         )
 
-        today = timezone.localdate()
+        user = self.__dict__.get("user")
+        if user is None and hasattr(self, "_state"):
+            try:
+                user = self.user
+            except Exception:
+                user = None
+
+        today = _localdate_for_user(user)
         self.last_reviewed = today
         self.next_review_date = today + timedelta(days=self.interval_days)
         self.total_reviews += 1
@@ -231,7 +249,7 @@ class UserStreak(models.Model):
 
     def update_streak(self) -> None:
         """Gọi mỗi khi user học hoặc ôn ≥ 1 từ trong ngày."""
-        today = timezone.localdate()
+        today = _localdate_for_user(self.user)
         if self.last_active_date == today:
             return  # Đã cập nhật hôm nay
 
@@ -342,6 +360,9 @@ class UserUnitProgress(models.Model):
     total_xp_earned = models.PositiveIntegerField("Total XP earned", default=0)
     checkpoint_passed = models.BooleanField("Checkpoint passed", default=False)
     checkpoint_passed_at = models.DateTimeField("Checkpoint passed at", null=True, blank=True)
+    checkpoint_attempts = models.PositiveIntegerField("Checkpoint attempts", default=0)
+    checkpoint_last_attempt_at = models.DateTimeField("Checkpoint last attempt at", null=True, blank=True)
+    checkpoint_locked_until = models.DateTimeField("Checkpoint locked until", null=True, blank=True)
     started_at = models.DateTimeField("Started at", null=True, blank=True)
     completed_at = models.DateTimeField("Completed at", null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

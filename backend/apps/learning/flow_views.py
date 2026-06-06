@@ -78,16 +78,22 @@ from .shared_flow import (
     _get_or_create_daily_goal,
     _get_consecutive_correct_streak,
     _get_consecutive_wrong_streak,
+    _get_checkpoint_lock_info,
     _get_expected_step_index,
     _grant_heart_bonus,
     _get_or_create_streak,
     _get_heart_cost,
     _get_or_create_hearts,
     _get_today_goal_log,
+    _get_user_recommended_level,
+    _user_localdate,
     _normalize_response_ms,
     _placement_cache_key,
     _refill_hearts,
+    _register_checkpoint_result,
+    _resolve_recommended_start_unit,
     _extract_unit_words,
+    _ensure_session_words_in_review,
     _estimate_session_minutes,
     _is_unit_unlocked,
     _track_learning_event,
@@ -209,6 +215,14 @@ def _build_course_path_payload_for_units(request, course, units):
         )
     }
     unlocked_map = _build_unlock_map(units, progress_map)
+    recommended_level = _get_user_recommended_level(request.user)
+    recommended_start_unit = _resolve_recommended_start_unit(units, recommended_level)
+    recommended_start_unit_id = recommended_start_unit.id if recommended_start_unit else None
+    has_any_progress = bool(progress_map) or bool(lesson_progress_map)
+    if not has_any_progress and recommended_start_unit:
+        for unit in units:
+            if unit.order_index <= recommended_start_unit.order_index:
+                unlocked_map[unit.id] = True
 
     for unit in units:
         links = getattr(unit, "unit_lessons_filtered", None) or list(unit.unit_lessons.all())
@@ -217,6 +231,7 @@ def _build_course_path_payload_for_units(request, course, units):
             if link.lesson and link.lesson.is_published
         )
         unit.unlocked = unlocked_map.get(unit.id, False)
+        unit.placement_recommended = unit.id == recommended_start_unit_id
 
     serializer = CoursePathSerializer(
         course,
@@ -241,6 +256,10 @@ def _build_course_path_payload_for_units(request, course, units):
             "lesson_progress_map": lesson_progress_map,
         },
     ).data
+    payload["placement"] = {
+        "recommended_level": recommended_level,
+        "recommended_start_unit_id": recommended_start_unit_id,
+    }
     return payload
 
 
@@ -406,6 +425,100 @@ def _start_lesson_session(request, default_source: str, required_skill_tag: str 
     payload["hearts"] = hearts.current_hearts
     payload["hearts_info"] = _build_hearts_payload(hearts)
     return Response(payload, status=status.HTTP_201_CREATED)
+
+
+def _retune_remaining_session_exercises(session: LearningSession, target_difficulty: str) -> bool:
+    if (
+        session.session_type != LearningSession.SessionType.LESSON
+        or not session.lesson_id
+        or session.difficulty == target_difficulty
+    ):
+        return False
+
+    exercises = list(session.exercises or [])
+    if not exercises:
+        session.difficulty = target_difficulty
+        session.save(update_fields=["difficulty"])
+        return True
+
+    answered_steps = set(session.attempts.values_list("step_index", flat=True))
+    unanswered_steps = [int(item.get("step_index") or 0) for item in exercises if int(item.get("step_index") or 0) not in answered_steps]
+    if not unanswered_steps:
+        session.difficulty = target_difficulty
+        session.save(update_fields=["difficulty"])
+        return True
+
+    lesson_words = list(Word.objects.filter(lessons=session.lesson).distinct())
+    if not lesson_words:
+        session.difficulty = target_difficulty
+        session.save(update_fields=["difficulty"])
+        return True
+
+    answered_keys = {
+        (
+            str(item.get("exercise_type") or ""),
+            int(item.get("word_id") or 0),
+        )
+        for item in exercises
+        if int(item.get("step_index") or 0) in answered_steps
+    }
+    word_ids = [word.id for word in lesson_words]
+    global_words = Word.objects.filter(level=session.lesson.level).exclude(id__in=word_ids)[:100]
+    generated = generate_exercises_from_words(
+        lesson_words,
+        max_questions=max(len(exercises), len(unanswered_steps) + len(answered_steps)),
+        difficulty="adaptive" if target_difficulty == LearningSession.Difficulty.HARD else target_difficulty,
+        global_words=global_words,
+        lesson=session.lesson,
+    )
+
+    candidate_tail = []
+    seen_keys = set(answered_keys)
+    for item in generated:
+        key = (str(item.get("exercise_type") or ""), int(item.get("word_id") or 0))
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        candidate_tail.append(item)
+        if len(candidate_tail) >= len(unanswered_steps):
+            break
+
+    original_unanswered = [item for item in exercises if int(item.get("step_index") or 0) in unanswered_steps]
+    if len(candidate_tail) < len(unanswered_steps):
+        candidate_tail.extend(original_unanswered[len(candidate_tail):])
+
+    answer_map = {int(item.get("step_index") or 0): item for item in exercises}
+    for index, step_index in enumerate(unanswered_steps):
+        replacement = dict(candidate_tail[index])
+        replacement["step_index"] = step_index
+        answer_map[step_index] = replacement
+
+    rebuilt = [answer_map[int(item.get("step_index") or 0)] for item in exercises]
+    session.exercises = rebuilt
+    session.difficulty = target_difficulty
+    session.save(update_fields=["exercises", "difficulty"])
+    return True
+
+
+def _maybe_auto_adjust_session_difficulty(session: LearningSession, correct_streak: int, wrong_streak: int) -> dict | None:
+    target_difficulty = None
+    context = None
+    if wrong_streak >= 3 and session.difficulty != LearningSession.Difficulty.EASY:
+        target_difficulty = LearningSession.Difficulty.EASY
+        context = "in_session_wrong_streak"
+    elif correct_streak >= 3 and session.difficulty == LearningSession.Difficulty.EASY:
+        target_difficulty = LearningSession.Difficulty.NORMAL
+        context = "in_session_correct_streak_recover"
+    elif correct_streak >= 5 and session.difficulty == LearningSession.Difficulty.NORMAL:
+        target_difficulty = LearningSession.Difficulty.HARD
+        context = "in_session_high_confidence"
+
+    if not target_difficulty:
+        return None
+    changed = _retune_remaining_session_exercises(session, target_difficulty)
+    if not changed:
+        return None
+    return {"difficulty": target_difficulty, "context": context}
 
 
 def _resolve_client_source(request, default: str = "unknown") -> str:
@@ -1006,6 +1119,23 @@ class LearningSessionAnswerView(APIView):
                 and session.difficulty != LearningSession.Difficulty.EASY
             )
 
+            difficulty_adjustment = _maybe_auto_adjust_session_difficulty(
+                session,
+                correct_streak=correct_streak,
+                wrong_streak=wrong_streak,
+            )
+            if difficulty_adjustment:
+                _track_learning_event(
+                    request.user,
+                    LearningEvent.EventType.EXPERIMENT_METRIC,
+                    session=session,
+                    meta={
+                        "metric_key": "difficulty_auto_adjust",
+                        "difficulty": difficulty_adjustment["difficulty"],
+                        "context": difficulty_adjustment["context"],
+                        "step_index": data["step_index"],
+                    },
+                )
         return Response(
             {
                 "idempotent": False,
@@ -1016,6 +1146,7 @@ class LearningSessionAnswerView(APIView):
                     "awarded_xp": awarded_xp,
                     "exercise_type": exercise["exercise_type"],
                     "difficulty": session.difficulty,
+                    "difficulty_adjustment": difficulty_adjustment,
                     "server_eval_ms": eval_ms,
                     "hearts": hearts.current_hearts,
                     "heart_cost": _get_heart_cost(session, is_correct),
@@ -1098,6 +1229,7 @@ class LearningSessionFinishView(APIView):
                 lesson_progress_updates.append("completed_at")
             if lesson_progress_updates:
                 lesson_progress.save(update_fields=lesson_progress_updates)
+            seeded_review_word_ids = _ensure_session_words_in_review(request.user, session)
 
             unit_progress, _ = UserUnitProgress.objects.get_or_create(
                 user=request.user,
@@ -1182,6 +1314,7 @@ class LearningSessionFinishView(APIView):
                     "last_unit_id": course_progress.last_unit_id,
                     "completed_at": course_progress.completed_at,
                 },
+                "review_seeded_word_ids": seeded_review_word_ids,
                 "user": {
                     "xp": request.user.xp,
                     "level": request.user.level,
@@ -1447,6 +1580,16 @@ class LearningCheckpointStartView(APIView):
                 {"detail": "Cần hoàn thành toàn bộ bài học trong unit trước khi làm checkpoint."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        lock_info = _get_checkpoint_lock_info(unit_progress)
+        if lock_info["locked"]:
+            return Response(
+                {
+                    "detail": "Checkpoint đang tạm khóa sau lần thử thất bại.",
+                    "checkpoint_locked_until": unit_progress.checkpoint_locked_until,
+                    "retry_after_seconds": lock_info["remaining_seconds"],
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         words = _extract_unit_words(unit)
         unit_levels = list(
@@ -1556,10 +1699,7 @@ class LearningCheckpointSubmitView(APIView):
                 unit=session.unit,
                 defaults={"started_at": session.started_at},
             )
-            if passed:
-                unit_progress.checkpoint_passed = True
-                unit_progress.checkpoint_passed_at = now
-                unit_progress.save(update_fields=["checkpoint_passed", "checkpoint_passed_at", "updated_at"])
+            _register_checkpoint_result(unit_progress, passed=passed, now=now)
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
 
         if passed:
@@ -1605,6 +1745,10 @@ class LearningCheckpointSubmitView(APIView):
                     "last_unit_id": course_progress.last_unit_id,
                     "completed_at": course_progress.completed_at,
                 },
+                "checkpoint_lock": {
+                    "attempts": unit_progress.checkpoint_attempts,
+                    "locked_until": unit_progress.checkpoint_locked_until,
+                },
                 "unlocked_next_unit": unlocked_next_unit,
                 "next_unit_id": next_unit.id if next_unit else None,
             }
@@ -1620,7 +1764,8 @@ class DailyGoalView(APIView):
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         goal = _get_or_create_daily_goal(request.user)
-        log = _get_today_goal_log(request.user, goal)
+        now = timezone.now()
+        log = _get_today_goal_log(request.user, goal, now=now)
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         streak = _get_or_create_streak(request.user)
         assignments = {
@@ -1681,7 +1826,7 @@ class DailyGoalClaimView(APIView):
 
         now = timezone.now()
         with transaction.atomic():
-            log = _get_today_goal_log(request.user, goal)
+            log = _get_today_goal_log(request.user, goal, now=now)
             log = DailyGoalLog.objects.select_for_update().get(pk=log.pk)
             if not log.is_achieved:
                 return Response(
@@ -1776,7 +1921,7 @@ class ReviewListView(APIView):
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
-        today = timezone.localdate()
+        today = _user_localdate(request.user)
         logs = list(
             ReviewLog.objects
             .filter(user=request.user, next_review_date__lte=today)
@@ -1841,7 +1986,7 @@ class ReviewSummaryView(APIView):
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
-        today = timezone.localdate()
+        today = _user_localdate(request.user)
         today_logs = list(
             ReviewLog.objects
             .filter(user=request.user, last_reviewed=today)
@@ -1881,7 +2026,7 @@ class ReviewHistoryView(APIView):
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         days = min(max(int(request.query_params.get("days", 30)), 7), 90)
-        today = timezone.localdate()
+        today = _user_localdate(request.user)
         start = today - timedelta(days=days - 1)
 
         logs = (

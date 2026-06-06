@@ -17,7 +17,7 @@ from .models import Lesson, LessonProgress, LessonWord, ReviewLog, UnitLesson
 from apps.accounts.permissions import IsAdmin
 from .permissions import IsOwnerOrAdmin
 from .serializers import LessonDetailSerializer, LessonSerializer, LessonWordSerializer
-from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards, _is_unit_unlocked
+from .shared_flow import XP_LESSON_BONUS, XP_NEW_WORD, _apply_learning_rewards, _is_unit_unlocked, _user_localdate
 
 LESSON_CACHE_TTL = 5 * 60
 _LESSON_VER_KEY = "lesson_list_ver"
@@ -198,7 +198,7 @@ class LessonViewSet(viewsets.ModelViewSet):
             ReviewLog.objects.filter(user=user, word_id__in=word_ids).values_list("word_id", flat=True)
         )
 
-        tomorrow = timezone.localdate() + timedelta(days=1)
+        tomorrow = _user_localdate(user) + timedelta(days=1)
         new_logs = []
         for word_id in word_ids:
             if word_id not in existing_word_ids:

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Count, Sum
 from django.utils import timezone
+from ..shared_flow import _user_localdate, _user_localtime
 
 MIN_REFILL_INTERVAL_SECONDS = 60
 
@@ -16,7 +17,7 @@ def _resolve_target_hour(pref, fallback_hour: int) -> int:
     if pref and pref.preferred_hour is not None:
         return int(pref.preferred_hour)
     if pref and pref.last_activity_at:
-        return timezone.localtime(pref.last_activity_at).hour
+        return _user_localtime(pref.user, pref.last_activity_at).hour
     return int(fallback_hour)
 
 
@@ -26,27 +27,7 @@ def send_review_reminders() -> dict:
     from apps.accounts.models import User
     from apps.learning.models import Notification, ReviewLog, UserReminderPreference
 
-    today = timezone.localdate()
-    current_hour = timezone.localtime().hour
-
-    due_user_ids = (
-        ReviewLog.objects
-        .filter(next_review_date__lte=today)
-        .values_list("user_id", flat=True)
-        .distinct()
-    )
-    already_reviewed_ids = (
-        ReviewLog.objects
-        .filter(last_reviewed=today)
-        .values_list("user_id", flat=True)
-        .distinct()
-    )
-    pending_ids = set(due_user_ids) - set(already_reviewed_ids)
-    if not pending_ids:
-        return {"sent": 0, "users_notified": 0}
-
     users = User.objects.filter(
-        id__in=pending_ids,
         is_active=True,
         notification_enabled=True,
     )
@@ -54,6 +35,12 @@ def send_review_reminders() -> dict:
 
     for user in users:
         pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
+        today = _user_localdate(user)
+        current_hour = _user_localtime(user).hour
+        due_count = ReviewLog.objects.filter(user=user, next_review_date__lte=today).count()
+        reviewed_today = ReviewLog.objects.filter(user=user, last_reviewed=today).exists()
+        if due_count <= 0 or reviewed_today:
+            continue
         target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
         if target_hour != current_hour:
             continue
@@ -67,7 +54,6 @@ def send_review_reminders() -> dict:
         if duplicate:
             continue
 
-        due_count = ReviewLog.objects.filter(user=user, next_review_date__lte=today).count()
         Notification.objects.create(
             user=user,
             type=Notification.Type.REMINDER,
@@ -97,8 +83,6 @@ def send_daily_goal_reminders() -> dict:
     from apps.accounts.models import User
     from apps.learning.models import DailyGoal, DailyGoalLog, Notification, UserReminderPreference
 
-    today = timezone.localdate()
-    current_hour = timezone.localtime().hour
     users = User.objects.filter(is_active=True, notification_enabled=True, role=User.Role.USER)
     reminded = 0
 
@@ -108,6 +92,8 @@ def send_daily_goal_reminders() -> dict:
             continue
 
         pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
+        today = _user_localdate(user)
+        current_hour = _user_localtime(user).hour
         target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
         if target_hour != current_hour:
             continue
