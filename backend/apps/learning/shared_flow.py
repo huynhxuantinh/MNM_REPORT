@@ -78,16 +78,11 @@ def _user_localtime(user, when=None):
 
 
 def _get_user_recommended_level(user) -> str:
-    assignment = getattr(user, "_cached_recommended_level", None)
-    if assignment:
-        return assignment
     result = (
         getattr(user, "placement_results", None)
         and user.placement_results.order_by("-created_at").first()
     )
-    level = (result.recommended_level if result else "A1") or "A1"
-    user._cached_recommended_level = level
-    return level
+    return (result.recommended_level if result else "A1") or "A1"
 
 
 def _level_rank(level: str) -> int:
@@ -542,7 +537,8 @@ def _build_hearts_payload(hearts: UserHearts) -> dict:
     if hearts.current_hearts >= hearts.max_hearts:
         next_refill_seconds = 0
     else:
-        elapsed = max(0, int((now - hearts.last_refill_at).total_seconds()))
+        last_refill_at = hearts.last_refill_at or now
+        elapsed = max(0, int((now - last_refill_at).total_seconds()))
         interval = max(60, hearts.refill_interval_minutes * 60)
         next_refill_seconds = max(0, interval - (elapsed % interval))
     return {
@@ -623,6 +619,10 @@ def _get_expected_step_index(session: LearningSession) -> int | None:
 
 def _placement_cache_key(user_id: int) -> str:
     return f"placement_q:u{user_id}"
+
+
+def _placement_submit_result_cache_key(user_id: int) -> str:
+    return f"placement_submit:u{user_id}"
 
 
 def _placement_word_meaning(word: Word) -> str:
@@ -740,12 +740,20 @@ def _ensure_session_words_in_review(user, session: LearningSession) -> list[int]
     )
     if not word_ids:
         return []
-    tomorrow = _user_localdate(user) + timedelta(days=1)
+    today = _user_localdate(user)
+    tomorrow = today + timedelta(days=1)
     existing_word_ids = set(
         ReviewLog.objects.filter(user=user, word_id__in=word_ids).values_list("word_id", flat=True)
     )
     new_logs = [
-        ReviewLog(user=user, word_id=word_id, next_review_date=tomorrow)
+        ReviewLog(
+            user=user,
+            word_id=word_id,
+            repetitions=0,
+            interval_days=1,
+            easiness_factor=2.5,
+            next_review_date=tomorrow,
+        )
         for word_id in word_ids
         if word_id not in existing_word_ids
     ]
@@ -946,6 +954,7 @@ __all__ = [
     "_detect_suspicious_answer",
     "_get_expected_step_index",
     "_placement_cache_key",
+    "_placement_submit_result_cache_key",
     "_compute_recommended_level",
     "_build_placement_questions",
     "_extract_unit_words",

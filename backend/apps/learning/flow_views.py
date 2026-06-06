@@ -89,6 +89,7 @@ from .shared_flow import (
     _user_localdate,
     _normalize_response_ms,
     _placement_cache_key,
+    _placement_submit_result_cache_key,
     _refill_hearts,
     _register_checkpoint_result,
     _resolve_recommended_start_unit,
@@ -815,59 +816,93 @@ class LearningPlacementSubmitView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        questions = cache.get(_placement_cache_key(request.user.id))
-        if not questions:
-            return Response(
-                {"detail": "Placement đã hết hạn. Vui lòng tải lại bộ câu hỏi."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        user_model = type(request.user)
+        with transaction.atomic():
+            user_model.objects.select_for_update().get(pk=request.user.pk)
+            questions = cache.get(_placement_cache_key(request.user.id))
+            if not questions:
+                recent_result_id = cache.get(_placement_submit_result_cache_key(request.user.id))
+                if recent_result_id:
+                    recent_result = PlacementResult.objects.filter(
+                        id=recent_result_id,
+                        user=request.user,
+                    ).first()
+                    if recent_result:
+                        level_stats: dict[str, dict[str, int]] = {}
+                        for item in recent_result.answers or []:
+                            level = (item.get("word_level") or "A1").upper()
+                            bucket = level_stats.setdefault(level, {"total": 0, "correct": 0})
+                            bucket["total"] += 1
+                            if item.get("is_correct"):
+                                bucket["correct"] += 1
+                        return Response(
+                            {
+                                "result": PlacementResultSerializer(recent_result).data,
+                                "level_stats": {
+                                    level: {
+                                        "total": stats["total"],
+                                        "correct": stats["correct"],
+                                        "accuracy_pct": round((stats["correct"] / stats["total"]) * 100, 2)
+                                        if stats["total"]
+                                        else 0.0,
+                                    }
+                                    for level, stats in level_stats.items()
+                                },
+                                "already_submitted": True,
+                            }
+                        )
+                return Response(
+                    {"detail": "Placement đã hết hạn. Vui lòng tải lại bộ câu hỏi."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        question_map = {item["question_id"]: item for item in questions}
-        correct_count = 0
-        total = 0
-        level_stats: dict[str, dict[str, int]] = {}
-        answer_details = []
-        for answer in answers:
-            q = question_map.get(answer["question_id"])
-            if not q:
-                continue
-            selected = (answer["option"] or "").strip().lower()
-            correct_option = (q.get("correct_option") or "").strip().lower()
-            is_correct = selected == correct_option and bool(correct_option)
-            level = (q.get("word_level") or "A1").upper()
-            bucket = level_stats.setdefault(level, {"total": 0, "correct": 0})
-            bucket["total"] += 1
-            if is_correct:
-                bucket["correct"] += 1
-                correct_count += 1
-            total += 1
-            answer_details.append(
-                {
-                    "question_id": q["question_id"],
-                    "word_id": q["word_id"],
-                    "selected_option": answer["option"],
-                    "is_correct": is_correct,
-                    "word_level": level,
-                }
-            )
+            question_map = {item["question_id"]: item for item in questions}
+            correct_count = 0
+            total = 0
+            level_stats: dict[str, dict[str, int]] = {}
+            answer_details = []
+            for answer in answers:
+                q = question_map.get(answer["question_id"])
+                if not q:
+                    continue
+                selected = (answer["option"] or "").strip().lower()
+                correct_option = (q.get("correct_option") or "").strip().lower()
+                is_correct = selected == correct_option and bool(correct_option)
+                level = (q.get("word_level") or "A1").upper()
+                bucket = level_stats.setdefault(level, {"total": 0, "correct": 0})
+                bucket["total"] += 1
+                if is_correct:
+                    bucket["correct"] += 1
+                    correct_count += 1
+                total += 1
+                answer_details.append(
+                    {
+                        "question_id": q["question_id"],
+                        "word_id": q["word_id"],
+                        "selected_option": answer["option"],
+                        "is_correct": is_correct,
+                        "word_level": level,
+                    }
+                )
 
-        if total < PLACEMENT_MIN_SUBMIT_QUESTIONS:
-            return Response(
-                {"detail": "Không đủ câu trả lời hợp lệ để chấm điểm."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if total < PLACEMENT_MIN_SUBMIT_QUESTIONS:
+                return Response(
+                    {"detail": "Không đủ câu trả lời hợp lệ để chấm điểm."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        score_pct = round((correct_count / total) * 100, 2)
-        recommended_level = _compute_recommended_level(level_stats)
-        result = PlacementResult.objects.create(
-            user=request.user,
-            recommended_level=recommended_level,
-            score_pct=score_pct,
-            total_questions=total,
-            correct_answers=correct_count,
-            answers=answer_details,
-        )
-        cache.delete(_placement_cache_key(request.user.id))
+            score_pct = round((correct_count / total) * 100, 2)
+            recommended_level = _compute_recommended_level(level_stats)
+            result = PlacementResult.objects.create(
+                user=request.user,
+                recommended_level=recommended_level,
+                score_pct=score_pct,
+                total_questions=total,
+                correct_answers=correct_count,
+                answers=answer_details,
+            )
+            cache.delete(_placement_cache_key(request.user.id))
+            cache.set(_placement_submit_result_cache_key(request.user.id), result.id, timeout=60)
         _track_onboarding_step(
             request.user,
             "placement_submit",
@@ -1453,6 +1488,12 @@ class LearningSessionResumeView(APIView):
                 }
             )
 
+        if session.session_type == LearningSession.SessionType.CHECKPOINT:
+            return Response(
+                {"detail": "Checkpoint đã dừng phải bắt đầu lại từ đầu."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         if hearts.current_hearts <= 0:
             return Response(
@@ -1880,35 +1921,39 @@ class StreakFreezeClaimView(APIView):
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
-        streak = _get_or_create_streak(request.user)
-        if streak.streak_freezes >= 5:
-            return Response(
-                {"detail": "Bạn đã đạt giới hạn streak freeze (5)."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if request.user.xp < STREAK_FREEZE_XP_COST:
-            return Response(
-                {
-                    "detail": "Không đủ XP để đổi streak freeze.",
-                    "required_xp": STREAK_FREEZE_XP_COST,
-                    "current_xp": request.user.xp,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        user_model = type(request.user)
+        with transaction.atomic():
+            user = user_model.objects.select_for_update().get(pk=request.user.pk)
+            streak = _get_or_create_streak(user)
+            streak = type(streak).objects.select_for_update().get(pk=streak.pk)
+            if streak.streak_freezes >= 5:
+                return Response(
+                    {"detail": "Bạn đã đạt giới hạn streak freeze (5)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.xp < STREAK_FREEZE_XP_COST:
+                return Response(
+                    {
+                        "detail": "Không đủ XP để đổi streak freeze.",
+                        "required_xp": STREAK_FREEZE_XP_COST,
+                        "current_xp": user.xp,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        request.user.xp -= STREAK_FREEZE_XP_COST
-        request.user.level = request.user._calculate_level(request.user.xp)
-        request.user.save(update_fields=["xp", "level", "updated_at"])
+            user.xp -= STREAK_FREEZE_XP_COST
+            user.level = user._calculate_level(user.xp)
+            user.save(update_fields=["xp", "level", "updated_at"])
 
-        streak.streak_freezes += 1
-        streak.save(update_fields=["streak_freezes"])
+            streak.streak_freezes += 1
+            streak.save(update_fields=["streak_freezes"])
 
         return Response(
             {
                 "freeze_count": streak.streak_freezes,
                 "spent_xp": STREAK_FREEZE_XP_COST,
-                "xp": request.user.xp,
-                "level": request.user.level,
+                "xp": user.xp,
+                "level": user.level,
             }
         )
 
@@ -1962,6 +2007,7 @@ class ReviewAnswerView(APIView):
 
         xp = XP_REVIEW_CORRECT if quality >= 3 else XP_REVIEW_WRONG
         streak = _apply_learning_rewards(request.user, xp_earned=xp, study_minutes=1)
+        request.user.refresh_from_db(fields=["xp", "level"])
 
         return Response(
             {

@@ -13,6 +13,7 @@ from apps.learning.models import (
     UserReminderPreference,
     UserStreak,
 )
+from apps.learning.shared_flow import _build_hearts_payload
 
 pytestmark = pytest.mark.django_db
 
@@ -370,6 +371,22 @@ def test_claim_streak_freeze_respects_cap(sc, student):
     assert response.status_code == 400
     streak.refresh_from_db()
     assert streak.streak_freezes == 5
+
+
+def test_build_hearts_payload_handles_missing_last_refill(student):
+    hearts = UserHearts(
+        user=student,
+        current_hearts=2,
+        max_hearts=5,
+        refill_interval_minutes=30,
+        last_refill_at=None,
+    )
+
+    payload = _build_hearts_payload(hearts)
+
+    assert payload["current"] == 2
+    assert payload["max"] == 5
+    assert payload["next_refill_seconds"] >= 0
 
 
 def _seed_recent_completed_sessions(student, lesson, unit, sessions_payload):

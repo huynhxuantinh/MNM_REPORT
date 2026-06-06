@@ -23,7 +23,14 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .permissions import IsAdmin
-from .throttles import LoginRateThrottle, PasswordResetRateThrottle, RegisterRateThrottle
+from .throttles import (
+    LoginRateThrottle,
+    LoginStrictRateThrottle,
+    PasswordResetRateThrottle,
+    PasswordResetStrictRateThrottle,
+    RegisterRateThrottle,
+    RegisterStrictRateThrottle,
+)
 
 from .models import EmailVerificationToken, PasswordResetToken, User
 from .serializers import (
@@ -68,7 +75,7 @@ class RegisterView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [RegisterRateThrottle]
+    throttle_classes = [RegisterRateThrottle, RegisterStrictRateThrottle]
 
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
@@ -160,7 +167,7 @@ class LoginView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [LoginRateThrottle]
+    throttle_classes = [LoginRateThrottle, LoginStrictRateThrottle]
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):
@@ -256,7 +263,7 @@ class ForgotPasswordView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [PasswordResetRateThrottle]
+    throttle_classes = [PasswordResetRateThrottle, PasswordResetStrictRateThrottle]
 
     _GENERIC_MSG = "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn trong vài phút."
 
@@ -299,7 +306,7 @@ class ResetPasswordView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [PasswordResetRateThrottle]
+    throttle_classes = [PasswordResetRateThrottle, PasswordResetStrictRateThrottle]
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):

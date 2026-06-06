@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from .models import EmailVerificationToken, User
 from .serializers import ForgotPasswordSerializer
-from .throttles import RegisterRateThrottle
+from .throttles import RegisterRateThrottle, RegisterStrictRateThrottle
 from .utils import generate_token, send_verification_email
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class ResendVerificationEmailView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [RegisterRateThrottle]
+    throttle_classes = [RegisterRateThrottle, RegisterStrictRateThrottle]
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     def post(self, request):

@@ -1,5 +1,6 @@
 """Tests for learning path + learning session phase 1 endpoints."""
 import pytest
+from django.core.cache import cache
 from django.utils import timezone
 
 from apps.learning.models import (
@@ -17,6 +18,7 @@ from apps.learning.models import (
     UserUnitProgress,
 )
 from apps.learning.models import Lesson
+from apps.learning.shared_flow import _placement_cache_key
 from apps.vocabulary.models import Word
 
 pytestmark = pytest.mark.django_db
@@ -25,12 +27,14 @@ PATH_URL = "/api/v1/learning/path/"
 LISTENING_PATH_URL = "/api/v1/learning/listening/"
 START_URL = "/api/v1/learning/session/start/"
 LISTENING_START_URL = "/api/v1/learning/listening/session/start/"
+PLACEMENT_SUBMIT_URL = "/api/v1/learning/placement/submit/"
 DETAIL_URL = lambda sid: f"/api/v1/learning/session/{sid}/"
 LISTENING_DETAIL_URL = lambda sid: f"/api/v1/learning/listening/session/{sid}/"
 ANSWER_URL = lambda sid: f"/api/v1/learning/session/{sid}/answer/"
 FINISH_URL = lambda sid: f"/api/v1/learning/session/{sid}/finish/"
 CHECKPOINT_START_URL = "/api/v1/learning/checkpoint/start/"
 CHECKPOINT_SUBMIT_URL = lambda sid: f"/api/v1/learning/checkpoint/{sid}/submit/"
+RESUME_URL = lambda sid: f"/api/v1/learning/session/{sid}/resume/"
 
 
 @pytest.fixture
@@ -511,3 +515,55 @@ class TestLearningSession:
         assert third is not None
         assert third.data["feedback"]["difficulty_adjustment"]["difficulty"] == "normal"
         assert session.difficulty == LearningSession.Difficulty.NORMAL
+
+    def test_checkpoint_resume_rejected_for_abandoned_checkpoint(self, sc, student, lesson):
+        course = Course.objects.create(name="Resume Checkpoint", slug="resume-checkpoint", is_active=True)
+        unit = Unit.objects.create(course=course, title="Unit 1", order_index=1, required_lessons_to_unlock=1, is_published=True)
+        session = LearningSession.objects.create(
+            user=student,
+            unit=unit,
+            lesson=lesson,
+            status=LearningSession.Status.ABANDONED,
+            session_type=LearningSession.SessionType.CHECKPOINT,
+            difficulty=LearningSession.Difficulty.NORMAL,
+            exercises=[],
+        )
+
+        response = sc.post(RESUME_URL(session.id))
+        assert response.status_code == 400
+        assert "Checkpoint" in response.data["detail"]
+
+
+class TestPlacementSubmit:
+    def test_double_submit_returns_existing_result_without_duplicate_rows(self, sc, student, teacher):
+        questions = []
+        answers = []
+        for idx in range(1, 6):
+            word = Word.objects.create(
+                text=f"placement_word_{idx}",
+                definition_vi=f"nghia_{idx}",
+                level="A1",
+                created_by=teacher,
+            )
+            questions.append(
+                {
+                    "question_id": idx,
+                    "word_id": word.id,
+                    "word_text": word.text,
+                    "word_level": "A1",
+                    "prompt": f'Chon nghia dung cua "{word.text}"',
+                    "choices": [f"nghia_{idx}", "sai_1", "sai_2", "sai_3"],
+                    "correct_option": f"nghia_{idx}",
+                }
+            )
+            answers.append({"question_id": idx, "option": f"nghia_{idx}"})
+
+        cache.set(_placement_cache_key(student.id), questions, timeout=300)
+
+        first = sc.post(PLACEMENT_SUBMIT_URL, {"answers": answers}, format="json")
+        second = sc.post(PLACEMENT_SUBMIT_URL, {"answers": answers}, format="json")
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert second.data["already_submitted"] is True
+        assert PlacementResult.objects.filter(user=student).count() == 1

@@ -35,15 +35,6 @@ class PasswordResetStrictRateThrottle(AnonRateThrottle):
     rate = "2/hour"
 
 
-class CaptchaRateThrottle(AnonRateThrottle):
-    """
-    Throttle kích hoạt khi captcha required.
-    Giới hạn 5 lần/phút khi captcha không hợp lệ.
-    """
-    scope = "captcha"
-    rate = "5/minute"
-
-
 class BurstRateThrottle(UserRateThrottle):
     """Giới hạn burst requests cho user đã đăng nhập (100/phút)."""
     scope = "burst"

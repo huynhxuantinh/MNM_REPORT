@@ -247,22 +247,6 @@ class UserStreak(models.Model):
     def __str__(self):
         return f"{self.user} 🔥 {self.current_streak} ngày"
 
-    def update_streak(self) -> None:
-        """Gọi mỗi khi user học hoặc ôn ≥ 1 từ trong ngày."""
-        today = _localdate_for_user(self.user)
-        if self.last_active_date == today:
-            return  # Đã cập nhật hôm nay
-
-        if self.last_active_date == today - timedelta(days=1):
-            self.current_streak += 1
-        else:
-            self.current_streak = 1  # Bỏ ngày → reset
-
-        self.longest_streak = max(self.longest_streak, self.current_streak)
-        self.last_active_date = today
-        self.save()
-
-
 class Course(models.Model):
     """Course container for learning path."""
 

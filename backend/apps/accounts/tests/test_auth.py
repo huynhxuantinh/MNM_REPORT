@@ -4,12 +4,18 @@ Unit tests cho toàn bộ Auth module.
 Chạy: pytest apps/accounts/tests/test_auth.py -v
 """
 import pytest
+from django.core.cache import cache
 from django.core import mail
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
 
 from apps.accounts.models import EmailVerificationToken, PasswordResetToken, User
+from apps.accounts.throttles import (
+    LoginStrictRateThrottle,
+    PasswordResetStrictRateThrottle,
+    RegisterStrictRateThrottle,
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -78,6 +84,19 @@ class TestRegister:
         data = {**VALID_REGISTER_DATA, "email": "NewUser@Example.COM"}
         client.post(REGISTER_URL, data)
         assert User.objects.filter(email="newuser@example.com").exists()
+
+    def test_register_strict_throttle_applies(self, client, monkeypatch):
+        cache.clear()
+        monkeypatch.setattr(RegisterStrictRateThrottle, "rate", "1/minute", raising=False)
+
+        first = client.post(REGISTER_URL, VALID_REGISTER_DATA)
+        second = client.post(
+            REGISTER_URL,
+            {**VALID_REGISTER_DATA, "username": "newuser2", "email": "newuser2@example.com"},
+        )
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -162,6 +181,16 @@ class TestLogin:
     def test_email_case_insensitive(self, client, active_user):
         response = client.post(LOGIN_URL, {"email": active_user.email.upper(), "password": "TestPass123!"})
         assert response.status_code == status.HTTP_200_OK
+
+    def test_login_strict_throttle_applies(self, client, active_user, monkeypatch):
+        cache.clear()
+        monkeypatch.setattr(LoginStrictRateThrottle, "rate", "1/minute", raising=False)
+
+        first = client.post(LOGIN_URL, {"email": active_user.email, "password": "WrongPass!"})
+        second = client.post(LOGIN_URL, {"email": active_user.email, "password": "WrongPass!"})
+
+        assert first.status_code == status.HTTP_400_BAD_REQUEST
+        assert second.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -254,6 +283,16 @@ class TestForgotPassword:
     def test_inactive_user_no_email_sent(self, client, inactive_user):
         client.post(FORGOT_URL, {"email": inactive_user.email})
         assert len(mail.outbox) == 0
+
+    def test_password_reset_strict_throttle_applies(self, client, active_user, monkeypatch):
+        cache.clear()
+        monkeypatch.setattr(PasswordResetStrictRateThrottle, "rate", "1/minute", raising=False)
+
+        first = client.post(FORGOT_URL, {"email": active_user.email})
+        second = client.post(FORGOT_URL, {"email": active_user.email})
+
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
 # ══════════════════════════════════════════════════════════════════════════════
