@@ -1,6 +1,5 @@
 """Learner/admin-facing views for learning module."""
 
-import hashlib
 from datetime import datetime, timedelta
 
 from drf_spectacular.types import OpenApiTypes
@@ -37,20 +36,7 @@ from .shared_flow import _get_or_create_streak
 LEADERBOARD_CACHE_TTL_SECONDS = 120
 LEAGUE_CACHE_TTL_SECONDS = 60
 KPI_CACHE_TTL_SECONDS = 300
-
-
-def _leaderboard_cache_key() -> str:
-    top_rows = list(
-        User.objects.filter(role=User.Role.USER, is_active=True)
-        .order_by("-xp", "id")
-        .values_list("id", "xp", "updated_at")[:50]
-    )
-    raw = "|".join(
-        f"{user_id}:{xp}:{updated_at.isoformat() if updated_at else 'none'}"
-        for user_id, xp, updated_at in top_rows
-    )
-    digest = hashlib.md5(raw.encode()).hexdigest()
-    return f"learning:leaderboard:top50:v2:{digest}"
+LEADERBOARD_CACHE_KEY = "learning:leaderboard:top50:v3"
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class ProfileStatsView(APIView):
@@ -148,8 +134,7 @@ class LeaderboardView(APIView):
     throttle_classes = [LearningAnalyticsReadRateThrottle]
 
     def get(self, request):
-        cache_key = _leaderboard_cache_key()
-        cached = cache.get(cache_key)
+        cached = cache.get(LEADERBOARD_CACHE_KEY)
         if cached is not None:
             return Response(cached)
 
@@ -167,7 +152,7 @@ class LeaderboardView(APIView):
             }
             for u in users
         ]
-        cache.set(cache_key, data, timeout=LEADERBOARD_CACHE_TTL_SECONDS)
+        cache.set(LEADERBOARD_CACHE_KEY, data, timeout=LEADERBOARD_CACHE_TTL_SECONDS)
         return Response(data)
 
 

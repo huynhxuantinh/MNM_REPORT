@@ -114,7 +114,7 @@ const CourseDialog = ({ open, course, existingSlugs, onClose, onSave }) => {
 };
 
 const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
-  const maxUnlockLessons = Math.max(0, Number(unit?.lesson_count ?? 0));
+  const maxUnlockLessons = unit ? Math.max(0, Number(unit?.lesson_count ?? 0)) : null;
   const [form, setForm] = useState(
     unit
       ? {
@@ -136,7 +136,7 @@ const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
   );
 
   const unlockCount = Number(form.required_lessons_to_unlock) || 0;
-  const unlockInvalid = unlockCount < 0 || unlockCount > maxUnlockLessons;
+  const unlockInvalid = unlockCount < 0 || (maxUnlockLessons !== null && unlockCount > maxUnlockLessons);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: "16px" } }}>
@@ -163,8 +163,14 @@ const UnitDialog = ({ open, unit, courseId, onClose, onSave }) => {
             size="small"
             sx={{ flex: 1 }}
             error={unlockInvalid}
-            helperText={unlockInvalid ? `Nhập từ 0 đến ${maxUnlockLessons}.` : `Giới hạn hiện tại: 0 đến ${maxUnlockLessons}.`}
-            inputProps={{ min: 0, max: maxUnlockLessons }}
+            helperText={
+              unlockInvalid
+                ? `Nhập từ 0 đến ${maxUnlockLessons}.`
+                : maxUnlockLessons === null
+                  ? "Bạn có thể nhập số mở khóa trước. Sau khi thêm bài học, hãy kiểm tra lại nếu cần."
+                  : `Giới hạn hiện tại: 0 đến ${maxUnlockLessons}.`
+            }
+            inputProps={maxUnlockLessons === null ? { min: 0 } : { min: 0, max: maxUnlockLessons }}
           />
         </Stack>
         <FormControlLabel

@@ -19,10 +19,23 @@ import { colors } from "@/styles/theme";
 
 const PLACEMENT_DRAFT_KEY = "learning_placement_draft_v1";
 
-const getFirstUnlockedLesson = (pathData) => {
+const getPlacementStartLesson = (pathData) => {
   const units = (pathData?.units || [])
     .filter((unit) => !!unit?.unlocked)
     .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+
+  const recommendedStartUnitId = pathData?.placement?.recommended_start_unit_id ?? null;
+  if (recommendedStartUnitId) {
+    const recommendedUnit = units.find((unit) => unit?.id === recommendedStartUnitId);
+    if (recommendedUnit) {
+      const recommendedLessons = (recommendedUnit?.lessons || [])
+        .filter((item) => !!item?.lesson?.id)
+        .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
+      if (recommendedLessons.length > 0) {
+        return recommendedLessons[0].lesson;
+      }
+    }
+  }
 
   for (const unit of units) {
     const lessonLinks = (unit?.lessons || [])
@@ -87,7 +100,7 @@ const LearningPlacementPage = () => {
   const startFirstLessonMutation = useMutation({
     mutationFn: async () => {
       const pathData = await learningApi.getLearningPath().then((response) => response.data);
-      const firstLesson = getFirstUnlockedLesson(pathData);
+      const firstLesson = getPlacementStartLesson(pathData);
       if (!firstLesson?.id) {
         throw new Error("Không tìm thấy bài học đã mở khóa để bắt đầu.");
       }

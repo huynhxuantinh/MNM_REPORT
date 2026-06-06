@@ -1,5 +1,5 @@
-"""
-Cài đặt Django cơ sở — dùng chung cho tất cả môi trường.
+﻿"""
+CĂ i Ä‘áº·t Django cÆ¡ sá»Ÿ â€” dĂ¹ng chung cho táº¥t cáº£ mĂ´i trÆ°á»ng.
 """
 from pathlib import Path
 from decouple import config, Csv
@@ -12,7 +12,7 @@ _DEBUG_RAW = str(config("DEBUG", default="False")).strip().lower()
 DEBUG = _DEBUG_RAW in {"1", "true", "yes", "on", "debug"}
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
 
-# ── Ứng dụng ──────────────────────────────────────────────────────
+# â”€â”€ á»¨ng dá»¥ng â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -41,7 +41,7 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# ── Middleware ────────────────────────────────────────────────────
+# â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -73,7 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# ── Database ──────────────────────────────────────────────────────
+# â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -86,7 +86,7 @@ DATABASES = {
     }
 }
 
-# ── Cache (Redis) ─────────────────────────────────────────────────
+# â”€â”€ Cache (Redis) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -100,7 +100,7 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
-# ── Auth ──────────────────────────────────────────────────────────
+# â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -110,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ── DRF ───────────────────────────────────────────────────────────
+# â”€â”€ DRF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -126,18 +126,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "config.pagination.StandardPageNumberPagination",
     "PAGE_SIZE": config("DEFAULT_PAGE_SIZE", default=20, cast=int),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # ── Throttling ──────────────────────────────────────────────
+    # â”€â”€ Throttling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/minute",           # Khách (không đăng nhập)
-        "user": "300/minute",          # User đã xác thực
+        "anon": "60/minute",           # KhĂ¡ch (khĂ´ng Ä‘Äƒng nháº­p)
+        "user": "300/minute",          # User Ä‘Ă£ xĂ¡c thá»±c
         # Auth endpoints - standard
         "login": "10/minute",          # Brute-force login (normal)
-        "register": "5/minute",        # Ngăn tạo tài khoản hàng loạt
-        "password_reset": "5/hour",   # Ngăn spam email reset
+        "register": "5/minute",        # NgÄƒn táº¡o tĂ i khoáº£n hĂ ng loáº¡t
+        "password_reset": "5/hour",   # NgÄƒn spam email reset
         # Auth endpoints - strict (after multiple failures)
         "login_strict": "3/minute",          # After 3 failed attempts
         "register_strict": "2/minute",       # After 3 failed attempts
@@ -159,7 +159,7 @@ REST_FRAMEWORK = {
     },
 }
 
-# ── JWT ───────────────────────────────────────────────────────────
+# â”€â”€ JWT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=config("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=60, cast=int)
@@ -172,17 +172,17 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ── CORS ──────────────────────────────────────────────────────────
+# â”€â”€ CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
 
-# ── Internationalisation ─────────────────────────────────────────
+# â”€â”€ Internationalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 
-# ── Static & Media ────────────────────────────────────────────────
+# â”€â”€ Static & Media â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 STATIC_URL = config("STATIC_URL", default="/static/")
 STATIC_ROOT = BASE_DIR / "static"
 MEDIA_URL = config("MEDIA_URL", default="/media/")
@@ -190,7 +190,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ── Email ─────────────────────────────────────────────────────────
+# â”€â”€ Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 EMAIL_BACKEND      = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST         = config("EMAIL_HOST",     default="sandbox.smtp.mailtrap.io")
 EMAIL_PORT         = config("EMAIL_PORT",     default=2525, cast=int)
@@ -199,10 +199,10 @@ EMAIL_HOST_USER    = config("EMAIL_HOST_USER",     default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NoroStu <noreply@norostu.com>")
 
-# ── Frontend ──────────────────────────────────────────────────────
+# â”€â”€ Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
-# ── Celery ────────────────────────────────────────────────────────
+# â”€â”€ Celery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CELERY_BROKER_URL        = config("REDIS_URL", default="redis://redis:6379/0")
 CELERY_RESULT_BACKEND    = config("REDIS_URL", default="redis://redis:6379/0")
 CELERY_TASK_SERIALIZER   = "json"
@@ -211,38 +211,14 @@ CELERY_ACCEPT_CONTENT    = ["json"]
 CELERY_TIMEZONE          = TIME_ZONE
 CELERY_ENABLE_UTC        = True
 
-# Lịch chạy task tự động.
-# LUᷔU Ý: Không import crontab tại đây để tránh circular import với celery.py.
-# Cấu hình cụ thể theo giờ (crontab) được đặt trong config/celery.py.
-CELERY_BEAT_SCHEDULE = {
-    # 20:00 ICT mỗi ngày — nhắc ôn từ đến hạn (override bằng crontab trong config/celery.py)
-    "review-reminders-daily": {
-        "task": "learning.send_review_reminders",
-        "schedule": timedelta(hours=24),  # Fallback; crontab được set trong celery.py
-    },
-    "daily-goal-reminders-hourly": {
-        "task": "learning.send_daily_goal_reminders",
-        "schedule": timedelta(hours=1),
-    },
-    "onboarding-first-lesson-reminders-hourly": {
-        "task": "learning.send_onboarding_first_lesson_reminders",
-        "schedule": timedelta(hours=1),
-    },
-    "refill-hearts-hourly": {
-        "task": "learning.refill_hearts",
-        "schedule": timedelta(hours=1),
-    },
-    "rebuild-weekly-league-daily": {
-        "task": "learning.rebuild_weekly_league",
-        "schedule": timedelta(hours=24),
-    },
+# Lá»‹ch cháº¡y task tá»± Ä‘á»™ng.
+# LUá·”U Ă: KhĂ´ng import crontab táº¡i Ä‘Ă¢y Ä‘á»ƒ trĂ¡nh circular import vá»›i celery.py.
+# Cáº¥u hĂ¬nh cá»¥ thá»ƒ theo giá» (crontab) Ä‘Æ°á»£c Ä‘áº·t trong config/celery.py.
+CELERY_BEAT_SCHEDULE = {}
 
-}
-
-# ── API Docs (drf-spectacular) ────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     "TITLE": "NoroStu API",
-    "DESCRIPTION": "API cho ứng dụng học từ vựng tiếng Anh NoroStu",
+    "DESCRIPTION": "API cho á»©ng dá»¥ng há»c tá»« vá»±ng tiáº¿ng Anh NoroStu",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
@@ -250,3 +226,4 @@ SPECTACULAR_SETTINGS = {
         "WordLevelEnum": "apps.vocabulary.models.Word.Level",
     },
 }
+

@@ -303,7 +303,7 @@ const LeaderboardPage = () => {
         <Box sx={{ mb: 3, p: 2, borderRadius: "18px", background: "rgba(0,116,74,0.08)", border: "1px solid rgba(0,116,74,0.2)" }}>
           <Typography sx={{ fontWeight: 800, color: colors.greenAccent, mb: 0.5 }}>Vị trí của bạn tuần này</Typography>
           <Typography sx={{ color: "text.secondary" }}>
-            Hạng #{data.me.rank} • {data.me.xp_earned.toLocaleString()} XP tuần
+            Hạng #{data.me.rank} • {(data.me.xp_earned ?? 0).toLocaleString()} XP tuần
           </Typography>
         </Box>
       )}

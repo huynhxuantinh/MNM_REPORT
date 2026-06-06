@@ -164,7 +164,7 @@ def test_leaderboard_filters_inactive_users(sc, student):
     assert inactive.id not in ids
 
 
-def test_leaderboard_cache_key_refreshes_after_xp_change(sc, student):
+def test_leaderboard_uses_cached_snapshot_until_ttl_expires(sc, student):
     student.full_name = "Cache Student"
     student.xp = 10
     student.is_active = True
@@ -179,5 +179,5 @@ def test_leaderboard_cache_key_refreshes_after_xp_change(sc, student):
 
     response2 = sc.get(LEADERBOARD_URL)
     assert response2.status_code == 200
-    assert response2.data[0]["xp"] == 25
+    assert response2.data[0]["xp"] == 10
     assert response2.data[0]["username"] == student.username

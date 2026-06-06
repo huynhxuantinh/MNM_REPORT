@@ -151,18 +151,18 @@ class QuizSubmitView(APIView):
             correct_answers = int(request.data.get("correct_answers", 0))
         except (TypeError, ValueError):
             return Response(
-                {"detail": "total_questions va correct_answers phai la so nguyen."},
+                {"detail": "total_questions và correct_answers phải là số nguyên."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if total_questions <= 0:
             return Response(
-                {"detail": "total_questions phai lon hon 0."},
+                {"detail": "total_questions phải lớn hơn 0."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if correct_answers < 0 or correct_answers > total_questions:
             return Response(
-                {"detail": "correct_answers khong hop le."},
+                {"detail": "correct_answers không hợp lệ."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

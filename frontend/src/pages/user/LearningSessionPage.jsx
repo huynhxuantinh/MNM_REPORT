@@ -67,10 +67,14 @@ const isTypingTarget = (target) => {
 const SessionSummary = ({ session, result, onBack, backLabel = "Về lộ trình học" }) => {
   const passed = !!result?.passed;
   const isCheckpoint = session?.session_type === "checkpoint";
-  const summary = result?.summary;
+  const summary = result?.summary || {};
   const accuracyByType = summary?.accuracy_by_type || {};
   const reviewWords = summary?.review_words || [];
   const isListeningLesson = session?.lesson_skill_tag === "listening";
+  const totalAnswered = session?.total_answered ?? summary?.total_answered ?? 0;
+  const correctAnswered = session?.correct_answered ?? summary?.correct_answered ?? 0;
+  const earnedXp = session?.xp_earned ?? result?.xp_earned ?? summary?.xp_earned ?? 0;
+  const accuracyPct = summary?.accuracy_pct ?? (totalAnswered > 0 ? Math.round((correctAnswered / totalAnswered) * 100) : 0);
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 560, mx: "auto", py: 4, textAlign: "center" }}>
@@ -79,10 +83,10 @@ const SessionSummary = ({ session, result, onBack, backLabel = "Về lộ trình
       </Typography>
       <SbCard>
         <Stack spacing={1.2}>
-          <Typography>Tổng câu: {session?.total_answered ?? 0}</Typography>
-          <Typography>Đúng: {session?.correct_answered ?? 0}</Typography>
-          <Typography>XP nhận được: {session?.xp_earned ?? 0}</Typography>
-          <Typography>Độ chính xác: {summary?.accuracy_pct ?? 0}%</Typography>
+          <Typography>Tổng câu: {totalAnswered}</Typography>
+          <Typography>Đúng: {correctAnswered}</Typography>
+          <Typography>XP nhận được: {earnedXp}</Typography>
+          <Typography>Độ chính xác: {accuracyPct}%</Typography>
           {isCheckpoint && result && (
             <Typography sx={{ fontWeight: 700, color: passed ? colors.greenAccent : colors.red }}>
               Điểm: {result.score_pct}% | {passed ? "Đạt" : "Chưa đạt"}
@@ -576,7 +580,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     return (
       <SessionSummary
         session={session}
-        result={finishPayload}
+        result={finishPayload || { summary: { accuracy_pct: session.total_answered > 0 ? Math.round((session.correct_answered / session.total_answered) * 100) : 0 } }}
         onBack={handleBack}
         backLabel={backLabel}
       />
