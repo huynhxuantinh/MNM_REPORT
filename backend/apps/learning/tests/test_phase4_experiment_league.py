@@ -18,6 +18,7 @@ pytestmark = pytest.mark.django_db
 
 DAILY_GOAL_URL = "/api/v1/learning/daily-goal/"
 LEAGUE_CURRENT_URL = "/api/v1/learning/league/current/"
+LEADERBOARD_URL = "/api/v1/learning/leaderboard/"
 
 
 @pytest.fixture
@@ -113,6 +114,10 @@ def test_rebuild_weekly_league_creates_standings(student, lesson, unit_for_sessi
 
 
 def test_league_current_endpoint_returns_payload(sc, student, lesson, unit_for_session):
+    student.full_name = "Weekly Student"
+    student.xp = 320
+    student.is_active = True
+    student.save(update_fields=["full_name", "xp", "is_active"])
     now = timezone.now()
     LearningSession.objects.create(
         user=student,
@@ -129,3 +134,50 @@ def test_league_current_endpoint_returns_payload(sc, student, lesson, unit_for_s
     assert response.data["season"] is not None
     assert isinstance(response.data["leaderboard"], list)
     assert response.data["me"] is not None
+    top = response.data["leaderboard"][0]
+    assert top["username"] == student.username
+    assert top["level"] == student.level
+    assert "streak" in top
+
+
+def test_leaderboard_filters_inactive_users(sc, student):
+    student.full_name = "Active Student"
+    student.xp = 120
+    student.is_active = True
+    student.save(update_fields=["full_name", "xp", "is_active"])
+
+    inactive = User.objects.create_user(
+        username="inactive_top",
+        email="inactive_top@test.com",
+        password="Pass123!",
+        full_name="Inactive Top",
+        xp=999,
+        is_active=False,
+        email_verified=False,
+        role=User.Role.USER,
+    )
+
+    response = sc.get(LEADERBOARD_URL)
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.data]
+    assert student.id in ids
+    assert inactive.id not in ids
+
+
+def test_leaderboard_cache_key_refreshes_after_xp_change(sc, student):
+    student.full_name = "Cache Student"
+    student.xp = 10
+    student.is_active = True
+    student.save(update_fields=["full_name", "xp", "is_active"])
+
+    response1 = sc.get(LEADERBOARD_URL)
+    assert response1.status_code == 200
+    assert response1.data[0]["xp"] == 10
+
+    student.xp = 25
+    student.save(update_fields=["xp"])
+
+    response2 = sc.get(LEADERBOARD_URL)
+    assert response2.status_code == 200
+    assert response2.data[0]["xp"] == 25
+    assert response2.data[0]["username"] == student.username

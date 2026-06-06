@@ -1,5 +1,6 @@
 """Learner/admin-facing views for learning module."""
 
+import hashlib
 from datetime import datetime, timedelta
 
 from drf_spectacular.types import OpenApiTypes
@@ -28,6 +29,7 @@ from .models import (
     ListeningSession,
     Notification,
     ReviewLog,
+    UserStreak,
 )
 from .serializers import NotificationSerializer
 from .shared_flow import _get_or_create_streak
@@ -35,6 +37,20 @@ from .shared_flow import _get_or_create_streak
 LEADERBOARD_CACHE_TTL_SECONDS = 120
 LEAGUE_CACHE_TTL_SECONDS = 60
 KPI_CACHE_TTL_SECONDS = 300
+
+
+def _leaderboard_cache_key() -> str:
+    top_rows = list(
+        User.objects.filter(role=User.Role.USER, is_active=True)
+        .order_by("-xp", "id")
+        .values_list("id", "xp", "updated_at")[:50]
+    )
+    raw = "|".join(
+        f"{user_id}:{xp}:{updated_at.isoformat() if updated_at else 'none'}"
+        for user_id, xp, updated_at in top_rows
+    )
+    digest = hashlib.md5(raw.encode()).hexdigest()
+    return f"learning:leaderboard:top50:v2:{digest}"
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class ProfileStatsView(APIView):
@@ -132,17 +148,18 @@ class LeaderboardView(APIView):
     throttle_classes = [LearningAnalyticsReadRateThrottle]
 
     def get(self, request):
-        cache_key = "learning:leaderboard:top50:v1"
+        cache_key = _leaderboard_cache_key()
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
 
-        users = list(User.objects.filter(role="user").order_by("-xp")[:50])
+        users = list(User.objects.filter(role=User.Role.USER, is_active=True).order_by("-xp", "id")[:50])
         streak_map = {s.user_id: s.current_streak for s in UserStreak.objects.filter(user__in=users)}
         data = [
             {
                 "id": u.id,
                 "full_name": u.full_name,
+                "username": u.username,
                 "avatar_url": u.avatar_url or None,
                 "level": u.level,
                 "xp": u.xp,
@@ -174,12 +191,19 @@ class LeagueCurrentView(APIView):
                 .select_related("user")
                 .order_by("rank", "-xp_earned", "-sessions_completed", "user_id")[:50]
             )
+            streak_map = {
+                s.user_id: s.current_streak
+                for s in UserStreak.objects.filter(user_id__in=[row.user_id for row in standings])
+            }
             cached_top = [
                 {
                     "rank": row.rank,
                     "user_id": row.user_id,
                     "full_name": row.user.full_name,
+                    "username": row.user.username,
                     "avatar_url": row.user.avatar_url or None,
+                    "level": row.user.level,
+                    "streak": streak_map.get(row.user_id, 0),
                     "xp_earned": row.xp_earned,
                     "sessions_completed": row.sessions_completed,
                 }
