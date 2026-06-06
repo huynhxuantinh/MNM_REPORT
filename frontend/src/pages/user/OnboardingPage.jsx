@@ -49,6 +49,8 @@ const OnboardingPage = () => {
       }));
       qc.invalidateQueries({ queryKey: ["placement-status"] });
       qc.invalidateQueries({ queryKey: ["learning-path"] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
+      qc.invalidateQueries({ queryKey: ["home-learning-path"] });
       navigate("/learning", { replace: true });
     },
     onError: (err) => {
@@ -60,6 +62,8 @@ const OnboardingPage = () => {
         }));
         qc.invalidateQueries({ queryKey: ["placement-status"] });
         qc.invalidateQueries({ queryKey: ["learning-path"] });
+        qc.invalidateQueries({ queryKey: ["lessons"] });
+        qc.invalidateQueries({ queryKey: ["home-learning-path"] });
         navigate("/learning", { replace: true });
       }
     },

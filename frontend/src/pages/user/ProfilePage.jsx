@@ -88,13 +88,13 @@ const ActivityHeatmap = () => {
   }, [history]);
 
   // Build grid: weeks x days, newest week rightmost
-  const today = new Date();
-  // Align to Saturday (end of week column)
-  const dayOfWeek = today.getDay(); // 0=Sun ... 6=Sat
-  const endDate = new Date(today);
-  endDate.setDate(today.getDate() + (6 - dayOfWeek)); // next/current Saturday
+  const todayKey = new Date().toDateString();
 
   const cells = useMemo(() => {
+    const today = new Date(todayKey);
+    const dayOfWeek = today.getDay();
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + (6 - dayOfWeek));
     const grid = []; // grid[week][day]
     for (let w = WEEKS - 1; w >= 0; w--) {
       const week = [];
@@ -107,7 +107,7 @@ const ActivityHeatmap = () => {
       grid.push(week);
     }
     return grid;
-  }, [countMap]);
+  }, [countMap, todayKey]);
 
   // Month labels: show month name when month changes across columns
   const monthLabels = useMemo(() => {

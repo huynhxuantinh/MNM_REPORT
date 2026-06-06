@@ -282,6 +282,8 @@ const ReviewPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState(null);
+  const [submitError, setSubmitError] = useState("");
   const [stats, setStats] = useState({ total: 0, correct: 0, xpEarned: 0, streak: 0, totalXP: null, level: null });
 
   const flippedRef = useRef(flipped);
@@ -303,6 +305,8 @@ const ReviewPage = () => {
   useEffect(() => {
     setFlipped(false);
     setSpeaking(false);
+    setSelectedQuality(null);
+    setSubmitError("");
   }, [currentIdx]);
 
   const advance = useCallback(() => {
@@ -325,6 +329,8 @@ const ReviewPage = () => {
   const handleQuality = useCallback(async (quality) => {
     if (!current || submitting) return;
     setSubmitting(true);
+    setSelectedQuality(quality);
+    setSubmitError("");
     try {
       const { data: response } = await learningApi.submitAnswer(current.word.id, quality);
       setStats((prev) => ({
@@ -338,11 +344,11 @@ const ReviewPage = () => {
       if (response.total_xp !== undefined) {
         dispatch(setUser({ xp: response.total_xp, level: response.level }));
       }
-    } catch {
-      // Tiếp tục flow ngay cả khi lỗi mạng tạm thời.
+      advance();
+    } catch (err) {
+      setSubmitError(err?.response?.data?.detail || "Gửi kết quả ôn tập thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
-      advance();
     }
   }, [current, submitting, advance, dispatch]);
 
@@ -358,7 +364,10 @@ const ReviewPage = () => {
         const digit = parseInt(event.key, 10);
         if (digit >= 0 && digit <= 5) {
           event.preventDefault();
-          handleQualityRef.current(digit);
+          setSelectedQuality(digit);
+          window.setTimeout(() => {
+            handleQualityRef.current(digit);
+          }, 90);
         }
       }
     };
@@ -496,11 +505,12 @@ const ReviewPage = () => {
                 sx={{
                   p: { xs: "8px 6px", sm: "10px 10px" },
                   borderRadius: "12px",
-                  border: `2px solid ${border}`,
+                  border: `2px solid ${selectedQuality === q ? color : border}`,
                   bgcolor: bg,
                   cursor: submitting ? "wait" : "pointer",
                   opacity: submitting ? 0.65 : 1,
                   transition: "transform 0.12s, box-shadow 0.15s",
+                  boxShadow: selectedQuality === q ? `0 0 0 3px ${border}66` : "none",
                   "&:hover": submitting ? {} : { transform: "translateY(-2px)", boxShadow: `0 4px 14px ${border}99` },
                   "&:active": submitting ? {} : { transform: "scale(0.96)" },
                   textAlign: "center",
@@ -520,6 +530,11 @@ const ReviewPage = () => {
             <Box sx={{ display: "flex", justifyContent: "center" }}>
               <CircularProgress size={18} sx={{ color: colors.greenAccent }} />
             </Box>
+          )}
+          {!!submitError && (
+            <Typography sx={{ textAlign: "center", fontSize: "0.82rem", color: colors.red }}>
+              {submitError}
+            </Typography>
           )}
         </Box>
       )}

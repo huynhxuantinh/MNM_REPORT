@@ -119,4 +119,61 @@ describe("LearningSessionPage listening controls", () => {
       expect(window.speechSynthesis.speak).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("still shows summary when finish succeeds but refetch fails", async () => {
+    const learningApi = (await import("@/services/learningApi")).default;
+    learningApi.getLearningSession
+      .mockResolvedValueOnce({
+        data: {
+          session: {
+            id: 501,
+            status: "started",
+            session_type: "lesson",
+            difficulty: "normal",
+            lesson_title: "Listening Demo",
+            lesson_skill_tag: "listening",
+            lesson_listening_transcript: "Anna takes a bus to school every morning.",
+            lesson_listening_translation_vi: "Anna di xe buyt den truong moi buoi sang.",
+            unit_title: "Listening Lab",
+            total_answered: 1,
+            correct_answered: 1,
+            xp_earned: 10,
+          },
+          attempts: [{ step_index: 1 }],
+          exercises: [
+            {
+              step_index: 1,
+              exercise_type: "listen_choose_word",
+              prompt: "Chon tu ban nghe thay",
+              audio_text: "Anna takes a bus to school every morning.",
+              choices: ["bus", "train", "car", "ticket"],
+            },
+          ],
+          hearts: { current: 10, max: 10 },
+        },
+      })
+      .mockRejectedValueOnce({
+        response: { data: { detail: "Refetch fail" } },
+      });
+    learningApi.finishLearningSession.mockResolvedValue({
+      data: {
+        passed: true,
+        summary: { accuracy_pct: 100, accuracy_by_type: {}, review_words: [] },
+        user: { xp: 20, level: 1 },
+      },
+    });
+
+    renderWithProviders(<LearningSessionPage />, {
+      preloadedState: { auth: { user: { id: 1, xp: 10, level: 1 } } },
+      initialEntries: ["/learning/session/501"],
+    });
+
+    await waitFor(() => {
+      expect(learningApi.finishLearningSession).toHaveBeenCalledWith("501");
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/hoàn thành phiên học/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/không tải được phiên học/i)).not.toBeInTheDocument();
+  });
 });

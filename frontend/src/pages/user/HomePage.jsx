@@ -214,7 +214,7 @@ const StatCard = ({ icon, value, label, color, sub, loading }) => (
 );
 
 const XpCard = ({ user, loading }) => {
-  const level = user?.level ?? 1;
+  const level = Math.max(1, user?.level ?? 1);
   const xp = user?.xp ?? 0;
   const prev = getLevelThreshold(level - 1);
   const next = getLevelThreshold(level);

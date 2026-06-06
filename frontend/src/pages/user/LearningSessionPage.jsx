@@ -199,6 +199,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
   const [orderedTokens, setOrderedTokens] = useState([]);
   const [usedTokenIndexes, setUsedTokenIndexes] = useState(new Set());
   const [finishPayload, setFinishPayload] = useState(null);
+  const [completedSessionSnapshot, setCompletedSessionSnapshot] = useState(null);
   const [frustrationGuard, setFrustrationGuard] = useState(null);
   const [quitDialogOpen, setQuitDialogOpen] = useState(false);
   const [heartsState, setHeartsState] = useState(null);
@@ -275,6 +276,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     setSubmittedStepIndex(null);
     setShowTranscript(false);
     setTtsWarning("");
+    setCompletedSessionSnapshot(null);
     answerMutation.reset();
   }, [sessionId]);
 
@@ -291,6 +293,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
   const checkpointSubmitMutation = useMutation({
     mutationFn: () => learningApi.submitCheckpoint(sessionId).then((response) => response.data),
     onSuccess: (data) => {
+      setCompletedSessionSnapshot(session);
       setFinishPayload(data);
       invalidateLearningCaches();
       refetch();
@@ -300,6 +303,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
   const finishMutation = useMutation({
     mutationFn: () => learningApi.finishLearningSession(sessionId).then((response) => response.data),
     onSuccess: (data) => {
+      setCompletedSessionSnapshot(session);
       setFinishPayload(data);
       if (data?.user?.xp !== undefined) {
         dispatch(setUser({ xp: data.user.xp, level: data.user.level }));
@@ -362,6 +366,27 @@ const LearningSessionPage = ({ mode = "learning" }) => {
       }
     },
   });
+
+  useEffect(() => {
+    if (!exercises.length || session?.status !== "started" || finishPayload) return;
+    const answered = new Set(attempts.map((item) => item.step_index));
+    const allAnswered = exercises.every((exercise) => answered.has(exercise.step_index));
+    if (!allAnswered || finishMutation.isPending || checkpointSubmitMutation.isPending) return;
+
+    if (session?.session_type === "checkpoint") {
+      checkpointSubmitMutation.mutate();
+    } else {
+      finishMutation.mutate();
+    }
+  }, [
+    attempts,
+    checkpointSubmitMutation,
+    exercises,
+    finishMutation,
+    finishPayload,
+    session?.session_type,
+    session?.status,
+  ]);
 
   const currentExercise = useMemo(() => exercises[currentStepIndex] || null, [exercises, currentStepIndex]);
   const isListeningLesson = session?.lesson_skill_tag === "listening";
@@ -527,6 +552,17 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     );
   }
 
+  if (finishPayload) {
+    return (
+      <SessionSummary
+        session={completedSessionSnapshot || session}
+        result={finishPayload}
+        onBack={handleBack}
+        backLabel={backLabel}
+      />
+    );
+  }
+
   if (isError || !session) {
     return (
       <Stack spacing={2}>
@@ -536,7 +572,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     );
   }
 
-  if (session.status === "completed" || finishPayload) {
+  if (session.status === "completed") {
     return (
       <SessionSummary
         session={session}
@@ -846,7 +882,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
         <DialogTitle sx={{ fontWeight: 700 }}>Thoát phiên học?</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: "text.secondary" }}>
-            Tiến trình của bạn trong phiên này sẽ không được lưu. Bạn có chắc muốn thoát không?
+            Phiên học sẽ bị hủy, nhưng các câu đã làm vẫn được lưu để bạn có thể tiếp tục lại sau. Bạn có chắc muốn thoát không?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

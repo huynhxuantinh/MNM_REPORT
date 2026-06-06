@@ -190,4 +190,29 @@ describe("ReviewPage", () => {
       expect(screen.getByText("eloquent")).toBeInTheDocument();
     });
   });
+
+  it("không trôi sang từ tiếp theo khi submit thất bại", async () => {
+    const learningApi = await import("@/services/learningApi");
+    learningApi.default.getReviewList.mockResolvedValue({ data: { words: MOCK_WORDS, count: 2 } });
+    learningApi.default.submitAnswer.mockRejectedValue({
+      response: { data: { detail: "Lỗi mạng" } },
+    });
+
+    renderWithProviders(<ReviewPage />, {
+      preloadedState: { auth: { user: { id: 1, xp: 95, level: 1 }, isAuthenticated: true, loading: false, error: null } },
+      initialEntries: ["/review"],
+    });
+
+    await waitFor(() => screen.getByText("meticulous"));
+    fireEvent.click(screen.getByRole("button", { name: /lật thẻ/i }));
+    await waitFor(() => screen.getByText("Tốt"));
+
+    fireEvent.click(screen.getByText("Tốt"));
+
+    await waitFor(() => {
+      expect(learningApi.default.submitAnswer).toHaveBeenCalledWith(10, 4);
+    });
+    expect(screen.getByText("meticulous")).toBeInTheDocument();
+    expect(screen.queryByText("eloquent")).not.toBeInTheDocument();
+  });
 });
