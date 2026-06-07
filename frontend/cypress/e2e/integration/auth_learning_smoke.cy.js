@@ -1,10 +1,11 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
 /**
- * Login qua API + skip placement ngay sau đó trong cùng chain.
- * Đảm bảo PlacementResult tồn tại trước khi visit bất kỳ page nào.
+ * Login qua API:
+ * - Lấy access token → lưu vào Cypress.env("accessToken") cho cy.request()
+ * - Server set HTTP-only cookie refresh_token → browser dùng được initAuth
  */
-const loginAndPrepare = (email, password) =>
+const loginViaApi = (email, password) =>
   cy
     .request({
       method: "POST",
@@ -14,14 +15,6 @@ const loginAndPrepare = (email, password) =>
     })
     .then(({ body }) => {
       Cypress.env("accessToken", body.access);
-      // Skip placement ngay sau login để should_show_onboarding = false
-      cy.request({
-        method: "POST",
-        url: `${API_BASE}/learning/placement/skip/`,
-        headers: { Authorization: `Bearer ${body.access}` },
-        failOnStatusCode: false,
-        withCredentials: true,
-      });
     });
 
 /** cy.request() tự động đính Authorization header */
@@ -36,6 +29,14 @@ const authRequest = (method, url, body) => {
   };
   if (body !== undefined) opts.body = body;
   return cy.request(opts);
+};
+
+const ensurePlacementReady = () => {
+  authRequest("GET", `${API_BASE}/learning/placement/status/`).then(({ body }) => {
+    if (body?.should_show_onboarding) {
+      authRequest("POST", `${API_BASE}/learning/placement/skip/`, {});
+    }
+  });
 };
 
 const buildLearningAnswerPayload = (exercise) => {
@@ -63,18 +64,19 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    loginAndPrepare("student@norostu.com", "Student@2024!");
+    // Login qua API — set cookie + lấy access token
+    loginViaApi("student@norostu.com", "Student@2024!");
+    ensurePlacementReady();
 
+    // Visit trực tiếp — initAuth dùng cookie để tự xác thực
     cy.visit("/learning");
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
-    // Đợi learning path load xong rồi mới tìm nút start
     cy.get('[data-cy^="learning-start-"]', { timeout: 20000 })
-    .filter(":not([disabled])")
-    .should("have.length.at.least", 1)
-    .first()
-    .click({ force: true });  
-
+      .filter(":not([disabled])")
+      .should("have.length.at.least", 1)
+      .first()
+      .click({ force: true });
     cy.location("pathname", { timeout: 20000 }).should("match", /\/learning\/session\/\d+$/);
 
     cy.location("pathname").then((pathname) => {
@@ -88,15 +90,15 @@ describe("Integration Smoke", () => {
       });
     });
 
-// Intercept placement-status để React Query không dùng cache cũ
-// should_show_onboarding=false → PlacementGateRoute không redirect sang /onboarding
-cy.intercept("GET", "**/learning/placement/status/**", {
-  statusCode: 200,
-  body: { should_show_onboarding: false },
-}).as("placementStatus");
+    // Intercept placement-status để React Query không dùng cache cũ
+    // should_show_onboarding=false → PlacementGateRoute không redirect sang /onboarding
+    cy.intercept("GET", "**/learning/placement/status/**", {
+      statusCode: 200,
+      body: { should_show_onboarding: false },
+    }).as("placementStatus");
 
-cy.visit("/listening", {
-  onBeforeLoad(win) {
+    cy.visit("/listening", {
+      onBeforeLoad(win) {
         Object.defineProperty(win, "speechSynthesis", {
           configurable: true,
           writable: true,
@@ -113,12 +115,12 @@ cy.visit("/listening", {
           this.rate = 1;
           this.voice = null;
         };
-  },
-});
+      },
+    });
 
-cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
-cy.location("pathname", { timeout: 20000 }).should("not.include", "/onboarding");
-cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
+    cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
+    cy.location("pathname", { timeout: 20000 }).should("not.include", "/onboarding");
+    cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
       .should("have.length.at.least", 1)
       .first()
       .click({ force: true });
@@ -155,16 +157,11 @@ cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
     });
 
     cy.reload();
-    cy.contains(/k.t qu.|ket qua/i, { timeout: 20000 }).should("be.visible");
+    cy.contains(/k?t qu?|ket qua/i, { timeout: 20000 }).should("be.visible");
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
-    cy.request({
-      method: "POST",
-      url: `${API_BASE}/auth/login/`,
-      body: { email: "admin@norostu.com", password: "Admin@2024!" },
-      withCredentials: true,
-    });
+    loginViaApi("admin@norostu.com", "Admin@2024!");
     cy.visit("/admin");
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
     cy.contains(/system dashboard|c.ng qu.n tr.|cong quan tri/i, { timeout: 20000 }).should("be.visible");
