@@ -1,4 +1,4 @@
-﻿"""
+"""
 CĂ i Ä‘áº·t Django cÆ¡ sá»Ÿ â€” dĂ¹ng chung cho táº¥t cáº£ mĂ´i trÆ°á»ng.
 """
 from pathlib import Path

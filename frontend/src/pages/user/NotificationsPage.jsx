@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Box, Typography, Chip, CircularProgress, Divider } from "@mui/material";
 import { NotificationsRounded as NotificationsRoundedIcon } from "@mui/icons-material";
 import { EmojiEventsRounded as EmojiEventsRoundedIcon } from "@mui/icons-material";
