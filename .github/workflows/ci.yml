@@ -293,6 +293,7 @@ jobs:
 
       - name: Seed integration smoke dataset
         run: |
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_data
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_full_catalog --clear
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_learning_path
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_listening_demo --clear
@@ -323,7 +324,7 @@ jobs:
         with:
           working-directory: ./frontend
           install: false
-          command: npm run cy:run -- --spec "cypress/e2e/integration/auth_learning_smoke.cy.js"
+          command: npm run cy:run -- --spec cypress/e2e/integration/auth_learning_smoke.cy.js
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
