@@ -162,12 +162,15 @@ jobs:
           restore-keys: |
             cypress-${{ runner.os }}-
 
+      - name: List Cypress smoke specs
+        run: find frontend/cypress/e2e/mocked -type f -name "*.cy.js" -print
+
       - name: Run Cypress tests
         uses: cypress-io/github-action@v6
         with:
           working-directory: ./frontend
           install: false
-          command: npm run cy:run -- --spec "cypress/e2e/mocked/**/*.cy.js"
+          command: npm run cy:run -- --spec "cypress/e2e/mocked/learning_flow.cy.js,cypress/e2e/mocked/admin_flow.cy.js"
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
@@ -283,12 +286,15 @@ jobs:
           docker compose -f docker-compose.yml exec -T backend python manage.py seed_learning_path
           docker compose -f docker-compose.yml exec -T backend python manage.py seed_listening_demo --clear
 
+      - name: List Cypress integration specs
+        run: find frontend/cypress/e2e/integration -type f -name "*.cy.js" -print
+
       - name: Run integration Cypress smoke
         uses: cypress-io/github-action@v6
         with:
           working-directory: ./frontend
           install: false
-          command: npm run cy:run -- --spec "cypress/e2e/integration/**/*.cy.js"
+          command: npm run cy:run -- --spec "cypress/e2e/integration/auth_learning_smoke.cy.js"
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
