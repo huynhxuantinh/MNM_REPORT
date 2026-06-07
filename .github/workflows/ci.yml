@@ -276,10 +276,6 @@ jobs:
           docker compose -f docker-compose.yml logs --tail=200
           exit 1
 
-      - name: Run database migrations
-        run: |
-          docker compose -f docker-compose.yml exec -T backend python manage.py migrate
-
       - name: Seed integration smoke dataset
         run: |
           docker compose -f docker-compose.yml exec -T backend python manage.py seed_full_catalog --clear
