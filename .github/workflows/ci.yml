@@ -262,9 +262,26 @@ jobs:
           MAX_PAGE_SIZE=100
           EOF
 
-      - name: Start integration stack
+      - name: Reset integration stack
+        run: docker compose -f docker-compose.yml down -v --remove-orphans
+
+      - name: Start integration data services
         run: |
-          docker compose -f docker-compose.yml up -d --build postgres redis backend celery-worker celery-beat
+          docker compose -f docker-compose.yml up -d --build postgres redis
+
+      - name: Run integration migrations
+        run: |
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py migrate --noinput
+
+      - name: Seed integration smoke dataset
+        run: |
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_full_catalog --clear
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_learning_path
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_listening_demo --clear
+
+      - name: Start integration app services
+        run: |
+          docker compose -f docker-compose.yml up -d backend celery-worker celery-beat
 
       - name: Wait for backend
         run: |
@@ -279,12 +296,6 @@ jobs:
           docker compose -f docker-compose.yml ps
           docker compose -f docker-compose.yml logs --tail=200
           exit 1
-
-      - name: Seed integration smoke dataset
-        run: |
-          docker compose -f docker-compose.yml exec -T backend python manage.py seed_full_catalog --clear
-          docker compose -f docker-compose.yml exec -T backend python manage.py seed_learning_path
-          docker compose -f docker-compose.yml exec -T backend python manage.py seed_listening_demo --clear
 
       - name: List Cypress integration specs
         run: find frontend/cypress/e2e/integration -type f -name "*.cy.js" -print
