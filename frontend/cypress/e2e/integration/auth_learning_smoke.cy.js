@@ -2,8 +2,9 @@ const API_BASE = "http://127.0.0.1:8000/api/v1";
 
 /**
  * Login qua API:
- * - Lấy access token → lưu vào Cypress.env("accessToken") cho cy.request()
- * - Server set HTTP-only cookie refresh_token → browser dùng được initAuth
+ * - Lấy access + refresh token từ response body
+ * - Intercept /auth/token/refresh/ để trả token ngay, không cần HTTP-only cookie
+ *   (cookie cross-origin bị chặn vì frontend :5173 ≠ backend :8000)
  */
 const loginViaApi = (email, password) =>
   cy
@@ -15,6 +16,7 @@ const loginViaApi = (email, password) =>
     })
     .then(({ body }) => {
       Cypress.env("accessToken", body.access);
+      Cypress.env("refreshToken", body.refresh);
     });
 
 /** cy.request() tự động đính Authorization header */
@@ -37,6 +39,31 @@ const ensurePlacementReady = () => {
       authRequest("POST", `${API_BASE}/learning/placement/skip/`, {});
     }
   });
+};
+
+/**
+ * Intercept token/refresh để bypass HTTP-only cookie (cross-origin issue).
+ * tokenStore.js giữ token in-memory → reset khi cy.visit() reload page.
+ * Giải pháp: mock /auth/token/refresh/ trả về access token ngay,
+ * để initAuth() hoàn thành thành công mà không cần cookie.
+ */
+const interceptTokenRefresh = () => {
+  const token = Cypress.env("accessToken");
+  cy.intercept("POST", "**/auth/token/refresh/**", {
+    statusCode: 200,
+    body: { access: token },
+  }).as("tokenRefresh");
+};
+
+/**
+ * Intercept placement/status để PlacementGateRoute không redirect sang /onboarding
+ * do React Query cache cũ từ lần visit trước.
+ */
+const interceptPlacementReady = () => {
+  cy.intercept("GET", "**/learning/placement/status/**", {
+    statusCode: 200,
+    body: { should_show_onboarding: false },
+  }).as("placementStatus");
 };
 
 const buildLearningAnswerPayload = (exercise) => {
@@ -64,14 +91,20 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    // Login qua API — set cookie + lấy access token
+    // 1. Login qua API để lấy access + refresh token
     loginViaApi("student@norostu.com", "Student@2024!");
     ensurePlacementReady();
 
-    // Visit trực tiếp — initAuth dùng cookie để tự xác thực
+    // 2. Intercept trước khi visit để initAuth() và PlacementGateRoute không bị block
+    interceptTokenRefresh();
+    interceptPlacementReady();
+
+    // 3. Visit /learning — initAuth sẽ gọi /auth/token/refresh/, được intercept trả token ngay
     cy.visit("/learning");
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
+    cy.location("pathname", { timeout: 20000 }).should("not.include", "/onboarding");
 
+    // 4. Tìm nút "Làm bài" của lesson đã unlock (không bị disabled)
     cy.get('[data-cy^="learning-start-"]', { timeout: 20000 })
       .filter(":not([disabled])")
       .should("have.length.at.least", 1)
@@ -90,12 +123,9 @@ describe("Integration Smoke", () => {
       });
     });
 
-    // Intercept placement-status để React Query không dùng cache cũ
-    // should_show_onboarding=false → PlacementGateRoute không redirect sang /onboarding
-    cy.intercept("GET", "**/learning/placement/status/**", {
-      statusCode: 200,
-      body: { should_show_onboarding: false },
-    }).as("placementStatus");
+    // 5. Intercept lại trước khi visit /listening (page load mới → cần intercept lại)
+    interceptTokenRefresh();
+    interceptPlacementReady();
 
     cy.visit("/listening", {
       onBeforeLoad(win) {
@@ -162,6 +192,7 @@ describe("Integration Smoke", () => {
 
   it("logs in as admin and loads the admin dashboard", () => {
     loginViaApi("admin@norostu.com", "Admin@2024!");
+    interceptTokenRefresh();
     cy.visit("/admin");
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
     cy.contains(/system dashboard|c.ng qu.n tr.|cong quan tri/i, { timeout: 20000 }).should("be.visible");
