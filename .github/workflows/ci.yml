@@ -165,12 +165,16 @@ jobs:
       - name: List Cypress smoke specs
         run: find frontend/cypress/e2e/mocked -type f -name "*.cy.js" -print
 
-      - name: Run Cypress tests
-        uses: cypress-io/github-action@v6
-        with:
-          working-directory: ./frontend
-          install: false
-          command: npm run cy:run -- --spec "cypress/e2e/mocked/learning_flow.cy.js,cypress/e2e/mocked/admin_flow.cy.js"
+      - name: Run student Cypress smoke
+        working-directory: ./frontend
+        run: npm run cy:run -- --spec cypress/e2e/mocked/learning_flow.cy.js
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
+          CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
+
+      - name: Run admin Cypress smoke
+        working-directory: ./frontend
+        run: npm run cy:run -- --spec cypress/e2e/mocked/admin_flow.cy.js
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
