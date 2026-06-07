@@ -5,8 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const mode = process.argv[2] ?? "run";
-const extraArgs = process.argv.slice(3);
-const strictMode = process.env.CYPRESS_STRICT === "1";
+const rawArgs = process.argv.slice(3);
+const strictFlag = rawArgs.includes("--strict");
+const fallbackFlag = rawArgs.includes("--allow-fallback");
+const extraArgs = rawArgs.filter((arg) => arg !== "--strict" && arg !== "--allow-fallback");
+const strictMode = strictFlag || process.env.CYPRESS_STRICT === "1";
 const skipVerify = process.env.CYPRESS_SKIP_VERIFY === "true" || process.env.SKIP_CYPRESS_VERIFY === "1";
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([, value]) => value !== undefined),
@@ -21,6 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FRONTEND_ROOT = path.resolve(__dirname, "..");
 const CYPRESS_BIN = path.join(FRONTEND_ROOT, "node_modules", "cypress", "bin", "cypress");
+const NPM_BIN = process.platform === "win32" ? "npm.cmd" : "npm";
 
 const runNodeScript = (scriptPath, args, options = {}) =>
   new Promise((resolve) => {
@@ -91,17 +95,17 @@ const stopDevServer = () => {
 
 const maybeRunFallback = () =>
   new Promise((resolve) => {
-    const allowFallback = !strictMode && env.ALLOW_CYPRESS_FALLBACK === "1";
+    const allowFallback = !strictMode && (fallbackFlag || env.ALLOW_CYPRESS_FALLBACK === "1");
     if (!allowFallback) {
       resolve(1);
       return;
     }
     console.warn("[run-cypress] Cypress failed, fallback to Playwright admin smoke...");
-    const fallback = spawn("npm.cmd", ["run", "pw:admin"], {
+    const fallback = spawn(NPM_BIN, ["run", "pw:admin"], {
       stdio: "inherit",
       env,
       cwd: FRONTEND_ROOT,
-      shell: true,
+      shell: process.platform === "win32",
     });
     fallback.on("exit", (fallbackCode) => resolve(fallbackCode ?? 1));
   });
@@ -119,13 +123,13 @@ Promise.resolve(skipVerify ? 0 : runNodeScript(CYPRESS_BIN, ["verify"]))
   .then((port) => {
     const appUrl = `http://${HOST}:${port}`;
     devServer = spawn(
-      "npm.cmd",
+      NPM_BIN,
       ["run", "dev", "--", "--host", HOST, "--port", String(port), "--strictPort"],
       {
       stdio: "inherit",
       env,
       cwd: FRONTEND_ROOT,
-      shell: true,
+      shell: process.platform === "win32",
       },
     );
 
@@ -151,7 +155,7 @@ Promise.resolve(skipVerify ? 0 : runNodeScript(CYPRESS_BIN, ["verify"]))
   .catch(async (err) => {
     console.error(`[run-cypress] ${err.message}`);
     stopDevServer();
-    if (mode === "run" && !strictMode && env.ALLOW_CYPRESS_FALLBACK === "1") {
+    if (mode === "run" && !strictMode && (fallbackFlag || env.ALLOW_CYPRESS_FALLBACK === "1")) {
       const fallbackCode = await maybeRunFallback();
       process.exit(fallbackCode);
       return;

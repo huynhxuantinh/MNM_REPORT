@@ -10,9 +10,9 @@
         "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 0",
         "test": "vitest",
         "test:coverage": "vitest --coverage",
-        "cy:open": "set ELECTRON_RUN_AS_NODE=&& node scripts/run-cypress.mjs open",
-        "cy:run": "set ELECTRON_RUN_AS_NODE=&& set CYPRESS_STRICT=1&& node scripts/run-cypress.mjs run",
-        "cy:run:fallback": "set ELECTRON_RUN_AS_NODE=&& set ALLOW_CYPRESS_FALLBACK=1&& node scripts/run-cypress.mjs run",
+        "cy:open": "node scripts/run-cypress.mjs open",
+        "cy:run": "node scripts/run-cypress.mjs run --strict",
+        "cy:run:fallback": "node scripts/run-cypress.mjs run --allow-fallback",
         "pw:admin": "node scripts/run-playwright-admin.mjs"
     },
     "dependencies": {
