@@ -1745,12 +1745,15 @@ class LearningCheckpointSubmitView(APIView):
 
         if passed:
             session_minutes = _estimate_session_minutes(session, now=now, max_minutes=45)
-            _apply_learning_rewards(
+            streak = _apply_learning_rewards(
                 request.user,
                 xp_earned=session.xp_earned,
                 study_minutes=session_minutes,
                 when=now,
             )
+            request.user.refresh_from_db(fields=["xp", "level"])
+        else:
+            streak = _get_or_create_streak(request.user)
 
         next_unit = (
             Unit.objects
@@ -1792,6 +1795,10 @@ class LearningCheckpointSubmitView(APIView):
                 },
                 "unlocked_next_unit": unlocked_next_unit,
                 "next_unit_id": next_unit.id if next_unit else None,
+                "xp_earned": session.xp_earned if passed else 0,
+                "total_xp": request.user.xp,
+                "level": request.user.level,
+                "streak": streak.current_streak,
             }
         )
 

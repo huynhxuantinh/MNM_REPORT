@@ -336,6 +336,9 @@ class TestLearningSession:
         assert submit.status_code == 200
         assert "score_pct" in submit.data
         assert "summary" in submit.data
+        assert "total_xp" in submit.data
+        assert "level" in submit.data
+        assert "streak" in submit.data
 
     def test_wrong_twice_pushes_word_to_early_review(self, sc, student, lesson, course_with_units):
         start = sc.post(START_URL, {"lesson_id": lesson.id}, format="json")

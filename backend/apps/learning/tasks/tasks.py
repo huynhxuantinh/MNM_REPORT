@@ -6,6 +6,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
 from ..shared_flow import _user_localdate, _user_localtime
@@ -27,31 +28,65 @@ def send_review_reminders() -> dict:
     from apps.accounts.models import User
     from apps.learning.models import Notification, ReviewLog, UserReminderPreference
 
-    users = User.objects.filter(
+    users = list(User.objects.filter(
         is_active=True,
         notification_enabled=True,
+    ))
+    user_ids = [user.id for user in users]
+    if not user_ids:
+        return {"sent": 0, "users_notified": 0}
+
+    user_map = {user.id: user for user in users}
+    prefs = UserReminderPreference.objects.filter(user_id__in=user_ids).select_related("user")
+    pref_map = {pref.user_id: pref for pref in prefs}
+    today_map = {user.id: _user_localdate(user) for user in users}
+    current_hour_map = {user.id: _user_localtime(user).hour for user in users}
+    review_rows = list(
+        ReviewLog.objects
+        .filter(user_id__in=user_ids)
+        .values("user_id", "next_review_date", "last_reviewed")
     )
+    due_count_map = {}
+    reviewed_today_ids = set()
+    for row in review_rows:
+        user_id = row["user_id"]
+        today = today_map.get(user_id)
+        if not today:
+            continue
+        next_review_date = row["next_review_date"]
+        last_reviewed = row["last_reviewed"]
+        if next_review_date and next_review_date <= today:
+            due_count_map[user_id] = due_count_map.get(user_id, 0) + 1
+        if last_reviewed == today:
+            reviewed_today_ids.add(user_id)
+    reminder_rows = list(
+        Notification.objects.filter(
+            user_id__in=user_ids,
+            type=Notification.Type.REMINDER,
+            message__icontains="on tap",
+            created_at__date__in=list(set(today_map.values())),
+        ).values("user_id", "created_at")
+    )
+    reminder_ids = {
+        row["user_id"]
+        for row in reminder_rows
+        if _user_localdate(user_map[row["user_id"]], row["created_at"]) == today_map.get(row["user_id"])
+    }
     sent = 0
 
     for user in users:
-        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
-        today = _user_localdate(user)
-        current_hour = _user_localtime(user).hour
-        due_count = ReviewLog.objects.filter(user=user, next_review_date__lte=today).count()
-        reviewed_today = ReviewLog.objects.filter(user=user, last_reviewed=today).exists()
+        pref = pref_map.get(user.id)
+        today = today_map[user.id]
+        current_hour = current_hour_map[user.id]
+        due_count = due_count_map.get(user.id, 0)
+        reviewed_today = user.id in reviewed_today_ids
         if due_count <= 0 or reviewed_today:
             continue
         target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
         if target_hour != current_hour:
             continue
 
-        duplicate = Notification.objects.filter(
-            user=user,
-            type=Notification.Type.REMINDER,
-            created_at__date=today,
-            message__icontains="on tap",
-        ).exists()
-        if duplicate:
+        if user.id in reminder_ids:
             continue
 
         Notification.objects.create(
@@ -83,32 +118,52 @@ def send_daily_goal_reminders() -> dict:
     from apps.accounts.models import User
     from apps.learning.models import DailyGoal, DailyGoalLog, Notification, UserReminderPreference
 
-    users = User.objects.filter(is_active=True, notification_enabled=True, role=User.Role.USER)
+    users = list(User.objects.filter(is_active=True, notification_enabled=True, role=User.Role.USER))
+    user_ids = [user.id for user in users]
+    if not user_ids:
+        return {"users_notified": 0}
+
+    user_map = {user.id: user for user in users}
+    prefs = UserReminderPreference.objects.filter(user_id__in=user_ids).select_related("user")
+    pref_map = {pref.user_id: pref for pref in prefs}
+    today_map = {user.id: _user_localdate(user) for user in users}
+    current_hour_map = {user.id: _user_localtime(user).hour for user in users}
+    goals = DailyGoal.objects.filter(user_id__in=user_ids, is_active=True)
+    goal_map = {goal.user_id: goal for goal in goals}
+    logs = DailyGoalLog.objects.filter(user_id__in=user_ids, goal_date__in=list(set(today_map.values())))
+    log_map = {log.user_id: log for log in logs}
+    reminder_rows = list(
+        Notification.objects.filter(
+            user_id__in=user_ids,
+            type=Notification.Type.REMINDER,
+            message__icontains="daily goal",
+            created_at__date__in=list(set(today_map.values())),
+        ).values("user_id", "created_at")
+    )
+    reminder_ids = {
+        row["user_id"]
+        for row in reminder_rows
+        if _user_localdate(user_map[row["user_id"]], row["created_at"]) == today_map.get(row["user_id"])
+    }
     reminded = 0
 
     for user in users:
-        goal = DailyGoal.objects.filter(user=user, is_active=True).first()
+        goal = goal_map.get(user.id)
         if not goal:
             continue
 
-        pref = UserReminderPreference.objects.filter(user=user).only("preferred_hour", "last_activity_at").first()
-        today = _user_localdate(user)
-        current_hour = _user_localtime(user).hour
+        pref = pref_map.get(user.id)
+        today = today_map[user.id]
+        current_hour = current_hour_map[user.id]
         target_hour = _resolve_target_hour(pref, fallback_hour=current_hour)
         if target_hour != current_hour:
             continue
 
-        log = DailyGoalLog.objects.filter(user=user, goal_date=today).first()
+        log = log_map.get(user.id)
         if log and log.is_achieved:
             continue
 
-        duplicate = Notification.objects.filter(
-            user=user,
-            type=Notification.Type.REMINDER,
-            created_at__date=today,
-            message__icontains="daily goal",
-        ).exists()
-        if duplicate:
+        if user.id in reminder_ids:
             continue
 
         studied = log.studied_minutes if log else 0
@@ -320,7 +375,6 @@ def rebuild_weekly_league() -> dict:
         .order_by("-xp_earned", "-sessions_completed", "user_id")
     )
 
-    LeagueStanding.objects.filter(season=season).delete()
     standings = []
     rank = 1
     for row in aggregates:
@@ -337,8 +391,10 @@ def rebuild_weekly_league() -> dict:
         )
         rank += 1
 
-    if standings:
-        LeagueStanding.objects.bulk_create(standings, batch_size=500)
+    with transaction.atomic():
+        LeagueStanding.objects.filter(season=season).delete()
+        if standings:
+            LeagueStanding.objects.bulk_create(standings, batch_size=500)
 
     return {
         "season_code": season.code,

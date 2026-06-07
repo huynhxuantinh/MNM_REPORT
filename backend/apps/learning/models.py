@@ -1011,7 +1011,6 @@ class Notification(models.Model):
     """Bảng Notification – thông báo trong ứng dụng."""
 
     class Type(models.TextChoices):
-        ASSIGNMENT = "assignment", "Bài được giao"
         LEVEL_UP = "level_up", "Lên cấp"
         STREAK = "streak", "Streak milestone"
         REMINDER = "reminder", "Nhắc nhở ôn tập"
