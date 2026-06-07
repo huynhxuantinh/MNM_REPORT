@@ -133,10 +133,10 @@ jobs:
           name: frontend-coverage
 
   # ───────────────────────────────────────────────────────────────
-  # E2E Tests (Cypress)
+  # Frontend Cypress Smoke (mocked API)
   # ───────────────────────────────────────────────────────────────
-  e2e-test:
-    name: E2E Tests
+  frontend-cypress-smoke:
+    name: Frontend Cypress Smoke
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-test]
 
@@ -153,6 +153,66 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./frontend
+          install: false
+          command: npm run cy:run -- --spec "cypress/e2e/mocked/**/*.cy.js"
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
+          CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: frontend/cypress/screenshots
+
+      - name: Upload videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-videos-smoke
+          path: frontend/cypress/videos
+
+  # Integration Smoke (real backend + DB)
+  integration-smoke:
+    name: Integration Smoke
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
 
       - name: Create CI environment file
         run: |
@@ -183,7 +243,7 @@ jobs:
           MEDIA_URL=/media/
           STATIC_URL=/static/
           USE_S3=False
-          VITE_API_BASE_URL=http://localhost:8000/api/v1
+          VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
           VITE_APP_NAME=NoroStu
           VITE_APP_VERSION=1.0.0
           VITE_SITE_URL=https://norostu.com
@@ -195,11 +255,11 @@ jobs:
           MAX_PAGE_SIZE=100
           EOF
 
-      - name: Set up Docker Compose
+      - name: Start integration stack
         run: |
           docker compose -f docker-compose.yml up -d --build postgres redis backend celery-worker celery-beat
 
-      - name: Wait for app services
+      - name: Wait for backend
         run: |
           for i in {1..60}; do
             if nc -z 127.0.0.1 8000; then
@@ -208,7 +268,7 @@ jobs:
             fi
             sleep 2
           done
-          echo "Services did not start in time"
+          echo "Backend did not start in time"
           docker compose -f docker-compose.yml ps
           docker compose -f docker-compose.yml logs --tail=200
           exit 1
@@ -217,34 +277,37 @@ jobs:
         run: |
           docker compose -f docker-compose.yml exec -T backend python manage.py migrate
 
-      - name: Seed test data
+      - name: Seed integration smoke dataset
         run: |
-          docker compose -f docker-compose.yml exec -T backend python manage.py seed_data --reset-passwords
+          docker compose -f docker-compose.yml exec -T backend python manage.py seed_full_catalog --clear
+          docker compose -f docker-compose.yml exec -T backend python manage.py seed_learning_path
+          docker compose -f docker-compose.yml exec -T backend python manage.py seed_listening_demo --clear
 
-      - name: Run Cypress tests
+      - name: Run integration Cypress smoke
         uses: cypress-io/github-action@v6
         with:
           working-directory: ./frontend
           install: false
-          command: npm run cy:run
-          wait-on: "tcp:127.0.0.1:8000"
-          wait-on-timeout: 120
+          command: npm run cy:run -- --spec "cypress/e2e/integration/**/*.cy.js"
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
+          CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
 
-      - name: Upload screenshots on failure
+      - name: Upload integration screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-screenshots
+          name: cypress-screenshots-integration
           path: frontend/cypress/screenshots
 
-      - name: Upload videos
+      - name: Upload integration videos
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cypress-videos
+          name: cypress-videos-integration
           path: frontend/cypress/videos
 
-      - name: Stop Docker Compose
+      - name: Stop integration stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
 
@@ -304,7 +367,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test, e2e-test, security-scan]
+    needs: [backend-test, frontend-test, frontend-cypress-smoke, integration-smoke, security-scan]
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -322,7 +385,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test, e2e-test, security-scan]
+    needs: [backend-test, frontend-test, frontend-cypress-smoke, integration-smoke, security-scan]
     if: startsWith(github.ref, 'refs/tags/v')
 
     environment:

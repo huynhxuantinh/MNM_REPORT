@@ -218,7 +218,7 @@ const ListeningSessionPage = () => {
             <SbButton size="small" variant={ttsRate === 1 ? "primary" : "outlined"} onClick={() => setTtsRate(1)}>
               1.0x
             </SbButton>
-            <SbButton size="small" variant="outlined" onClick={() => setShowTranscript((prev) => !prev)}>
+            <SbButton size="small" variant="outlined" data-cy="listening-transcript-toggle" onClick={() => setShowTranscript((prev) => !prev)}>
               {showTranscript ? "Ẩn transcript" : "Xem transcript"}
             </SbButton>
           </Stack>
@@ -351,3 +351,4 @@ const ListeningSessionPage = () => {
 };
 
 export default ListeningSessionPage;
+

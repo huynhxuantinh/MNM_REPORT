@@ -48,6 +48,7 @@ const ListeningCard = ({ passage, onStart, isStarting }) => (
       <Stack direction="row" justifyContent="flex-end">
         <SbButton
           variant="primary"
+          data-cy={`listening-start-${passage.id}`}
           startIcon={<HeadphonesRoundedIcon />}
           onClick={() => onStart(passage.id)}
           loading={isStarting}

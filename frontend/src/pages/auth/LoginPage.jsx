@@ -120,7 +120,7 @@ const LoginPage = () => {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box component="form" data-cy="login-form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <SbInput
             label="Email"
             type="email"
@@ -170,6 +170,7 @@ const LoginPage = () => {
 
           <SbButton
             type="submit"
+            data-cy="login-submit"
             variant="primary"
             size="large"
             loading={loading}
