@@ -1,11 +1,10 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
 /**
- * Login qua API:
- * - Lấy access token → lưu vào Cypress.env("accessToken") cho cy.request()
- * - Server set HTTP-only cookie refresh_token → browser dùng được initAuth
+ * Login qua API + skip placement ngay sau đó trong cùng chain.
+ * Đảm bảo PlacementResult tồn tại trước khi visit bất kỳ page nào.
  */
-const loginViaApi = (email, password) =>
+const loginAndPrepare = (email, password) =>
   cy
     .request({
       method: "POST",
@@ -15,6 +14,14 @@ const loginViaApi = (email, password) =>
     })
     .then(({ body }) => {
       Cypress.env("accessToken", body.access);
+      // Skip placement ngay sau login để should_show_onboarding = false
+      cy.request({
+        method: "POST",
+        url: `${API_BASE}/learning/placement/skip/`,
+        headers: { Authorization: `Bearer ${body.access}` },
+        failOnStatusCode: false,
+        withCredentials: true,
+      });
     });
 
 /** cy.request() tự động đính Authorization header */
@@ -29,14 +36,6 @@ const authRequest = (method, url, body) => {
   };
   if (body !== undefined) opts.body = body;
   return cy.request(opts);
-};
-
-const ensurePlacementReady = () => {
-  authRequest("GET", `${API_BASE}/learning/placement/status/`).then(({ body }) => {
-    if (body?.should_show_onboarding) {
-      authRequest("POST", `${API_BASE}/learning/placement/skip/`, {});
-    }
-  });
 };
 
 const buildLearningAnswerPayload = (exercise) => {
@@ -64,18 +63,17 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    // Login qua API — set cookie + lấy access token
-    loginViaApi("student@norostu.com", "Student@2024!");
-    ensurePlacementReady();
+    loginAndPrepare("student@norostu.com", "Student@2024!");
 
-    // Visit trực tiếp — initAuth dùng cookie để tự xác thực
     cy.visit("/learning");
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
-    cy.get('[data-cy^="learning-start-"]', { timeout: 20000 })
+    // Đợi learning path load xong rồi mới tìm nút start
+    cy.get('[data-cy^="learning-start-"]:not([data-cy="learning-start-disabled"])', { timeout: 20000 })
       .should("have.length.at.least", 1)
       .first()
       .click({ force: true });
+
     cy.location("pathname", { timeout: 20000 }).should("match", /\/learning\/session\/\d+$/);
 
     cy.location("pathname").then((pathname) => {
@@ -148,11 +146,16 @@ describe("Integration Smoke", () => {
     });
 
     cy.reload();
-    cy.contains(/k?t qu?|ket qua/i, { timeout: 20000 }).should("be.visible");
+    cy.contains(/k.t qu.|ket qua/i, { timeout: 20000 }).should("be.visible");
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
-    loginViaApi("admin@norostu.com", "Admin@2024!");
+    cy.request({
+      method: "POST",
+      url: `${API_BASE}/auth/login/`,
+      body: { email: "admin@norostu.com", password: "Admin@2024!" },
+      withCredentials: true,
+    });
     cy.visit("/admin");
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
     cy.contains(/system dashboard|c.ng qu.n tr.|cong quan tri/i, { timeout: 20000 }).should("be.visible");
