@@ -1,4 +1,6 @@
 """Models for account and authentication domain."""
+import math
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import F
@@ -55,10 +57,9 @@ class User(AbstractUser):
     @staticmethod
     def _calculate_level(xp: int) -> int:
         """Level formula: need 100*N*(N+1)/2 XP to reach level N."""
-        level = 1
-        while xp >= 100 * level * (level + 1) // 2:
-            level += 1
-        return level
+        xp = max(0, int(xp or 0))
+        level = int((1 + math.sqrt(1 + (2 * xp) / 25)) // 2)
+        return max(1, level)
 
 
 class EmailVerificationToken(models.Model):

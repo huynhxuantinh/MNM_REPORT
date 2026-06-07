@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Box, Typography, Avatar, CircularProgress, Chip } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { colors } from "@/styles/theme";

@@ -1,4 +1,4 @@
-﻿"""API gui lai email xac thuc (resend verification email)."""
+"""API gui lai email xac thuc (resend verification email)."""
 
 import logging
 import smtplib

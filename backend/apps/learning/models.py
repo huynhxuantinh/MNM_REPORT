@@ -235,8 +235,8 @@ class UserStreak(models.Model):
     current_streak = models.IntegerField("Streak hiện tại", default=0)
     longest_streak = models.IntegerField("Streak dài nhất", default=0)
     last_active_date = models.DateField("Ngày học gần nhất", null=True, blank=True)
-    streak_freezes = models.PositiveIntegerField("So streak freeze", default=0)
-    last_freeze_used_on = models.DateField("Ngay dung freeze gan nhat", null=True, blank=True)
+    streak_freezes = models.PositiveIntegerField("Số streak freeze", default=0)
+    last_freeze_used_on = models.DateField("Ngày dùng freeze gần nhất", null=True, blank=True)
     last_freeze_reward_streak = models.PositiveIntegerField("Last rewarded streak", default=0)
 
     class Meta:

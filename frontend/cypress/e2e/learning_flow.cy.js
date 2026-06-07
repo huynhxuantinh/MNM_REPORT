@@ -1,4 +1,4 @@
-﻿describe("Student Learning Flow", () => {
+describe("Student Learning Flow", () => {
   const student = {
     id: 10,
     email: "student@test.com",

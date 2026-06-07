@@ -1,4 +1,4 @@
-﻿"""Celery tasks for learning module."""
+"""Celery tasks for learning module."""
 from __future__ import annotations
 
 from datetime import timedelta

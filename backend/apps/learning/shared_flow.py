@@ -78,10 +78,7 @@ def _user_localtime(user, when=None):
 
 
 def _get_user_recommended_level(user) -> str:
-    result = (
-        getattr(user, "placement_results", None)
-        and user.placement_results.order_by("-created_at").first()
-    )
+    result = user.placement_results.order_by("-created_at").first()
     return (result.recommended_level if result else "A1") or "A1"
 
 

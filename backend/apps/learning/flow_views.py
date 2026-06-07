@@ -1,4 +1,4 @@
-﻿"""Flow-facing learning views (B2C learner journey)."""
+"""Flow-facing learning views (B2C learner journey)."""
 
 from collections import defaultdict
 from datetime import timedelta

@@ -7,7 +7,8 @@ Tạo:
 
 Command idempotent: chạy nhiều lần không tạo trùng (dùng get_or_create).
 """
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 
@@ -114,6 +115,9 @@ class Command(BaseCommand):
         from apps.learning.models import Lesson, LessonWord
 
         User = get_user_model()
+
+        if not settings.DEBUG:
+            raise CommandError("seed_data chỉ được chạy trong môi trường DEBUG.")
 
         if options["clear"]:
             self.stdout.write("Đang xóa dữ liệu cũ...")

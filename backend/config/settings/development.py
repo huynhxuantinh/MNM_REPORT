@@ -1,4 +1,4 @@
-﻿"""Settings for development environment."""
+"""Settings for development environment."""
 
 import importlib.util
 import os
