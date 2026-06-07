@@ -88,8 +88,15 @@ describe("Integration Smoke", () => {
       });
     });
 
-    cy.visit("/listening", {
-      onBeforeLoad(win) {
+// Intercept placement-status để React Query không dùng cache cũ
+// should_show_onboarding=false → PlacementGateRoute không redirect sang /onboarding
+cy.intercept("GET", "**/learning/placement/status/**", {
+  statusCode: 200,
+  body: { should_show_onboarding: false },
+}).as("placementStatus");
+
+cy.visit("/listening", {
+  onBeforeLoad(win) {
         Object.defineProperty(win, "speechSynthesis", {
           configurable: true,
           writable: true,
@@ -106,11 +113,12 @@ describe("Integration Smoke", () => {
           this.rate = 1;
           this.voice = null;
         };
-      },
-    });
+  },
+});
 
-    cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
-    cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
+cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
+cy.location("pathname", { timeout: 20000 }).should("not.include", "/onboarding");
+cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
       .should("have.length.at.least", 1)
       .first()
       .click({ force: true });
