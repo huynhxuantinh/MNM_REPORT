@@ -228,8 +228,8 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 "\nSeed hoan tat!"
-                "\n  Admin:   admin@norostu.com / Admin@123456"
-                "\n  Student: student@norostu.com / Student@123456"
+                "\n  Admin:   admin@norostu.com / Admin@2024!"
+                "\n  Student: student@norostu.com / Student@2024!"
                 f"\n  Tu vung: {Word.objects.count()}"
                 f"\n  Bo tu:   {WordSet.objects.count()}"
                 f"\n  Bai hoc: {Lesson.objects.count()}"
@@ -253,7 +253,7 @@ class Command(BaseCommand):
                 "email": "admin@norostu.com",
                 "username": "admin",
                 "full_name": "Quan tri vien",
-                "password": "Admin@123456",
+                "password": "Admin@2024!",
                 "role": "admin",
                 "is_staff": True,
                 "is_superuser": True,
@@ -262,7 +262,7 @@ class Command(BaseCommand):
                 "email": "student@norostu.com",
                 "username": "student",
                 "full_name": "Hoc sinh Nam",
-                "password": "Student@123456",
+                "password": "Student@2024!",
                 "role": "user",
                 "is_staff": False,
                 "is_superuser": False,

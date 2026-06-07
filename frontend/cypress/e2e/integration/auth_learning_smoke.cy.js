@@ -54,7 +54,7 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    loginThroughUi("student@norostu.com", "Student@123456");
+    loginThroughUi("student@norostu.com", "Student@2024!");
     ensurePlacementReady();
 
     cy.visit("/learning");
@@ -120,7 +120,7 @@ describe("Integration Smoke", () => {
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
-    loginThroughUi("admin@norostu.com", "Admin@123456");
+    loginThroughUi("admin@norostu.com", "Admin@2024!");
     cy.visit("/admin");
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
     cy.contains(/system dashboard|c?ng qu?n tr?|cong quan tri/i, { timeout: 20000 }).should("be.visible");
