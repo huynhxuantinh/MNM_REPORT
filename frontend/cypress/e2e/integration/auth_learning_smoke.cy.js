@@ -1,14 +1,23 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
-// Lấy access token qua API login, lưu vào Cypress.env để dùng cho cy.request()
+/**
+ * Login qua API:
+ * - Lấy access token → lưu vào Cypress.env("accessToken") cho cy.request()
+ * - Server set HTTP-only cookie refresh_token → browser dùng được initAuth
+ */
 const loginViaApi = (email, password) =>
   cy
-    .request("POST", `${API_BASE}/auth/login/`, { email, password })
+    .request({
+      method: "POST",
+      url: `${API_BASE}/auth/login/`,
+      body: { email, password },
+      withCredentials: true,
+    })
     .then(({ body }) => {
       Cypress.env("accessToken", body.access);
     });
 
-// Wrapper cho cy.request() tự động đính Authorization header
+/** cy.request() tự động đính Authorization header */
 const authRequest = (method, url, body) => {
   const token = Cypress.env("accessToken");
   const opts = {
@@ -16,19 +25,10 @@ const authRequest = (method, url, body) => {
     url,
     headers: { Authorization: `Bearer ${token}` },
     failOnStatusCode: false,
+    withCredentials: true,
   };
   if (body !== undefined) opts.body = body;
   return cy.request(opts);
-};
-
-const loginThroughUi = (email, password) => {
-  cy.visit("/login");
-  cy.get('[data-cy="login-form"]').within(() => {
-    cy.get('input[type="email"]').clear().type(email);
-    cy.get('input[autocomplete="current-password"]').clear().type(password);
-    cy.get('[data-cy="login-submit"]').click();
-  });
-  cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 };
 
 const ensurePlacementReady = () => {
@@ -41,7 +41,6 @@ const ensurePlacementReady = () => {
 
 const buildLearningAnswerPayload = (exercise) => {
   if (!exercise) throw new Error("Learning session has no exercise to answer.");
-
   let submittedAnswer;
   if (["mc_meaning", "listen_choose_word"].includes(exercise.exercise_type)) {
     submittedAnswer = { option: exercise.choices?.[0] || "" };
@@ -52,37 +51,31 @@ const buildLearningAnswerPayload = (exercise) => {
   } else {
     throw new Error(`Unsupported learning exercise type: ${exercise.exercise_type}`);
   }
-
-  return {
-    step_index: exercise.step_index,
-    submitted_answer: submittedAnswer,
-    response_ms: 900,
-  };
+  return { step_index: exercise.step_index, submitted_answer: submittedAnswer, response_ms: 900 };
 };
 
 const buildListeningAnswerPayload = (question) => {
   if (!question) throw new Error("Listening passage has no question to answer.");
-
   if (question.question_type === "fill_blank") {
     return { question_id: question.id, submitted_answer: { text: "test" } };
   }
-
-  return {
-    question_id: question.id,
-    submitted_answer: { option: question.choices_json?.[0] || "True" },
-  };
+  return { question_id: question.id, submitted_answer: { option: question.choices_json?.[0] || "True" } };
 };
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    // Login qua API để lấy access token cho cy.request()
+    // Login qua API — set cookie + lấy access token
     loginViaApi("student@norostu.com", "Student@2024!");
-    // Login qua UI để có session trong browser
-    loginThroughUi("student@norostu.com", "Student@2024!");
     ensurePlacementReady();
 
+    // Visit trực tiếp — initAuth dùng cookie để tự xác thực
     cy.visit("/learning");
-    cy.get('[data-cy^="learning-start-"]', { timeout: 20000 }).should("have.length.at.least", 1).first().click({ force: true });
+    cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
+
+    cy.get('[data-cy^="learning-start-"]', { timeout: 20000 })
+      .should("have.length.at.least", 1)
+      .first()
+      .click({ force: true });
     cy.location("pathname", { timeout: 20000 }).should("match", /\/learning\/session\/\d+$/);
 
     cy.location("pathname").then((pathname) => {
@@ -117,7 +110,11 @@ describe("Integration Smoke", () => {
       },
     });
 
-    cy.get('[data-cy^="listening-start-"]', { timeout: 20000 }).should("have.length.at.least", 1).first().click({ force: true });
+    cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
+    cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
+      .should("have.length.at.least", 1)
+      .first()
+      .click({ force: true });
     cy.location("pathname", { timeout: 20000 }).should("match", /\/listening\/session\/\d+$/);
     cy.get('[data-cy="listening-transcript-toggle"]').should("be.visible").click({ force: true });
 
@@ -127,20 +124,26 @@ describe("Integration Smoke", () => {
         const questions = body?.passage?.questions || [];
         expect(questions.length).to.be.greaterThan(0);
 
-        questions.reduce(
-          (chain, question) =>
-            chain.then(() =>
-              authRequest("POST", `${API_BASE}/listening/session/${sessionId}/answer/`, buildListeningAnswerPayload(question))
-            ),
-          cy.wrap(null),
-        ).then(() => {
-          authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
-            ({ status, body: finishBody }) => {
-              expect(status).to.eq(200);
-              expect(finishBody?.summary?.total_questions).to.be.greaterThan(0);
-            }
-          );
-        });
+        questions
+          .reduce(
+            (chain, question) =>
+              chain.then(() =>
+                authRequest(
+                  "POST",
+                  `${API_BASE}/listening/session/${sessionId}/answer/`,
+                  buildListeningAnswerPayload(question)
+                )
+              ),
+            cy.wrap(null)
+          )
+          .then(() => {
+            authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
+              ({ status, body: finishBody }) => {
+                expect(status).to.eq(200);
+                expect(finishBody?.summary?.total_questions).to.be.greaterThan(0);
+              }
+            );
+          });
       });
     });
 
@@ -149,9 +152,9 @@ describe("Integration Smoke", () => {
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
-    loginThroughUi("admin@norostu.com", "Admin@2024!");
+    loginViaApi("admin@norostu.com", "Admin@2024!");
     cy.visit("/admin");
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
-    cy.contains(/system dashboard|c?ng qu?n tr?|cong quan tri/i, { timeout: 20000 }).should("be.visible");
+    cy.contains(/system dashboard|c.ng qu.n tr.|cong quan tri/i, { timeout: 20000 }).should("be.visible");
   });
 });
