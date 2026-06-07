@@ -69,10 +69,11 @@ describe("Integration Smoke", () => {
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
     // Đợi learning path load xong rồi mới tìm nút start
-    cy.get('[data-cy^="learning-start-"]:not([data-cy="learning-start-disabled"])', { timeout: 20000 })
-      .should("have.length.at.least", 1)
-      .first()
-      .click({ force: true });
+    cy.get('[data-cy^="learning-start-"]', { timeout: 20000 })
+    .filter(":not([disabled])")
+    .should("have.length.at.least", 1)
+    .first()
+    .click({ force: true });  
 
     cy.location("pathname", { timeout: 20000 }).should("match", /\/learning\/session\/\d+$/);
 
