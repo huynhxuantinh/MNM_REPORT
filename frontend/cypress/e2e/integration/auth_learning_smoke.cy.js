@@ -1,5 +1,26 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
+// Lấy access token qua API login, lưu vào Cypress.env để dùng cho cy.request()
+const loginViaApi = (email, password) =>
+  cy
+    .request("POST", `${API_BASE}/auth/login/`, { email, password })
+    .then(({ body }) => {
+      Cypress.env("accessToken", body.access);
+    });
+
+// Wrapper cho cy.request() tự động đính Authorization header
+const authRequest = (method, url, body) => {
+  const token = Cypress.env("accessToken");
+  const opts = {
+    method,
+    url,
+    headers: { Authorization: `Bearer ${token}` },
+    failOnStatusCode: false,
+  };
+  if (body !== undefined) opts.body = body;
+  return cy.request(opts);
+};
+
 const loginThroughUi = (email, password) => {
   cy.visit("/login");
   cy.get('[data-cy="login-form"]').within(() => {
@@ -11,9 +32,9 @@ const loginThroughUi = (email, password) => {
 };
 
 const ensurePlacementReady = () => {
-  cy.request(`${API_BASE}/learning/placement/status/`).then(({ body }) => {
+  authRequest("GET", `${API_BASE}/learning/placement/status/`).then(({ body }) => {
     if (body?.should_show_onboarding) {
-      cy.request("POST", `${API_BASE}/learning/placement/skip/`, {});
+      authRequest("POST", `${API_BASE}/learning/placement/skip/`, {});
     }
   });
 };
@@ -54,6 +75,9 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
+    // Login qua API để lấy access token cho cy.request()
+    loginViaApi("student@norostu.com", "Student@2024!");
+    // Login qua UI để có session trong browser
     loginThroughUi("student@norostu.com", "Student@2024!");
     ensurePlacementReady();
 
@@ -63,10 +87,10 @@ describe("Integration Smoke", () => {
 
     cy.location("pathname").then((pathname) => {
       const sessionId = pathname.split("/").pop();
-      cy.request(`${API_BASE}/learning/session/${sessionId}/`).then(({ body }) => {
+      authRequest("GET", `${API_BASE}/learning/session/${sessionId}/`).then(({ body }) => {
         const firstExercise = body?.exercises?.[0];
         const payload = buildLearningAnswerPayload(firstExercise);
-        cy.request("POST", `${API_BASE}/learning/session/${sessionId}/answer/`, payload)
+        authRequest("POST", `${API_BASE}/learning/session/${sessionId}/answer/`, payload)
           .its("status")
           .should("eq", 200);
       });
@@ -99,18 +123,23 @@ describe("Integration Smoke", () => {
 
     cy.location("pathname").then((pathname) => {
       const sessionId = pathname.split("/").pop();
-      cy.request(`${API_BASE}/listening/session/${sessionId}/`).then(({ body }) => {
+      authRequest("GET", `${API_BASE}/listening/session/${sessionId}/`).then(({ body }) => {
         const questions = body?.passage?.questions || [];
         expect(questions.length).to.be.greaterThan(0);
 
         questions.reduce(
-          (chain, question) => chain.then(() => cy.request("POST", `${API_BASE}/listening/session/${sessionId}/answer/`, buildListeningAnswerPayload(question))),
+          (chain, question) =>
+            chain.then(() =>
+              authRequest("POST", `${API_BASE}/listening/session/${sessionId}/answer/`, buildListeningAnswerPayload(question))
+            ),
           cy.wrap(null),
         ).then(() => {
-          cy.request("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(({ status, body: finishBody }) => {
-            expect(status).to.eq(200);
-            expect(finishBody?.summary?.total_questions).to.be.greaterThan(0);
-          });
+          authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
+            ({ status, body: finishBody }) => {
+              expect(status).to.eq(200);
+              expect(finishBody?.summary?.total_questions).to.be.greaterThan(0);
+            }
+          );
         });
       });
     });
