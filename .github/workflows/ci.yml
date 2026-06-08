@@ -40,10 +40,10 @@ jobs:
           - 6379:6379
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -84,7 +84,7 @@ jobs:
           pytest --cov=apps --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./backend/coverage.xml
           flags: backend
@@ -98,10 +98,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -126,7 +126,7 @@ jobs:
           VITE_API_BASE_URL: http://localhost:8000/api/v1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           directory: ./frontend/coverage
           flags: frontend
@@ -141,10 +141,10 @@ jobs:
     needs: [backend-test, frontend-test]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -155,7 +155,7 @@ jobs:
         run: npm ci
 
       - name: Cache Cypress binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
@@ -180,14 +180,14 @@ jobs:
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
 
       - name: Upload screenshots on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-screenshots
           path: frontend/cypress/screenshots
 
       - name: Upload videos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cypress-videos-smoke
@@ -200,10 +200,10 @@ jobs:
     needs: [backend-test, frontend-test]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -214,7 +214,7 @@ jobs:
         run: npm ci
 
       - name: Cache Cypress binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
@@ -223,44 +223,46 @@ jobs:
 
       - name: Create CI environment file
         run: |
-          cat > .env << 'EOF'
-          DJANGO_SETTINGS_MODULE=config.settings.development
-          SECRET_KEY=test-secret-key-for-ci
-          DEBUG=True
-          ALLOWED_HOSTS=127.0.0.1,localhost,backend
-          FRONTEND_URL=http://localhost:5173
-          DB_NAME=norostu
-          DB_USER=postgres
-          DB_PASSWORD=postgres
-          DB_HOST=postgres
-          DB_PORT=5432
-          REDIS_HOST=redis
-          REDIS_PORT=6379
-          REDIS_PASSWORD=redispass
-          REDIS_DB=0
-          REDIS_URL=redis://:redispass@redis:6379/0
-          CELERY_BROKER_URL=redis://:redispass@redis:6379/1
-          CELERY_RESULT_BACKEND=redis://:redispass@redis:6379/2
-          JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
-          JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
-          JWT_SIGNING_KEY=test-jwt-signing-key
-          CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-          EMAIL_BACKEND=django.core.mail.backends.locmem.EmailBackend
-          DEFAULT_FROM_EMAIL=NoroStu <noreply@norostu.com>
-          MEDIA_URL=/media/
-          STATIC_URL=/static/
-          USE_S3=False
-          VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
-          VITE_APP_NAME=NoroStu
-          VITE_APP_VERSION=1.0.0
-          VITE_SITE_URL=https://norostu.com
-          BACKEND_PORT=8000
-          FRONTEND_PORT=5173
-          LOG_LEVEL=DEBUG
-          LOG_DIR=logs/
-          DEFAULT_PAGE_SIZE=20
-          MAX_PAGE_SIZE=100
-          EOF
+          # Write .env without leading spaces (heredoc indent causes broken .env)
+          printf '%s\n' \
+            'DJANGO_SETTINGS_MODULE=config.settings.development' \
+            'SECRET_KEY=test-secret-key-for-ci' \
+            'DEBUG=True' \
+            'ALLOWED_HOSTS=127.0.0.1,localhost,backend' \
+            'FRONTEND_URL=http://localhost:5173' \
+            'DB_NAME=norostu' \
+            'DB_USER=postgres' \
+            'DB_PASSWORD=postgres' \
+            'DB_HOST=postgres' \
+            'DB_PORT=5432' \
+            'REDIS_HOST=redis' \
+            'REDIS_PORT=6379' \
+            'REDIS_PASSWORD=redispass' \
+            'REDIS_DB=0' \
+            'REDIS_URL=redis://:redispass@redis:6379/0' \
+            'CELERY_BROKER_URL=redis://:redispass@redis:6379/1' \
+            'CELERY_RESULT_BACKEND=redis://:redispass@redis:6379/2' \
+            'JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60' \
+            'JWT_REFRESH_TOKEN_LIFETIME_DAYS=7' \
+            'JWT_SIGNING_KEY=test-jwt-signing-key' \
+            'CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:8000' \
+            'EMAIL_BACKEND=django.core.mail.backends.locmem.EmailBackend' \
+            'DEFAULT_FROM_EMAIL=NoroStu <noreply@norostu.com>' \
+            'MEDIA_URL=/media/' \
+            'STATIC_URL=/static/' \
+            'USE_S3=False' \
+            'VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1' \
+            'VITE_APP_NAME=NoroStu' \
+            'VITE_APP_VERSION=1.0.0' \
+            'VITE_SITE_URL=https://norostu.com' \
+            'BACKEND_PORT=8000' \
+            'FRONTEND_PORT=5173' \
+            'LOG_LEVEL=DEBUG' \
+            'LOG_DIR=logs/' \
+            'DEFAULT_PAGE_SIZE=20' \
+            'MAX_PAGE_SIZE=100' \
+            > .env
+          echo "=== .env preview ===" && head -5 .env
 
       - name: Reset integration stack
         run: docker compose -f docker-compose.yml down -v --remove-orphans
@@ -330,14 +332,14 @@ jobs:
           CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
 
       - name: Upload integration screenshots on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-screenshots-integration
           path: frontend/cypress/screenshots
 
       - name: Upload integration videos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cypress-videos-integration
@@ -355,10 +357,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -372,7 +374,7 @@ jobs:
           pip install bandit
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -390,7 +392,7 @@ jobs:
         run: npm audit --audit-level=high || true
 
       - name: Upload security scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-scan-results
@@ -407,7 +409,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy to staging server
         run: |
@@ -429,7 +431,7 @@ jobs:
       url: https://norostu.com
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy to production
         run: |
