@@ -1,6 +1,8 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
-/** Login qua API, lưu access token */
+/**
+ * Login qua API - assert token nhận được hợp lệ trước khi tiếp tục
+ */
 const loginViaApi = (email, password) =>
   cy
     .request({
@@ -8,9 +10,14 @@ const loginViaApi = (email, password) =>
       url: `${API_BASE}/auth/login/`,
       body: { email, password },
       withCredentials: true,
+      failOnStatusCode: true, // crash ngay nếu login fail
     })
-    .then(({ body }) => {
+    .then(({ status, body }) => {
+      expect(status).to.eq(200);
+      expect(body).to.have.property("access");
+      expect(body.access).to.be.a("string").and.have.length.greaterThan(10);
       Cypress.env("accessToken", body.access);
+      cy.log(`Logged in as ${email}, token: ${body.access.substring(0, 20)}...`);
     });
 
 /** cy.request() tự động đính Authorization header */
@@ -28,12 +35,13 @@ const authRequest = (method, url, body) => {
 };
 
 /**
- * Đảm bảo placement đã xong TRƯỚC khi visit bất kỳ page nào.
- * Gọi skip → verify response → chỉ sau đó mới cho phép visit.
+ * Skip placement và verify response có recommended_level
+ * Cypress đợi response xong mới chạy lệnh tiếp theo
  */
 const skipPlacementAndVerify = () =>
-  authRequest("POST", `${API_BASE}/learning/placement/skip/`, {}).then(({ body }) => {
-    // skip trả 200 dù đã done trước, nên luôn pass
+  authRequest("POST", `${API_BASE}/learning/placement/skip/`, {}).then(({ status, body }) => {
+    cy.log(`placement/skip status: ${status}, body: ${JSON.stringify(body)}`);
+    expect(status).to.eq(200);
     expect(body).to.have.property("recommended_level");
   });
 
@@ -62,13 +70,13 @@ const buildListeningAnswerPayload = (question) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    // Bước 1: login → lấy token
+    // Bước 1: Login - assert token hợp lệ
     loginViaApi("student@norostu.com", "Student@2024!");
 
-    // Bước 2: skip placement và CHỜ confirm xong
+    // Bước 2: Skip placement - đợi confirm xong và log kết quả
     skipPlacementAndVerify();
 
-    // Bước 3: bây giờ mới visit — should_show_onboarding đã là false
+    // Bước 3: Visit learning page
     cy.visit("/learning");
     cy.location("pathname", { timeout: 20000 }).should("not.include", "onboarding");
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
