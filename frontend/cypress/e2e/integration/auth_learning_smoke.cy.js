@@ -69,6 +69,16 @@ const buildListeningAnswerPayload = (question) => {
 };
 
 describe("Integration Smoke", () => {
+  beforeEach(() => {
+    cy.intercept("POST", "**/auth/token/refresh/", (req) => {
+      req.continue((res) => {
+        if (res.body?.access) {
+          Cypress.env("accessToken", res.body.access);
+        }
+      });
+    });
+  });
+
   it("logs in as student and exercises learning + listening with real backend", () => {
     // Bước 1: Login - assert token hợp lệ
     loginViaApi("student@norostu.com", "Student@2024!");

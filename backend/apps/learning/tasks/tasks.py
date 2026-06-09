@@ -73,6 +73,7 @@ def send_review_reminders() -> dict:
         if _user_localdate(user_map[row["user_id"]], row["created_at"]) == today_map.get(row["user_id"])
     }
     sent = 0
+    notifications_to_create = []
 
     for user in users:
         pref = pref_map.get(user.id)
@@ -89,11 +90,11 @@ def send_review_reminders() -> dict:
         if user.id in reminder_ids:
             continue
 
-        Notification.objects.create(
+        notifications_to_create.append(Notification(
             user=user,
             type=Notification.Type.REMINDER,
             message=f"Bạn có {due_count} từ cần ôn tập hôm nay. Đừng bỏ lỡ streak của bạn!",
-        )
+        ))
 
         if user.email:
             send_mail(
@@ -108,6 +109,9 @@ def send_review_reminders() -> dict:
                 fail_silently=True,
             )
             sent += 1
+
+    if notifications_to_create:
+        Notification.objects.bulk_create(notifications_to_create, ignore_conflicts=True)
 
     return {"sent": sent, "users_notified": sent}
 
@@ -146,6 +150,7 @@ def send_daily_goal_reminders() -> dict:
         if _user_localdate(user_map[row["user_id"]], row["created_at"]) == today_map.get(row["user_id"])
     }
     reminded = 0
+    notifications_to_create = []
 
     for user in users:
         goal = goal_map.get(user.id)
@@ -167,14 +172,14 @@ def send_daily_goal_reminders() -> dict:
             continue
 
         studied = log.studied_minutes if log else 0
-        Notification.objects.create(
+        notifications_to_create.append(Notification(
             user=user,
             type=Notification.Type.REMINDER,
             message=(
                 f"Daily goal {goal.target_minutes} phút: bạn đã học {studied} phút. "
                 "Vào app hoàn thành mục tiêu nhé!"
             ),
-        )
+        ))
         if user.email:
             send_mail(
                 subject="[NoroStu] Nhắc nhở mục tiêu ngày",
@@ -189,6 +194,9 @@ def send_daily_goal_reminders() -> dict:
                 fail_silently=True,
             )
         reminded += 1
+
+    if notifications_to_create:
+        Notification.objects.bulk_create(notifications_to_create, ignore_conflicts=True)
 
     return {"users_notified": reminded}
 
@@ -223,6 +231,8 @@ def send_onboarding_first_lesson_reminders() -> dict:
 
     users_notified = 0
     users_eligible = 0
+    notifications_to_create = []
+    events_to_create = []
 
     for user_id, submit_event in latest_submit_by_user.items():
         users_eligible += 1
@@ -246,11 +256,11 @@ def send_onboarding_first_lesson_reminders() -> dict:
             continue
 
         user = submit_event.user
-        Notification.objects.create(
+        notifications_to_create.append(Notification(
             user=user,
             type=Notification.Type.REMINDER,
             message="Bạn đã xếp level xong. Bắt đầu bài học đầu tiên để mở streak ngay hôm nay!",
-        )
+        ))
         if user.email:
             send_mail(
                 subject="[NoroStu] Bắt đầu bài học đầu tiên",
@@ -264,7 +274,7 @@ def send_onboarding_first_lesson_reminders() -> dict:
                 fail_silently=True,
             )
 
-        LearningEvent.objects.create(
+        events_to_create.append(LearningEvent(
             user=user,
             event_type=LearningEvent.EventType.ONBOARDING_STEP,
             meta={
@@ -272,8 +282,13 @@ def send_onboarding_first_lesson_reminders() -> dict:
                 "submit_event_id": submit_event.id,
                 "submit_at": submit_event.created_at.isoformat(),
             },
-        )
+        ))
         users_notified += 1
+
+    if notifications_to_create:
+        Notification.objects.bulk_create(notifications_to_create, ignore_conflicts=True)
+    if events_to_create:
+        LearningEvent.objects.bulk_create(events_to_create)
 
     return {
         "users_eligible": users_eligible,

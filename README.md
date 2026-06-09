@@ -24,20 +24,21 @@ Nen tang web hoc tieng Anh theo mo hinh self-learning (khong teacher, khong mua 
 
 ## Chay nhanh bang Docker
 ```bash
-docker compose -f deployment/docker/docker-compose.yml up -d
-docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py migrate
-docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py import_words database/seed/words.csv
-docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_data
+docker compose up -d
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py import_words database/seed/words.csv
+docker compose exec backend python manage.py seed_data
 ```
 
 Neu muon seed full catalog (200 words, 14 lessons):
 ```bash
-docker compose -f deployment/docker/docker-compose.yml exec backend python manage.py seed_full_catalog --clear
+docker compose exec backend python manage.py seed_full_catalog --clear
 ```
 
 ## Deployment structure
-- Docker compose: `deployment/docker/docker-compose.yml`, `deployment/docker/docker-compose.prod.yml`
-- Nginx reverse proxy: `deployment/nginx/nginx.conf`, `deployment/nginx/security_headers.conf`
+- Docker compose (dev): `docker-compose.yml` (repo root)
+- Docker compose (prod): `docker-compose.prod.yml` (repo root)
+- Nginx reverse proxy: `nginx/`
 
 ## URL mac dinh
 - Frontend: http://localhost:5173
