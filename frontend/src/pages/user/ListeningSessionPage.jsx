@@ -318,6 +318,7 @@ const ListeningSessionPage = () => {
               disabled={!allAnswered}
               loading={submitMutation.isPending}
               onClick={() => submitMutation.mutate()}
+              data-cy="listening-submit-btn"
             >
               Nộp bài
             </SbButton>

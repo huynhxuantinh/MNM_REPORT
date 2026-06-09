@@ -171,6 +171,7 @@ describe("Integration Smoke", () => {
 
     cy.location("pathname").then((pathname) => {
       const sessionId = pathname.split("/").pop();
+      // Trả lời tất cả câu hỏi qua API
       authRequest("GET", `${API_BASE}/listening/session/${sessionId}/`).then(({ body: detail }) => {
         const questions = detail?.passage?.questions || [];
         expect(questions.length).to.be.greaterThan(0);
@@ -183,14 +184,11 @@ describe("Integration Smoke", () => {
             cy.wrap(null)
           )
           .then(() => {
-            authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
-              ({ status: fStatus, body: fb }) => {
-                expect(fStatus).to.eq(200);
-                expect(fb?.summary?.total_questions).to.be.greaterThan(0);
-                cy.visit(`/listening/session/${sessionId}`);
-                cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
-              }
-            );
+            // Click nút Nộp bài trên UI → finishPayload được set → kết quả render
+            cy.get('[data-cy="listening-submit-btn"]', { timeout: 10000 })
+              .should("not.be.disabled")
+              .click({ force: true });
+            cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
           });
       });
     });
