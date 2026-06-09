@@ -20,18 +20,26 @@ const loginViaApi = (email, password) =>
       cy.log(`Logged in as ${email}, token: ${body.access.substring(0, 20)}...`);
     });
 
-/** cy.request() tự động đính Authorization header */
+/**
+ * cy.request() tự động đính Authorization header.
+ *
+ * Token được đọc bên trong cy.then() (deferred) thay vì synchronously
+ * tại thời điểm hàm được gọi. Điều này đảm bảo khi Cypress thực thi
+ * lệnh này, loginViaApi().then() đã set Cypress.env("accessToken") rồi.
+ */
 const authRequest = (method, url, body) => {
-  const token = Cypress.env("accessToken");
-  const opts = {
-    method,
-    url,
-    headers: { Authorization: `Bearer ${token}` },
-    failOnStatusCode: false,
-    withCredentials: true,
-  };
-  if (body !== undefined) opts.body = body;
-  return cy.request(opts);
+  return cy.then(() => {
+    const token = Cypress.env("accessToken");
+    const opts = {
+      method,
+      url,
+      headers: { Authorization: `Bearer ${token}` },
+      failOnStatusCode: false,
+      withCredentials: true,
+    };
+    if (body !== undefined) opts.body = body;
+    return cy.request(opts);
+  });
 };
 
 /**
