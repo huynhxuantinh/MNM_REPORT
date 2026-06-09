@@ -168,7 +168,7 @@ describe("Integration Smoke", () => {
           expect(sessionId).to.be.a("number");
           cy.visit(`/listening/session/${sessionId}`);
           cy.location("pathname", { timeout: 20000 }).should("match", /\/listening\/session\/\d+$/);
-          cy.get('[data-cy="listening-transcript-toggle"]').should("be.visible").click({ force: true });
+          cy.get('[data-cy="listening-transcript-toggle"]', { timeout: 20000 }).should("be.visible").click({ force: true });
 
           authRequest("GET", `${API_BASE}/listening/session/${sessionId}/`).then(({ body: detail }) => {
             const questions = detail?.passage?.questions || [];
