@@ -153,47 +153,46 @@ describe("Integration Smoke", () => {
     });
 
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
-    
-    // Bước 5: Start listening session qua API
-    authRequest("GET", `${API_BASE}/listening/passages/`).then(({ status, body }) => {
-      expect(status).to.eq(200);
-      const results = body?.results || body || [];
-      const passage = results[0];
-      expect(passage?.id, "at least one published passage").to.be.a("number");
 
-      authRequest("POST", `${API_BASE}/listening/session/start/`, { passage_id: passage.id })
-        .then(({ status: startStatus, body: session }) => {
-          expect(startStatus).to.eq(201);
-          const sessionId = session?.id;
-          expect(sessionId).to.be.a("number");
-          cy.visit(`/listening/session/${sessionId}`);
-          cy.location("pathname", { timeout: 20000 }).should("match", /\/listening\/session\/\d+$/);
-          cy.get('[data-cy="listening-transcript-toggle"]', { timeout: 20000 }).should("be.visible").click({ force: true });
+    // Bước 5: Listening flow - dùng UI click để giữ auth state
+    cy.visit("/listening");
+    cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
-          authRequest("GET", `${API_BASE}/listening/session/${sessionId}/`).then(({ body: detail }) => {
-            const questions = detail?.passage?.questions || [];
-            expect(questions.length).to.be.greaterThan(0);
-            questions
-              .reduce(
-                (chain, q) =>
-                  chain.then(() =>
-                    authRequest("POST", `${API_BASE}/listening/session/${sessionId}/answer/`, buildListeningAnswerPayload(q))
-                  ),
-                cy.wrap(null)
-              )
-              .then(() => {
-                authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
-                  ({ status: fStatus, body: fb }) => {
-                    expect(fStatus).to.eq(200);
-                    expect(fb?.summary?.total_questions).to.be.greaterThan(0);
-                    // Visit lại session page sau khi finish để kiểm tra kết quả hiển thị
-                    cy.visit(`/listening/session/${sessionId}`);
-                    cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
-                  }
-                );
-              });
+    cy.get('[data-cy^="listening-start-"]', { timeout: 20000 })
+      .should("have.length.at.least", 1)
+      .first()
+      .click({ force: true });
+
+    cy.location("pathname", { timeout: 20000 }).should("match", /\/listening\/session\/\d+$/);
+
+    cy.get('[data-cy="listening-transcript-toggle"]', { timeout: 20000 })
+      .should("be.visible")
+      .click({ force: true });
+
+    cy.location("pathname").then((pathname) => {
+      const sessionId = pathname.split("/").pop();
+      authRequest("GET", `${API_BASE}/listening/session/${sessionId}/`).then(({ body: detail }) => {
+        const questions = detail?.passage?.questions || [];
+        expect(questions.length).to.be.greaterThan(0);
+        questions
+          .reduce(
+            (chain, q) =>
+              chain.then(() =>
+                authRequest("POST", `${API_BASE}/listening/session/${sessionId}/answer/`, buildListeningAnswerPayload(q))
+              ),
+            cy.wrap(null)
+          )
+          .then(() => {
+            authRequest("POST", `${API_BASE}/listening/session/${sessionId}/finish/`, {}).then(
+              ({ status: fStatus, body: fb }) => {
+                expect(fStatus).to.eq(200);
+                expect(fb?.summary?.total_questions).to.be.greaterThan(0);
+                cy.visit(`/listening/session/${sessionId}`);
+                cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
+              }
+            );
           });
-        });
+      });
     });
 
   });
