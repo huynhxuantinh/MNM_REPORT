@@ -186,6 +186,9 @@ describe("Integration Smoke", () => {
                   ({ status: fStatus, body: fb }) => {
                     expect(fStatus).to.eq(200);
                     expect(fb?.summary?.total_questions).to.be.greaterThan(0);
+                    // Visit lại session page sau khi finish để kiểm tra kết quả hiển thị
+                    cy.visit(`/listening/session/${sessionId}`);
+                    cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
                   }
                 );
               });
@@ -193,8 +196,6 @@ describe("Integration Smoke", () => {
         });
     });
 
-    cy.reload();
-    cy.contains(/k.t qu.|ket qua/i, { timeout: 20000 }).should("be.visible");
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
