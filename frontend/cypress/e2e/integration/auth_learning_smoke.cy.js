@@ -30,7 +30,6 @@ const setupTokenInterceptor = () => {
     req.continue((res) => {
       if (res.body?.access) {
         Cypress.env("accessToken", res.body.access);
-        cy.log(`Token rotated: ${res.body.access.substring(0, 15)}...`);
       }
     });
   }).as("tokenRefresh");
