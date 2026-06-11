@@ -20,6 +20,11 @@ const learningApi = {
   getCurrentLeague: () => axiosClient.get("/learning/league/current/"),
 
   getLearningPath: () => axiosClient.get("/learning/path/"),
+  getLearningPathV2: () => axiosClient.get("/learning/path/v2/"),
+  startActivity: (activityId, source = "learning_path") =>
+    axiosClient.post(`/learning/activities/${activityId}/start/`, {}, { params: { source } }),
+  submitWritingActivity: (activityId, data) =>
+    axiosClient.post(`/learning/activities/${activityId}/writing/submit/`, data),
   getListeningPath: () => axiosClient.get("/learning/listening/"),
   getListeningPassages: () => axiosClient.get("/listening/passages/"),
   getListeningPassage: (passageId) => axiosClient.get(`/listening/passages/${passageId}/`),
