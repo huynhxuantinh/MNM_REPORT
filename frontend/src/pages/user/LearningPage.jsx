@@ -289,7 +289,13 @@ const LearningPage = () => {
         return;
       }
       if (payload.kind === "writing_submission") {
-        setNotice("Đã tạo nháp bài viết. Màn hình viết riêng sẽ được hoàn thiện ở đợt sau.");
+        navigate(`/learning/writing/${variables.activity.id}`, {
+          state: {
+            activity: variables.activity,
+            unit: variables.unit,
+            startedPayload: payload,
+          },
+        });
         return;
       }
       setNotice("Activity đã được mở nhưng chưa có màn hình phù hợp.");
