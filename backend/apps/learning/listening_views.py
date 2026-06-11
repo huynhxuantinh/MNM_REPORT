@@ -9,7 +9,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAdmin
-from .models import ListeningAnswer, ListeningPassage, ListeningQuestion, ListeningSession
+from .models import (
+    ListeningAnswer,
+    ListeningPassage,
+    ListeningQuestion,
+    ListeningSession,
+    UserActivityProgress,
+)
 from .serializers import (
     ListeningAnswerSerializer,
     ListeningPassageAdminDetailSerializer,
@@ -22,6 +28,32 @@ from .serializers import (
     ListeningSubmitAnswerSerializer,
 )
 from .shared_flow import _apply_learning_rewards
+
+
+def _mark_listening_activity_completed(session: ListeningSession) -> UserActivityProgress | None:
+    if not session.unit_activity_id:
+        return None
+    progress, _ = UserActivityProgress.objects.select_for_update().get_or_create(
+        user=session.user,
+        activity=session.unit_activity,
+        defaults={"started_at": session.started_at},
+    )
+    progress.status = UserActivityProgress.Status.COMPLETED
+    progress.score_pct = session.score_pct
+    progress.xp_earned = max(progress.xp_earned or 0, int(session.score * 3 + 2))
+    progress.started_at = progress.started_at or session.started_at
+    progress.completed_at = progress.completed_at or session.completed_at
+    progress.save(
+        update_fields=[
+            "status",
+            "score_pct",
+            "xp_earned",
+            "started_at",
+            "completed_at",
+            "updated_at",
+        ]
+    )
+    return progress
 
 
 def _serialize_listening_session(session: ListeningSession) -> dict:
@@ -220,7 +252,7 @@ class ListeningSessionFinishView(APIView):
     def post(self, request, session_id: int):
         with transaction.atomic():
             session = get_object_or_404(
-                ListeningSession.objects.select_for_update().select_related("passage"),
+                ListeningSession.objects.select_for_update(of=("self",)).select_related("passage", "unit_activity"),
                 id=session_id,
                 user=request.user,
             )
@@ -241,6 +273,7 @@ class ListeningSessionFinishView(APIView):
             from django.utils import timezone
             session.completed_at = timezone.now()
             session.save(update_fields=["status", "score", "score_pct", "completed_at", "updated_at"])
+            activity_progress = _mark_listening_activity_completed(session)
             xp_earned = (score * 3 + 2) if answered_questions > 0 else 0
             streak = None
             previous_level = request.user.level
@@ -250,6 +283,16 @@ class ListeningSessionFinishView(APIView):
             leveled_up = request.user.level > previous_level
 
         payload = _serialize_listening_session(session)
+        payload["activity_progress"] = (
+            {
+                "status": activity_progress.status,
+                "score_pct": activity_progress.score_pct,
+                "xp_earned": activity_progress.xp_earned,
+                "completed_at": activity_progress.completed_at,
+            }
+            if activity_progress
+            else None
+        )
         payload["summary"] = {
             "total_questions": total_questions,
             "answered_questions": answered_questions,

@@ -655,6 +655,14 @@ class LearningSession(models.Model):
         related_name="sessions",
         verbose_name="Lesson",
     )
+    unit_activity = models.ForeignKey(
+        UnitActivity,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="learning_sessions",
+        verbose_name="Unit activity",
+    )
     status = models.CharField(
         "Status", max_length=16, choices=Status.choices, default=Status.STARTED
     )
@@ -786,6 +794,14 @@ class ListeningSession(models.Model):
         on_delete=models.CASCADE,
         related_name="sessions",
         verbose_name="Passage",
+    )
+    unit_activity = models.ForeignKey(
+        UnitActivity,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="listening_sessions",
+        verbose_name="Unit activity",
     )
     status = models.CharField(
         "Status", max_length=16, choices=Status.choices, default=Status.STARTED

@@ -56,6 +56,7 @@ from .serializers import (
     ReviewLogSerializer,
     UserActivityProgressSerializer,
     WritingSubmissionSerializer,
+    WritingSubmitSerializer,
 )
 from .experiments import DAILY_GOAL_EXPERIMENT_KEY, HEARTS_EXPERIMENT_KEY, track_experiment_metric
 from .shared_flow import (
@@ -303,6 +304,40 @@ def _mark_activity_started(user, activity: UnitActivity) -> UserActivityProgress
     return progress
 
 
+def _mark_activity_completed(
+    user,
+    activity: UnitActivity | None,
+    *,
+    score_pct: float = 100,
+    xp_earned: int = 0,
+    completed_at=None,
+) -> UserActivityProgress | None:
+    if not activity:
+        return None
+    now = completed_at or timezone.now()
+    progress, _ = UserActivityProgress.objects.select_for_update().get_or_create(
+        user=user,
+        activity=activity,
+        defaults={"started_at": now},
+    )
+    progress.status = UserActivityProgress.Status.COMPLETED
+    progress.score_pct = max(0, min(100, float(score_pct or 0)))
+    progress.xp_earned = max(progress.xp_earned or 0, int(xp_earned or 0))
+    progress.started_at = progress.started_at or now
+    progress.completed_at = progress.completed_at or now
+    progress.save(
+        update_fields=[
+            "status",
+            "score_pct",
+            "xp_earned",
+            "started_at",
+            "completed_at",
+            "updated_at",
+        ]
+    )
+    return progress
+
+
 def _build_course_path_payload_for_units(request, course, units):
     lesson_ids = []
     for unit in units:
@@ -491,6 +526,7 @@ def _create_lesson_session_for_unit(request, unit: Unit, lesson: Lesson, start_s
         user=request.user,
         unit=unit,
         lesson=lesson,
+        unit_activity=activity,
         session_type=LearningSession.SessionType.LESSON,
         difficulty=difficulty,
         exercises=exercises,
@@ -929,6 +965,7 @@ class UnitActivityStartView(APIView):
             session = ListeningSession.objects.create(
                 user=request.user,
                 passage=activity.listening_passage,
+                unit_activity=activity,
                 status=ListeningSession.Status.STARTED,
                 current_question_index=1,
             )
@@ -984,6 +1021,122 @@ class UnitActivityStartView(APIView):
             )
 
         return Response({"detail": "Loai activity chua duoc ho tro."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class UnitActivityWritingSubmitView(APIView):
+    """POST /learning/activities/<id>/writing/submit/ - Submit writing answer."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=WritingSubmitSerializer, responses=OpenApiTypes.OBJECT)
+    def post(self, request, activity_id: int):
+        activity = (
+            UnitActivity.objects
+            .select_related("unit", "unit__course")
+            .filter(
+                id=activity_id,
+                activity_type=UnitActivity.ActivityType.WRITING,
+                is_published=True,
+                unit__is_published=True,
+                unit__course__is_active=True,
+            )
+            .first()
+        )
+        if not activity:
+            return Response({"detail": "Khong tim thay writing activity."}, status=status.HTTP_404_NOT_FOUND)
+        if not _is_activity_unlocked_for_user(request.user, activity):
+            return Response({"detail": "Activity nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = WritingSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        answer_text = serializer.validated_data["answer_text"]
+        word_count = len(answer_text.split())
+        min_words = int((activity.metadata or {}).get("min_words") or 3)
+        if word_count < min_words:
+            return Response(
+                {"detail": f"Bai viet can it nhat {min_words} tu.", "word_count": word_count},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        xp_earned = int((activity.metadata or {}).get("xp") or 10)
+        prompt = (
+            (activity.metadata or {}).get("prompt")
+            or activity.description
+            or f"Write a short answer for: {activity.title}"
+        )
+        with transaction.atomic():
+            submission, _ = WritingSubmission.objects.select_for_update().get_or_create(
+                user=request.user,
+                activity=activity,
+                defaults={"prompt": prompt},
+            )
+            already_submitted = submission.status in {
+                WritingSubmission.Status.SUBMITTED,
+                WritingSubmission.Status.REVIEWED,
+            }
+            if not already_submitted:
+                submission.prompt = prompt
+                submission.answer_text = answer_text
+                submission.status = WritingSubmission.Status.SUBMITTED
+                submission.score_pct = 100
+                submission.submitted_at = now
+                submission.save(
+                    update_fields=[
+                        "prompt",
+                        "answer_text",
+                        "word_count",
+                        "status",
+                        "score_pct",
+                        "submitted_at",
+                        "updated_at",
+                    ]
+                )
+                unit_progress, _ = UserUnitProgress.objects.get_or_create(
+                    user=request.user,
+                    unit=activity.unit,
+                    defaults={"started_at": now},
+                )
+                unit_progress.started_at = unit_progress.started_at or now
+                unit_progress.total_xp_earned += xp_earned
+                unit_progress.save(update_fields=["started_at", "total_xp_earned", "updated_at"])
+            activity_progress = _mark_activity_completed(
+                request.user,
+                activity,
+                score_pct=submission.score_pct or 100,
+                xp_earned=xp_earned if not already_submitted else 0,
+                completed_at=now,
+            )
+            course_progress = _update_course_progress(request.user, activity.unit.course, now=now)
+
+        streak = None
+        if not already_submitted and xp_earned > 0:
+            streak = _apply_learning_rewards(
+                request.user,
+                xp_earned=xp_earned,
+                study_minutes=max(1, activity.estimated_minutes),
+                when=now,
+            )
+
+        return Response(
+            {
+                "already_submitted": already_submitted,
+                "submission": WritingSubmissionSerializer(submission).data,
+                "activity_progress": UserActivityProgressSerializer(activity_progress).data if activity_progress else None,
+                "course_progress": {
+                    "completed_units": course_progress.completed_units,
+                    "total_xp_earned": course_progress.total_xp_earned,
+                    "last_unit_id": course_progress.last_unit_id,
+                    "completed_at": course_progress.completed_at,
+                },
+                "user": {
+                    "xp": request.user.xp,
+                    "level": request.user.level,
+                    "streak": streak.current_streak if streak else None,
+                },
+            }
+        )
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -1548,7 +1701,7 @@ class LearningSessionFinishView(APIView):
     def post(self, request, session_id):
         session = (
             LearningSession.objects
-            .select_related("unit", "unit__course", "lesson")
+            .select_related("unit", "unit__course", "lesson", "unit_activity")
             .filter(id=session_id, user=request.user)
             .first()
         )
@@ -1564,8 +1717,8 @@ class LearningSessionFinishView(APIView):
         with transaction.atomic():
             session = (
                 LearningSession.objects
-                .select_for_update()
-                .select_related("unit", "unit__course", "lesson")
+                .select_for_update(of=("self",))
+                .select_related("unit", "unit__course", "lesson", "unit_activity")
                 .filter(id=session_id, user=request.user)
                 .first()
             )
@@ -1573,11 +1726,18 @@ class LearningSessionFinishView(APIView):
                 return Response({"detail": "Không tìm thấy phiên học."}, status=status.HTTP_404_NOT_FOUND)
             if session.status == LearningSession.Status.COMPLETED:
                 summary = _build_session_summary(session)
+                activity_progress = None
+                if session.unit_activity_id:
+                    activity_progress = UserActivityProgress.objects.filter(
+                        user=request.user,
+                        activity=session.unit_activity,
+                    ).first()
                 return Response(
                     {
                         "already_completed": True,
                         "session": LearningSessionSerializer(session).data,
                         "summary": summary,
+                        "activity_progress": UserActivityProgressSerializer(activity_progress).data if activity_progress else None,
                     }
                 )
             if session.status != LearningSession.Status.STARTED:
@@ -1636,6 +1796,13 @@ class LearningSessionFinishView(APIView):
                 ]
             )
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
+            activity_progress = _mark_activity_completed(
+                request.user,
+                session.unit_activity,
+                score_pct=round((session.correct_answered / max(session.total_answered, 1)) * 100, 2),
+                xp_earned=session.xp_earned,
+                completed_at=now,
+            )
 
         session_minutes = _estimate_session_minutes(session, now=now, max_minutes=45)
         streak = _apply_learning_rewards(
@@ -1686,6 +1853,7 @@ class LearningSessionFinishView(APIView):
                     "completed_at": course_progress.completed_at,
                 },
                 "review_seeded_word_ids": seeded_review_word_ids,
+                "activity_progress": UserActivityProgressSerializer(activity_progress).data if activity_progress else None,
                 "user": {
                     "xp": request.user.xp,
                     "level": request.user.level,
@@ -2439,6 +2607,7 @@ __all__ = [
     "LearningPathView",
     "LearningPathV2View",
     "UnitActivityStartView",
+    "UnitActivityWritingSubmitView",
     "ListeningPathView",
     "LearningPlacementStatusView",
     "LearningPlacementQuestionsView",

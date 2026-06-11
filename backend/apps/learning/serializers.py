@@ -402,6 +402,10 @@ class WritingSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class WritingSubmitSerializer(serializers.Serializer):
+    answer_text = serializers.CharField(allow_blank=False, trim_whitespace=True, max_length=5000)
+
+
 class UserCourseProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserCourseProgress
@@ -435,6 +439,7 @@ class LearningSessionSerializer(serializers.ModelSerializer):
             "unit",
             "unit_title",
             "lesson",
+            "unit_activity",
             "lesson_title",
             "lesson_skill_tag",
             "lesson_listening_transcript",
@@ -721,6 +726,7 @@ class ListeningSessionSerializer(serializers.ModelSerializer):
             "completed_at",
             "updated_at",
             "passage",
+            "unit_activity",
         )
         read_only_fields = fields
 

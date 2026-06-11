@@ -1,6 +1,8 @@
 """Views cho module quiz."""
 import random
 
+from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
@@ -168,14 +170,63 @@ class QuizSubmitView(APIView):
 
         score = round((correct_answers / total_questions) * 100, 2)
 
-        result = QuizResult.objects.create(
-            user=request.user,
-            quiz=quiz,
-            score=score,
-            total_questions=total_questions,
-            correct_answers=correct_answers,
-        )
-        return Response(QuizResultSerializer(result).data, status=status.HTTP_201_CREATED)
+        activity_progress_payload = None
+        activity_id = request.data.get("activity_id")
+        activity = None
+        if activity_id:
+            from apps.learning.models import UnitActivity
+
+            activity = UnitActivity.objects.filter(id=activity_id, is_published=True).first()
+            if not activity:
+                return Response({"detail": "Activity không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
+            if activity.activity_type not in {
+                UnitActivity.ActivityType.QUIZ,
+                UnitActivity.ActivityType.CHECKPOINT,
+            }:
+                return Response({"detail": "Activity không phải quiz/checkpoint."}, status=status.HTTP_400_BAD_REQUEST)
+            if activity.quiz_id and activity.quiz_id != quiz.id:
+                return Response({"detail": "Quiz không khớp với activity."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            result = QuizResult.objects.create(
+                user=request.user,
+                quiz=quiz,
+                score=score,
+                total_questions=total_questions,
+                correct_answers=correct_answers,
+            )
+            if activity:
+                from apps.learning.models import UserActivityProgress
+
+                now = timezone.now()
+                progress, _ = UserActivityProgress.objects.select_for_update().get_or_create(
+                    user=request.user,
+                    activity=activity,
+                    defaults={"started_at": now},
+                )
+                progress.status = UserActivityProgress.Status.COMPLETED
+                progress.score_pct = score
+                progress.completed_at = progress.completed_at or now
+                progress.started_at = progress.started_at or now
+                progress.save(
+                    update_fields=[
+                        "status",
+                        "score_pct",
+                        "started_at",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+                activity_progress_payload = {
+                    "status": progress.status,
+                    "score_pct": progress.score_pct,
+                    "xp_earned": progress.xp_earned,
+                    "completed_at": progress.completed_at,
+                }
+        payload = QuizResultSerializer(result).data
+        if activity_progress_payload:
+            payload["activity_progress"] = activity_progress_payload
+        return Response(payload, status=status.HTTP_201_CREATED)
 
 
 class QuizViewSet(viewsets.ReadOnlyModelViewSet):
