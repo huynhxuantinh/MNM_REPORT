@@ -8,6 +8,7 @@ from .flow_views import (
     LearningCheckpointStartView,
     LearningCheckpointSubmitView,
     LearningPathView,
+    LearningPathV2View,
     ListeningPathView,
     LearningPlacementQuestionsView,
     LearningPlacementSkipView,
@@ -28,11 +29,14 @@ from .flow_views import (
     ReviewListView,
     ReviewSummaryView,
     StreakFreezeClaimView,
+    UnitActivityStartView,
 )
 
 
 urlpatterns = [
     path("path/", LearningPathView.as_view(), name="learning-path"),
+    path("path/v2/", LearningPathV2View.as_view(), name="learning-path-v2"),
+    path("activities/<int:activity_id>/start/", UnitActivityStartView.as_view(), name="learning-activity-start"),
     path("listening/", ListeningPathView.as_view(), name="listening-path"),
     path("placement/status/", LearningPlacementStatusView.as_view(), name="learning-placement-status"),
     path("placement/questions/", LearningPlacementQuestionsView.as_view(), name="learning-placement-questions"),

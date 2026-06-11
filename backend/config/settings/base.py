@@ -170,6 +170,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": config("JWT_SIGNING_KEY", default=SECRET_KEY),
 }
 
 # â”€â”€ CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -203,8 +204,14 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="NoroStu <noreply@noro
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
 # â”€â”€ Celery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-CELERY_BROKER_URL        = config("REDIS_URL", default="redis://redis:6379/0")
-CELERY_RESULT_BACKEND    = config("REDIS_URL", default="redis://redis:6379/0")
+CELERY_BROKER_URL        = config(
+    "CELERY_BROKER_URL",
+    default=config("REDIS_URL", default="redis://redis:6379/1"),
+)
+CELERY_RESULT_BACKEND    = config(
+    "CELERY_RESULT_BACKEND",
+    default=config("REDIS_URL", default="redis://redis:6379/2"),
+)
 CELERY_TASK_SERIALIZER   = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT    = ["json"]

@@ -6,7 +6,7 @@ import time
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, F
+from django.db.models import Count, F, Prefetch
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -27,15 +27,20 @@ from .models import (
     Lesson,
     LessonWord,
     LessonProgress,
+    ListeningSession,
     Notification,
     PlacementResult,
     ReviewLog,
     Unit,
+    UnitActivity,
     UnitLesson,
+    UserActivityProgress,
     UserCourseProgress,
     UserUnitProgress,
+    WritingSubmission,
 )
 from .serializers import (
+    CoursePathV2Serializer,
     CoursePathSerializer,
     ExerciseAttemptSerializer,
     LearningPathUnitSerializer,
@@ -43,11 +48,14 @@ from .serializers import (
     LearningSessionAnswerSerializer,
     LearningSessionSerializer,
     LearningSessionStartSerializer,
+    ListeningSessionSerializer,
     PlacementSkipResponseSerializer,
     PlacementResultSerializer,
     PlacementSubmitSerializer,
     ReviewAnswerSerializer,
     ReviewLogSerializer,
+    UserActivityProgressSerializer,
+    WritingSubmissionSerializer,
 )
 from .experiments import DAILY_GOAL_EXPERIMENT_KEY, HEARTS_EXPERIMENT_KEY, track_experiment_metric
 from .shared_flow import (
@@ -150,6 +158,149 @@ def _get_filtered_units(course, skill_tag: str | None = None):
         unit.unit_lessons_filtered = published_links
         filtered.append(unit)
     return filtered
+
+
+def _get_active_courses_for_v2():
+    activities_qs = (
+        UnitActivity.objects
+        .filter(is_published=True)
+        .select_related("lesson", "listening_passage", "quiz")
+        .order_by("order_index", "id")
+    )
+    units_qs = (
+        Unit.objects
+        .filter(is_published=True)
+        .prefetch_related(Prefetch("activities", queryset=activities_qs))
+        .order_by("order_index", "id")
+    )
+    return (
+        Course.objects
+        .filter(is_active=True)
+        .prefetch_related(Prefetch("units", queryset=units_qs))
+        .order_by("id")
+    )
+
+
+def _activity_progress_map(user, activity_ids: list[int]) -> dict[int, UserActivityProgress]:
+    if not activity_ids:
+        return {}
+    return {
+        item.activity_id: item
+        for item in UserActivityProgress.objects.filter(user=user, activity_id__in=activity_ids)
+    }
+
+
+def _is_activity_completed(progress_map: dict[int, UserActivityProgress], activity: UnitActivity) -> bool:
+    progress = progress_map.get(activity.id)
+    return bool(progress and progress.status == UserActivityProgress.Status.COMPLETED)
+
+
+def _annotate_activity_unlocks(units, unit_unlocked_map, progress_map):
+    for unit in units:
+        unit_unlocked = bool(unit_unlocked_map.get(unit.id))
+        previous_required_done = True
+        for activity in list(unit.activities.all()):
+            activity.unlocked = unit_unlocked and previous_required_done
+            if activity.is_required and not _is_activity_completed(progress_map, activity):
+                previous_required_done = False
+
+
+def _build_learning_path_v2_payload(request):
+    courses = list(_get_active_courses_for_v2())
+    all_units = [unit for course in courses for unit in list(course.units.all())]
+    activity_ids = [
+        activity.id
+        for unit in all_units
+        for activity in list(unit.activities.all())
+    ]
+
+    unit_progress_map = {
+        item.unit_id: item
+        for item in UserUnitProgress.objects.filter(user=request.user, unit_id__in=[unit.id for unit in all_units])
+    }
+    course_progress_map = {
+        item.course_id: item
+        for item in UserCourseProgress.objects.filter(user=request.user, course_id__in=[course.id for course in courses])
+    }
+    activity_progress = _activity_progress_map(request.user, activity_ids)
+    recommended_level = _get_user_recommended_level(request.user)
+    recommended_start_unit_id = None
+
+    for course in courses:
+        units = list(course.units.all())
+        unlocked_map = _build_unlock_map(units, unit_progress_map)
+        recommended_start_unit = _resolve_recommended_start_unit(units, recommended_level)
+        has_any_progress = bool(unit_progress_map) or bool(activity_progress)
+        if not has_any_progress and recommended_start_unit:
+            recommended_start_unit_id = recommended_start_unit_id or recommended_start_unit.id
+            for unit in units:
+                if unit.order_index <= recommended_start_unit.order_index:
+                    unlocked_map[unit.id] = True
+        elif recommended_start_unit:
+            recommended_start_unit_id = recommended_start_unit_id or recommended_start_unit.id
+
+        _annotate_activity_unlocks(units, unlocked_map, activity_progress)
+        for unit in units:
+            unit.unlocked = bool(unlocked_map.get(unit.id))
+            unit.placement_recommended = unit.id == recommended_start_unit_id
+
+    context = {
+        "request": request,
+        "progress_map": unit_progress_map,
+        "course_progress_map": course_progress_map,
+        "activity_progress_map": activity_progress,
+    }
+    return {
+        "levels": CoursePathV2Serializer(courses, many=True, context=context).data,
+        "recommended_level": recommended_level,
+        "recommended_start_unit_id": recommended_start_unit_id,
+    }
+
+
+def _is_activity_unlocked_for_user(user, activity: UnitActivity) -> bool:
+    unit = activity.unit
+    if not _is_unit_unlocked(user, unit):
+        return False
+    activities = list(
+        UnitActivity.objects
+        .filter(unit=unit, is_published=True)
+        .order_by("order_index", "id")
+    )
+    progress = _activity_progress_map(user, [item.id for item in activities])
+    for item in activities:
+        if item.id == activity.id:
+            return True
+        if item.is_required and not _is_activity_completed(progress, item):
+            return False
+    return False
+
+
+def _mark_activity_started(user, activity: UnitActivity) -> UserActivityProgress:
+    now = timezone.now()
+    progress, _created = UserActivityProgress.objects.get_or_create(
+        user=user,
+        activity=activity,
+        defaults={
+            "status": UserActivityProgress.Status.STARTED,
+            "started_at": now,
+        },
+    )
+    update_fields = []
+    if progress.status in {UserActivityProgress.Status.LOCKED, UserActivityProgress.Status.AVAILABLE}:
+        progress.status = UserActivityProgress.Status.STARTED
+        update_fields.append("status")
+    if not progress.started_at:
+        progress.started_at = now
+        update_fields.append("started_at")
+    progress.attempts_count = (progress.attempts_count or 0) + 1
+    update_fields.extend(["attempts_count", "updated_at"])
+    progress.save(update_fields=sorted(set(update_fields)))
+
+    unit_progress, _ = UserUnitProgress.objects.get_or_create(user=user, unit=activity.unit)
+    if not unit_progress.started_at:
+        unit_progress.started_at = now
+        unit_progress.save(update_fields=["started_at", "updated_at"])
+    return progress
 
 
 def _build_course_path_payload_for_units(request, course, units):
@@ -303,6 +454,70 @@ def _build_session_detail_payload(request, session):
             else None
         ),
     }
+
+
+def _create_lesson_session_for_unit(request, unit: Unit, lesson: Lesson, start_source: str, activity: UnitActivity | None = None):
+    hearts = _refill_hearts(_get_or_create_hearts(request.user))
+    if hearts.current_hearts <= 0:
+        return Response(
+            {
+                "detail": "Ban da het hearts. Vui long doi refill.",
+                "hearts": _build_hearts_payload(hearts),
+            },
+            status=HEARTS_MIN_RESPONSE_STATUS,
+        )
+
+    lesson_words = Word.objects.filter(lessons=lesson).distinct()
+    difficulty, difficulty_context = _detect_difficulty_with_context(request.user)
+    max_questions = 6 if difficulty == "easy" else 8
+    exercises = _build_exercises_from_bank(lesson, max_questions=max_questions)
+    if not exercises:
+        word_ids = list(lesson_words.values_list("id", flat=True))
+        global_words = Word.objects.filter(level=lesson.level).exclude(id__in=word_ids)[:100]
+        exercises = generate_exercises_from_words(
+            lesson_words,
+            max_questions=max_questions,
+            difficulty=difficulty,
+            global_words=global_words,
+            lesson=lesson,
+        )
+    if not exercises:
+        return Response(
+            {"detail": "Bai hoc chua co du lieu de sinh bai tap."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    session = LearningSession.objects.create(
+        user=request.user,
+        unit=unit,
+        lesson=lesson,
+        session_type=LearningSession.SessionType.LESSON,
+        difficulty=difficulty,
+        exercises=exercises,
+    )
+    _track_learning_event(
+        request.user,
+        LearningEvent.EventType.SESSION_START,
+        session=session,
+        meta={
+            "session_type": session.session_type,
+            "difficulty": session.difficulty,
+            "exercise_count": len(exercises),
+            "unit_id": unit.id,
+            "lesson_id": lesson.id,
+            "activity_id": activity.id if activity else None,
+            "start_source": start_source,
+        },
+    )
+
+    payload = LearningSessionSerializer(session).data
+    payload["kind"] = "learning_session"
+    payload["exercise_count"] = len(exercises)
+    payload["difficulty"] = difficulty
+    payload["difficulty_context"] = difficulty_context
+    payload["hearts"] = hearts.current_hearts
+    payload["hearts_info"] = _build_hearts_payload(hearts)
+    return Response(payload, status=status.HTTP_201_CREATED)
 
 
 def _start_lesson_session(request, default_source: str, required_skill_tag: str | None = None):
@@ -648,6 +863,127 @@ class LearningPathView(APIView):
             return Response({"detail": "Chua co khoa hoc kha dung."}, status=status.HTTP_404_NOT_FOUND)
         units = _get_filtered_units(course)
         return Response(_build_course_path_payload_for_units(request, course, units))
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class LearningPathV2View(APIView):
+    """GET /learning/path/v2/ - Return level -> unit -> activity path."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        payload = _build_learning_path_v2_payload(request)
+        if not payload["levels"]:
+            return Response({"detail": "Chua co khoa hoc kha dung."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(payload)
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class UnitActivityStartView(APIView):
+    """POST /learning/activities/<id>/start/ - Start one UnitActivity."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [LearningSessionStartRateThrottle]
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
+    def post(self, request, activity_id: int):
+        activity = (
+            UnitActivity.objects
+            .select_related("unit", "unit__course", "lesson", "listening_passage", "quiz")
+            .filter(
+                id=activity_id,
+                is_published=True,
+                unit__is_published=True,
+                unit__course__is_active=True,
+            )
+            .first()
+        )
+        if not activity:
+            return Response({"detail": "Khong tim thay activity."}, status=status.HTTP_404_NOT_FOUND)
+        if not _is_activity_unlocked_for_user(request.user, activity):
+            return Response({"detail": "Activity nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
+
+        start_source = _resolve_client_source(request, default="learning_path")
+        if activity.activity_type in {UnitActivity.ActivityType.VOCAB, UnitActivity.ActivityType.GRAMMAR}:
+            if not activity.lesson_id:
+                return Response({"detail": "Activity chua gan lesson."}, status=status.HTTP_400_BAD_REQUEST)
+            response = _create_lesson_session_for_unit(
+                request,
+                unit=activity.unit,
+                lesson=activity.lesson,
+                start_source=start_source,
+                activity=activity,
+            )
+            if response.status_code < 400:
+                progress = _mark_activity_started(request.user, activity)
+                response.data["activity"] = {"id": activity.id, "type": activity.activity_type}
+                response.data["activity_progress"] = UserActivityProgressSerializer(progress).data
+            return response
+
+        if activity.activity_type == UnitActivity.ActivityType.LISTENING:
+            if not activity.listening_passage_id:
+                return Response({"detail": "Activity chua gan bai nghe."}, status=status.HTTP_400_BAD_REQUEST)
+            if activity.listening_passage.questions.count() < 1:
+                return Response({"detail": "Bai nghe chua co cau hoi."}, status=status.HTTP_400_BAD_REQUEST)
+            session = ListeningSession.objects.create(
+                user=request.user,
+                passage=activity.listening_passage,
+                status=ListeningSession.Status.STARTED,
+                current_question_index=1,
+            )
+            progress = _mark_activity_started(request.user, activity)
+            return Response(
+                {
+                    "kind": "listening_session",
+                    "activity": {"id": activity.id, "type": activity.activity_type},
+                    "activity_progress": UserActivityProgressSerializer(progress).data,
+                    "session": ListeningSessionSerializer(session).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        if activity.activity_type == UnitActivity.ActivityType.WRITING:
+            prompt = (
+                (activity.metadata or {}).get("prompt")
+                or activity.description
+                or f"Write a short answer for: {activity.title}"
+            )
+            progress = _mark_activity_started(request.user, activity)
+            submission, _ = WritingSubmission.objects.get_or_create(
+                user=request.user,
+                activity=activity,
+                status=WritingSubmission.Status.DRAFT,
+                defaults={"prompt": prompt},
+            )
+            return Response(
+                {
+                    "kind": "writing_submission",
+                    "activity": {"id": activity.id, "type": activity.activity_type},
+                    "activity_progress": UserActivityProgressSerializer(progress).data,
+                    "submission": WritingSubmissionSerializer(submission).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        if activity.activity_type in {UnitActivity.ActivityType.QUIZ, UnitActivity.ActivityType.CHECKPOINT}:
+            progress = _mark_activity_started(request.user, activity)
+            return Response(
+                {
+                    "kind": activity.activity_type,
+                    "activity": {"id": activity.id, "type": activity.activity_type},
+                    "activity_progress": UserActivityProgressSerializer(progress).data,
+                    "quiz_id": activity.quiz_id,
+                    "unit_id": activity.unit_id,
+                    "target": {
+                        "quiz_api": "/api/v1/quiz/generate/" if activity.quiz_id else None,
+                        "checkpoint_api": "/api/v1/learning/checkpoint/start/" if activity.activity_type == UnitActivity.ActivityType.CHECKPOINT else None,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response({"detail": "Loai activity chua duoc ho tro."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -2101,6 +2437,8 @@ class ReviewHistoryView(APIView):
 
 __all__ = [
     "LearningPathView",
+    "LearningPathV2View",
+    "UnitActivityStartView",
     "ListeningPathView",
     "LearningPlacementStatusView",
     "LearningPlacementQuestionsView",

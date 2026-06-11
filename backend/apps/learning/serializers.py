@@ -18,10 +18,13 @@ from .models import (
     PlacementResult,
     ReviewLog,
     Unit,
+    UnitActivity,
     UnitLesson,
+    UserActivityProgress,
     UserCourseProgress,
     UserStreak,
     UserUnitProgress,
+    WritingSubmission,
 )
 
 
@@ -229,6 +232,174 @@ class CoursePathSerializer(serializers.ModelSerializer):
         if not progress:
             return None
         return UserCourseProgressSerializer(progress).data
+
+
+class UserActivityProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserActivityProgress
+        fields = (
+            "status",
+            "score_pct",
+            "xp_earned",
+            "attempts_count",
+            "started_at",
+            "completed_at",
+        )
+        read_only_fields = fields
+
+
+class UnitActivityPathSerializer(serializers.ModelSerializer):
+    progress = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    unlocked = serializers.BooleanField(read_only=True, default=False)
+    content = serializers.SerializerMethodField()
+    target = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UnitActivity
+        fields = (
+            "id",
+            "activity_type",
+            "title",
+            "description",
+            "order_index",
+            "is_required",
+            "is_published",
+            "estimated_minutes",
+            "min_score_to_pass",
+            "metadata",
+            "unlocked",
+            "status",
+            "progress",
+            "content",
+            "target",
+        )
+        read_only_fields = fields
+
+    def get_progress(self, obj):
+        progress_map = self.context.get("activity_progress_map", {})
+        progress = progress_map.get(obj.id)
+        if not progress:
+            return None
+        return UserActivityProgressSerializer(progress).data
+
+    def get_status(self, obj) -> str:
+        progress_map = self.context.get("activity_progress_map", {})
+        progress = progress_map.get(obj.id)
+        if progress:
+            return progress.status
+        return UserActivityProgress.Status.AVAILABLE if getattr(obj, "unlocked", False) else UserActivityProgress.Status.LOCKED
+
+    def get_content(self, obj) -> dict:
+        if obj.lesson_id:
+            return {
+                "kind": "lesson",
+                "id": obj.lesson_id,
+                "title": obj.lesson.title if obj.lesson else "",
+                "skill_tag": obj.lesson.skill_tag if obj.lesson else "",
+                "level": obj.lesson.level if obj.lesson else "",
+            }
+        if obj.listening_passage_id:
+            return {
+                "kind": "listening_passage",
+                "id": obj.listening_passage_id,
+                "title": obj.listening_passage.title if obj.listening_passage else "",
+                "level": obj.listening_passage.level if obj.listening_passage else "",
+                "estimated_seconds": obj.listening_passage.estimated_seconds if obj.listening_passage else 0,
+            }
+        if obj.quiz_id:
+            return {
+                "kind": "quiz",
+                "id": obj.quiz_id,
+                "title": obj.quiz.title if obj.quiz else "",
+                "quiz_type": obj.quiz.quiz_type if obj.quiz else "",
+            }
+        return {"kind": obj.activity_type}
+
+    def get_target(self, obj) -> dict:
+        return {
+            "start_api": f"/api/v1/learning/activities/{obj.id}/start/",
+            "frontend_hint": obj.activity_type,
+        }
+
+
+class LearningPathUnitV2Serializer(serializers.ModelSerializer):
+    activities = UnitActivityPathSerializer(many=True, read_only=True)
+    progress = serializers.SerializerMethodField()
+    unlocked = serializers.BooleanField(read_only=True, default=False)
+    placement_recommended = serializers.BooleanField(read_only=True, default=False)
+    activity_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Unit
+        fields = (
+            "id",
+            "title",
+            "description",
+            "order_index",
+            "required_lessons_to_unlock",
+            "unlocked",
+            "placement_recommended",
+            "activity_count",
+            "progress",
+            "activities",
+        )
+        read_only_fields = fields
+
+    def get_progress(self, obj):
+        progress_map = self.context.get("progress_map", {})
+        progress = progress_map.get(obj.id)
+        if not progress:
+            return None
+        return UserUnitProgressSerializer(progress).data
+
+    def get_activity_count(self, obj) -> int:
+        return len(list(obj.activities.all()))
+
+
+class CoursePathV2Serializer(serializers.ModelSerializer):
+    units = LearningPathUnitV2Serializer(many=True, read_only=True)
+    progress = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = ("id", "name", "slug", "description", "level", "progress", "units")
+        read_only_fields = fields
+
+    def get_progress(self, obj):
+        progress_map = self.context.get("course_progress_map", {})
+        progress = progress_map.get(obj.id)
+        if not progress:
+            return None
+        return UserCourseProgressSerializer(progress).data
+
+    def get_level(self, obj) -> str:
+        text = f"{obj.slug} {obj.name}".upper()
+        for level in ("A1", "A2", "B1", "B2", "C1", "C2"):
+            if level in text:
+                return level
+        return ""
+
+
+class WritingSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WritingSubmission
+        fields = (
+            "id",
+            "activity",
+            "prompt",
+            "answer_text",
+            "word_count",
+            "status",
+            "feedback",
+            "score_pct",
+            "submitted_at",
+            "reviewed_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
 
 
 class UserCourseProgressSerializer(serializers.ModelSerializer):
