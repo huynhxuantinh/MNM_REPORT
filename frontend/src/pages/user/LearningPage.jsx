@@ -285,7 +285,16 @@ const LearningPage = () => {
         return;
       }
       if (payload.kind === "quiz" || payload.kind === "checkpoint") {
-        navigate(`/quiz?activity_id=${variables.activity.id}${payload.quiz_id ? `&quiz_id=${payload.quiz_id}` : ""}`);
+        navigate(`/quiz?activity_id=${variables.activity.id}${payload.quiz_id ? `&quiz_id=${payload.quiz_id}` : ""}`, {
+          state: {
+            activityQuiz: {
+              activity: variables.activity,
+              unit: variables.unit,
+              quiz_id: payload.quiz_id,
+              startedPayload: payload,
+            },
+          },
+        });
         return;
       }
       if (payload.kind === "writing_submission") {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -220,13 +220,18 @@ const SelectPhase = ({ onStartQuiz, prefillSource }) => {
   );
 };
 
-const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
+const MultipleChoicePhase = ({ sourceId, sourceType, quizId: fixedQuizId, activityId, activityTitle, onFinish }) => {
+  const qc = useQueryClient();
   const [answers, setAnswers] = useState({});
   const [revealed, setRevealed] = useState({});
   const [current, setCurrent] = useState(0);
   const [quizId, setQuizId] = useState(null);
 
-  const params = sourceType === "lesson" ? { lesson_id: sourceId, type: "mc" } : { wordset_id: sourceId, type: "mc" };
+  const params = fixedQuizId
+    ? { quiz_id: fixedQuizId, type: "mc" }
+    : sourceType === "lesson"
+      ? { lesson_id: sourceId, type: "mc" }
+      : { wordset_id: sourceId, type: "mc" };
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["quiz-generate-mc", params],
@@ -239,7 +244,15 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
     gcTime: 0,
   });
 
-  const submitMutation = useMutation({ mutationFn: quizApi.submit });
+  const submitMutation = useMutation({
+    mutationFn: quizApi.submit,
+    onSuccess: () => {
+      if (activityId) {
+        qc.invalidateQueries({ queryKey: ["learning-path-v2"] });
+        qc.invalidateQueries({ queryKey: ["home-learning-path"] });
+      }
+    },
+  });
 
   const questions = data?.questions ?? [];
   const total = questions.length;
@@ -268,8 +281,16 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
       }
     });
     const score = Math.round((correct / total) * 100);
-    submitMutation.mutate({ quiz_id: quizId, score, total_questions: total, correct_answers: correct });
-    onFinish({ type: "mc", questions, answers, correct, total, score, sourceTitle: data.source_title });
+    const resultPayload = { type: "mc", questions, answers, correct, total, score, sourceTitle: activityTitle || data.source_title, activityId };
+    submitMutation.mutate({
+      quiz_id: quizId,
+      score,
+      total_questions: total,
+      correct_answers: correct,
+      ...(activityId ? { activity_id: activityId } : {}),
+    }, {
+      onSuccess: () => onFinish(resultPayload),
+    });
   };
 
   useEffect(() => {
@@ -410,11 +431,17 @@ const MultipleChoicePhase = ({ sourceId, sourceType, onFinish }) => {
           </SbButton>
         </Box>
       </Collapse>
+      {submitMutation.isError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Khong the luu ket qua quiz. Vui long thu lai.
+        </Alert>
+      )}
     </Box>
   );
 };
 
-const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
+const MatchingPhase = ({ sourceId, sourceType, quizId: fixedQuizId, activityId, activityTitle, onFinish }) => {
+  const qc = useQueryClient();
   const [quizId, setQuizId] = useState(null);
   const [leftItems, setLeftItems] = useState([]);
   const [rightItems, setRightItems] = useState([]);
@@ -424,7 +451,11 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
   const [errors, setErrors] = useState(0);
   const [flashError, setFlashError] = useState(false);
 
-  const params = sourceType === "lesson" ? { lesson_id: sourceId, type: "match" } : { wordset_id: sourceId, type: "match" };
+  const params = fixedQuizId
+    ? { quiz_id: fixedQuizId, type: "match" }
+    : sourceType === "lesson"
+      ? { lesson_id: sourceId, type: "match" }
+      : { wordset_id: sourceId, type: "match" };
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["quiz-generate-match", params],
@@ -440,7 +471,15 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
     gcTime: 0,
   });
 
-  const submitMutation = useMutation({ mutationFn: quizApi.submit });
+  const submitMutation = useMutation({
+    mutationFn: quizApi.submit,
+    onSuccess: () => {
+      if (activityId) {
+        qc.invalidateQueries({ queryKey: ["learning-path-v2"] });
+        qc.invalidateQueries({ queryKey: ["home-learning-path"] });
+      }
+    },
+  });
 
   useEffect(() => {
     if (!data?.questions || leftItems.length > 0) return;
@@ -457,15 +496,18 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
           const totalPairs = data.questions.length;
           setErrors((currentErrors) => {
             const score = Math.max(0, 100 - currentErrors * 10);
+            const resultPayload = { type: "match", total: totalPairs, errors: currentErrors, score, sourceTitle: activityTitle || data.source_title, activityId };
             submitMutation.mutate({
               quiz_id: quizId,
               score,
               total_questions: totalPairs + currentErrors,
               correct_answers: totalPairs,
+              ...(activityId ? { activity_id: activityId } : {}),
+            }, {
+              onSuccess: () => {
+                setTimeout(() => onFinish(resultPayload), 400);
+              },
             });
-            setTimeout(() => {
-              onFinish({ type: "match", total: totalPairs, errors: currentErrors, score, sourceTitle: data.source_title });
-            }, 400);
             return currentErrors;
           });
         }
@@ -594,6 +636,12 @@ const MatchingPhase = ({ sourceId, sourceType, onFinish }) => {
           </Box>
         </Grid>
       </Grid>
+
+      {submitMutation.isError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Khong the luu ket qua quiz. Vui long thu lai.
+        </Alert>
+      )}
     </Box>
   );
 };
@@ -654,8 +702,23 @@ const ResultPhase = ({ result, onRetry, onBack }) => {
 const QuizPage = () => {
   const location = useLocation();
   const quizSource = location.state?.quizSource ?? null;
-  const [phase, setPhase] = useState("select");
-  const [config, setConfig] = useState(null);
+  const activityQuiz = location.state?.activityQuiz ?? null;
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const routeActivityId = searchParams.get("activity_id") || activityQuiz?.activity?.id || null;
+  const routeQuizId = searchParams.get("quiz_id") || activityQuiz?.quiz_id || activityQuiz?.startedPayload?.quiz_id || null;
+  const routeActivityTitle = activityQuiz?.activity?.title || null;
+  const initialConfig = routeQuizId
+    ? {
+      sourceId: null,
+      sourceType: "quiz",
+      quizType: "mc",
+      quizId: routeQuizId,
+      activityId: routeActivityId,
+      activityTitle: routeActivityTitle,
+    }
+    : null;
+  const [phase, setPhase] = useState(initialConfig ? "quiz-mc" : "select");
+  const [config, setConfig] = useState(initialConfig);
   const [result, setResult] = useState(null);
 
   const prefillSource = useMemo(() => {
@@ -676,8 +739,26 @@ const QuizPage = () => {
   return (
     <Box sx={{ maxWidth: 800, mx: "auto", px: { xs: 0, sm: 1 } }}>
       {phase === "select" && <SelectPhase onStartQuiz={handleStartQuiz} prefillSource={prefillSource} />}
-      {phase === "quiz-mc" && <MultipleChoicePhase sourceId={config.sourceId} sourceType={config.sourceType} onFinish={handleFinish} />}
-      {phase === "quiz-match" && <MatchingPhase sourceId={config.sourceId} sourceType={config.sourceType} onFinish={handleFinish} />}
+      {phase === "quiz-mc" && (
+        <MultipleChoicePhase
+          sourceId={config.sourceId}
+          sourceType={config.sourceType}
+          quizId={config.quizId}
+          activityId={config.activityId}
+          activityTitle={config.activityTitle}
+          onFinish={handleFinish}
+        />
+      )}
+      {phase === "quiz-match" && (
+        <MatchingPhase
+          sourceId={config.sourceId}
+          sourceType={config.sourceType}
+          quizId={config.quizId}
+          activityId={config.activityId}
+          activityTitle={config.activityTitle}
+          onFinish={handleFinish}
+        />
+      )}
       {phase === "result" && (
         <ResultPhase
           result={result}

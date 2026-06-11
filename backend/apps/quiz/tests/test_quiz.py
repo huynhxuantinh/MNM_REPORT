@@ -52,6 +52,13 @@ class TestQuizGenerate:
         sc.get(GENERATE_URL, {"lesson_id": lesson.id})
         assert Quiz.objects.filter(lesson=lesson).count() == 1
 
+    def test_generate_with_quiz_id_reuses_quiz_source(self, sc, lesson):
+        first = sc.get(GENERATE_URL, {"lesson_id": lesson.id})
+        r = sc.get(GENERATE_URL, {"quiz_id": first.data["quiz_id"]})
+        assert r.status_code == 200
+        assert r.data["quiz_id"] == first.data["quiz_id"]
+        assert r.data["lesson_title"] == lesson.title
+
     def test_missing_lesson_id_returns_400(self, sc):
         r = sc.get(GENERATE_URL)
         assert r.status_code == 400

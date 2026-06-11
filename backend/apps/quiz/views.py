@@ -29,14 +29,28 @@ class QuizGenerateView(APIView):
 
         lesson_id = request.query_params.get("lesson_id")
         wordset_id = request.query_params.get("wordset_id")
+        quiz_id = request.query_params.get("quiz_id")
         quiz_type = request.query_params.get("type", "mc")
-
-        if not lesson_id and not wordset_id:
-            return Response({"detail": "Cần lesson_id hoặc wordset_id."}, status=status.HTTP_400_BAD_REQUEST)
+        if not lesson_id and not wordset_id and not quiz_id:
+            return Response({"detail": "Can lesson_id, wordset_id hoac quiz_id."}, status=status.HTTP_400_BAD_REQUEST)
 
         title = ""
         words = []
         source_obj = None
+        quiz = None
+
+        if quiz_id:
+            try:
+                quiz = Quiz.objects.select_related("lesson", "wordset").get(pk=quiz_id)
+            except Quiz.DoesNotExist:
+                return Response({"detail": "Quiz khong ton tai."}, status=status.HTTP_404_NOT_FOUND)
+            if quiz.lesson_id:
+                lesson_id = quiz.lesson_id
+            elif quiz.wordset_id:
+                wordset_id = quiz.wordset_id
+            else:
+                return Response({"detail": "Quiz chua gan lesson hoac wordset."}, status=status.HTTP_400_BAD_REQUEST)
+            quiz_type = "match" if quiz.quiz_type == Quiz.QuizType.MATCHING else "mc"
 
         if lesson_id:
             try:
@@ -77,14 +91,14 @@ class QuizGenerateView(APIView):
 
         q_type_enum = Quiz.QuizType.MATCHING if quiz_type == "match" else Quiz.QuizType.MULTIPLE_CHOICE
 
-        # Tìm hoặc tạo Quiz object
-        filter_kwargs = {"quiz_type": q_type_enum}
-        if lesson_id:
-            filter_kwargs["lesson"] = source_obj
-        else:
-            filter_kwargs["wordset"] = source_obj
-
-        quiz = Quiz.objects.filter(**filter_kwargs).first()
+        if not quiz:
+            # Find or create a quiz object for lesson/wordset generated quizzes.
+            filter_kwargs = {"quiz_type": q_type_enum}
+            if lesson_id:
+                filter_kwargs["lesson"] = source_obj
+            else:
+                filter_kwargs["wordset"] = source_obj
+            quiz = Quiz.objects.filter(**filter_kwargs).first()
         if not quiz:
             create_kwargs = {
                 "title": f"Quiz - {title}",
