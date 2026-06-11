@@ -5,6 +5,7 @@ from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -325,6 +326,113 @@ class UnitLesson(models.Model):
         return f"{self.unit.title} -> {self.lesson.title}"
 
 
+class UnitActivity(models.Model):
+    """Ordered learning activity inside a unit.
+
+    This is the V2 path layer: a unit can contain vocabulary, listening,
+    grammar, writing, quiz, and checkpoint activities in one ordered flow.
+    """
+
+    class ActivityType(models.TextChoices):
+        VOCAB = "vocab", "Vocabulary"
+        LISTENING = "listening", "Listening"
+        GRAMMAR = "grammar", "Grammar"
+        WRITING = "writing", "Writing"
+        QUIZ = "quiz", "Quiz"
+        CHECKPOINT = "checkpoint", "Checkpoint"
+
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name="activities",
+        verbose_name="Unit",
+    )
+    activity_type = models.CharField(
+        "Activity type",
+        max_length=24,
+        choices=ActivityType.choices,
+    )
+    title = models.CharField("Title", max_length=200)
+    description = models.TextField("Description", blank=True)
+    order_index = models.PositiveIntegerField("Order", default=1)
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="unit_activities",
+        verbose_name="Lesson",
+    )
+    listening_passage = models.ForeignKey(
+        "learning.ListeningPassage",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="unit_activities",
+        verbose_name="Listening passage",
+    )
+    quiz = models.ForeignKey(
+        "quiz.Quiz",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="unit_activities",
+        verbose_name="Quiz",
+    )
+    is_required = models.BooleanField("Required", default=True)
+    is_published = models.BooleanField("Published", default=False)
+    estimated_minutes = models.PositiveIntegerField("Estimated minutes", default=5)
+    min_score_to_pass = models.PositiveIntegerField("Minimum score to pass", default=70)
+    metadata = models.JSONField("Metadata", default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Unit activity"
+        verbose_name_plural = "Unit activities"
+        db_table = "unit_activities"
+        ordering = ["unit", "order_index"]
+        unique_together = [("unit", "order_index")]
+        indexes = [
+            models.Index(fields=["unit", "is_published", "order_index"]),
+            models.Index(fields=["activity_type", "is_published"]),
+        ]
+
+    def clean(self):
+        super().clean()
+        target_count = sum(
+            bool(value)
+            for value in (self.lesson_id, self.listening_passage_id, self.quiz_id)
+        )
+
+        if self.activity_type in {self.ActivityType.VOCAB, self.ActivityType.GRAMMAR}:
+            if not self.lesson_id:
+                raise ValidationError({"lesson": "This activity type requires a lesson."})
+            if target_count != 1:
+                raise ValidationError("Vocabulary/grammar activities must link only one lesson.")
+
+        if self.activity_type == self.ActivityType.LISTENING:
+            if not self.listening_passage_id:
+                raise ValidationError({"listening_passage": "Listening activity requires a passage."})
+            if target_count != 1:
+                raise ValidationError("Listening activities must link only one passage.")
+
+        if self.activity_type == self.ActivityType.QUIZ:
+            if not self.quiz_id:
+                raise ValidationError({"quiz": "Quiz activity requires a quiz."})
+            if target_count != 1:
+                raise ValidationError("Quiz activities must link only one quiz.")
+
+        if self.activity_type == self.ActivityType.WRITING and target_count > 1:
+            raise ValidationError("Writing activities can link at most one content object.")
+
+        if self.activity_type == self.ActivityType.CHECKPOINT and target_count > 1:
+            raise ValidationError("Checkpoint activities can link at most one content object.")
+
+    def __str__(self):
+        return f"{self.unit.title} - {self.order_index}. {self.title}"
+
+
 class UserUnitProgress(models.Model):
     """Progress of a user for a unit."""
 
@@ -402,6 +510,114 @@ class UserCourseProgress(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.course}: {self.completed_units}"
+
+
+class UserActivityProgress(models.Model):
+    """Per-user progress for one UnitActivity."""
+
+    class Status(models.TextChoices):
+        LOCKED = "locked", "Locked"
+        AVAILABLE = "available", "Available"
+        STARTED = "started", "Started"
+        COMPLETED = "completed", "Completed"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="activity_progress",
+        verbose_name="User",
+    )
+    activity = models.ForeignKey(
+        UnitActivity,
+        on_delete=models.CASCADE,
+        related_name="progress",
+        verbose_name="Activity",
+    )
+    status = models.CharField(
+        "Status",
+        max_length=16,
+        choices=Status.choices,
+        default=Status.LOCKED,
+    )
+    score_pct = models.FloatField("Score percent", default=0)
+    xp_earned = models.PositiveIntegerField("XP earned", default=0)
+    attempts_count = models.PositiveIntegerField("Attempts count", default=0)
+    started_at = models.DateTimeField("Started at", null=True, blank=True)
+    completed_at = models.DateTimeField("Completed at", null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User activity progress"
+        verbose_name_plural = "User activity progress"
+        db_table = "user_activity_progress"
+        unique_together = [("user", "activity")]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["activity", "status"]),
+            models.Index(fields=["user", "activity"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.activity}: {self.status}"
+
+
+class WritingSubmission(models.Model):
+    """User submission for a writing UnitActivity."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SUBMITTED = "submitted", "Submitted"
+        REVIEWED = "reviewed", "Reviewed"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="writing_submissions",
+        verbose_name="User",
+    )
+    activity = models.ForeignKey(
+        UnitActivity,
+        on_delete=models.CASCADE,
+        related_name="writing_submissions",
+        verbose_name="Activity",
+    )
+    prompt = models.TextField("Prompt")
+    answer_text = models.TextField("Answer text", blank=True)
+    word_count = models.PositiveIntegerField("Word count", default=0)
+    status = models.CharField(
+        "Status",
+        max_length=16,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    feedback = models.TextField("Feedback", blank=True)
+    score_pct = models.FloatField("Score percent", default=0)
+    submitted_at = models.DateTimeField("Submitted at", null=True, blank=True)
+    reviewed_at = models.DateTimeField("Reviewed at", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Writing submission"
+        verbose_name_plural = "Writing submissions"
+        db_table = "writing_submissions"
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["user", "activity"]),
+            models.Index(fields=["status", "submitted_at"]),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.activity_id and self.activity.activity_type != UnitActivity.ActivityType.WRITING:
+            raise ValidationError({"activity": "Writing submissions require a writing activity."})
+
+    def save(self, *args, **kwargs):
+        self.word_count = len((self.answer_text or "").split())
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.activity}: {self.status}"
 
 
 class LearningSession(models.Model):
