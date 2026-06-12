@@ -72,7 +72,7 @@ describe("Integration Smoke", () => {
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
     // Click nút học bài đầu tiên trên UI
-    cy.get('[data-cy^="learning-start-"]:not([data-cy="learning-start-disabled"])', { timeout: 20000 })
+    cy.get('[data-cy^="learning-activity-start-"]:not([disabled])', { timeout: 20000 })
       .first()
       .click({ force: true });
     cy.location("pathname", { timeout: 20000 }).should("match", /\/learning\/session\/\d+$/);

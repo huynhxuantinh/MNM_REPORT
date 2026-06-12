@@ -72,20 +72,49 @@ describe("Student Learning Flow", () => {
   });
 
   it("opens learning path and starts a lesson session", () => {
-    cy.intercept("GET", "**/api/v1/learning/path/**", {
+    cy.intercept("GET", "**/api/v1/learning/path/v2/**", {
       statusCode: 200,
       body: {
-        id: 1,
-        name: "Core English",
-        units: [
+        recommended_level: "A1",
+        levels: [
           {
-            id: 100,
-            title: "Basics",
-            order_index: 1,
-            unlocked: true,
-            lesson_count: 1,
-            progress: { completed_lessons: 0 },
-            lessons: [{ order_index: 1, lesson: { id: 1, title: "Greetings", level: "A1", words_learned: 0, words_total: 10 } }],
+            id: 1,
+            name: "A1 Foundation",
+            slug: "a1-foundation",
+            level: "A1",
+            description: "Core English",
+            progress: null,
+            units: [
+              {
+                id: 100,
+                title: "Basics",
+                description: "Start here",
+                order_index: 1,
+                unlocked: true,
+                placement_recommended: true,
+                activity_count: 1,
+                progress: null,
+                activities: [
+                  {
+                    id: 501,
+                    activity_type: "vocab",
+                    title: "Greetings",
+                    description: "Learn greetings",
+                    order_index: 1,
+                    is_required: true,
+                    is_published: true,
+                    estimated_minutes: 5,
+                    min_score_to_pass: 70,
+                    metadata: {},
+                    unlocked: true,
+                    status: "available",
+                    progress: null,
+                    content: { kind: "lesson", id: 1, title: "Greetings", skill_tag: "vocab", level: "A1" },
+                    target: { start_api: "/api/v1/learning/activities/501/start/", frontend_hint: "vocab" },
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
@@ -104,9 +133,13 @@ describe("Student Learning Flow", () => {
         streak: { freeze_count: 0 },
       },
     });
-    cy.intercept("POST", "**/api/v1/learning/session/start/**", {
+    cy.intercept("POST", "**/api/v1/learning/activities/501/start/**", {
       statusCode: 201,
-      body: { id: 900 },
+      body: {
+        kind: "learning_session",
+        id: 900,
+        activity: { id: 501, type: "vocab" },
+      },
     }).as("startSession");
     cy.intercept("GET", "**/api/v1/learning/session/900/**", {
       statusCode: 200,
@@ -132,9 +165,9 @@ describe("Student Learning Flow", () => {
     cy.wait("@me");
     cy.wait("@placementStatus");
     cy.wait("@learningPath");
-    cy.contains("button", /đã hiểu|da hieu/i).click({ force: true });
+    cy.get(".MuiDialog-root button").last().click({ force: true });
     cy.contains(/lộ trình học|học tập|learning path/i).should("be.visible");
-    cy.get('[data-cy^="learning-start-"]').first().click({ force: true });
+    cy.get('[data-cy^="learning-activity-start-"]').first().click({ force: true });
     cy.wait("@startSession");
     cy.wait("@session900");
     cy.url().should("include", "/learning/session/900");
@@ -341,4 +374,3 @@ describe("Student Learning Flow", () => {
     cy.contains(/Anna đi xe buýt đến trường mỗi buổi sáng\./i).should("be.visible");
   });
 });
-
