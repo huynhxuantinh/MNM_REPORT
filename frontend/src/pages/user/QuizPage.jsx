@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -646,7 +646,7 @@ const MatchingPhase = ({ sourceId, sourceType, quizId: fixedQuizId, activityId, 
   );
 };
 
-const ResultPhase = ({ result, onRetry, onBack }) => {
+const ResultPhase = ({ result, onRetry, onBack, onBackToLearning, isActivityMode = false }) => {
   const { type, score, sourceTitle, total } = result;
   const label = scoreLabel(score);
 
@@ -691,8 +691,8 @@ const ResultPhase = ({ result, onRetry, onBack }) => {
         <SbButton variant="outlined" startIcon={<RestartAltRoundedIcon />} onClick={onRetry}>
           Làm lại
         </SbButton>
-        <SbButton variant="contained" onClick={onBack}>
-          Chọn bài khác
+        <SbButton variant="contained" onClick={isActivityMode ? onBackToLearning : onBack}>
+          {isActivityMode ? "Về lộ trình" : "Chọn bài khác"}
         </SbButton>
       </Box>
     </Box>
@@ -701,6 +701,8 @@ const ResultPhase = ({ result, onRetry, onBack }) => {
 
 const QuizPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
   const quizSource = location.state?.quizSource ?? null;
   const activityQuiz = location.state?.activityQuiz ?? null;
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -736,6 +738,12 @@ const QuizPage = () => {
     setPhase("result");
   };
 
+  const handleBackToLearning = () => {
+    qc.invalidateQueries({ queryKey: ["learning-path-v2"] });
+    qc.invalidateQueries({ queryKey: ["home-learning-path"] });
+    navigate("/learning");
+  };
+
   return (
     <Box sx={{ maxWidth: 800, mx: "auto", px: { xs: 0, sm: 1 } }}>
       {phase === "select" && <SelectPhase onStartQuiz={handleStartQuiz} prefillSource={prefillSource} />}
@@ -764,6 +772,8 @@ const QuizPage = () => {
           result={result}
           onRetry={() => setPhase(`quiz-${config.quizType}`)}
           onBack={() => setPhase("select")}
+          onBackToLearning={handleBackToLearning}
+          isActivityMode={Boolean(result?.activityId || config?.activityId)}
         />
       )}
     </Box>

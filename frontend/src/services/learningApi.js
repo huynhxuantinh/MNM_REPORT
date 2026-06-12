@@ -60,7 +60,11 @@ const learningApi = {
   finishLearningSession: (sessionId) => axiosClient.post(`/learning/session/${sessionId}/finish/`),
   finishListeningModuleSession: (sessionId) => axiosClient.post(`/listening/session/${sessionId}/finish/`),
   quitLearningSession: (sessionId, reason = "") => axiosClient.post(`/learning/session/${sessionId}/quit/`, { reason }),
-  startCheckpoint: (unitId) => axiosClient.post("/learning/checkpoint/start/", { unit_id: unitId }),
+  startCheckpoint: (unitId, activityId = null) =>
+    axiosClient.post("/learning/checkpoint/start/", {
+      unit_id: unitId,
+      ...(activityId ? { activity_id: activityId } : {}),
+    }),
   submitCheckpoint: (sessionId) => axiosClient.post(`/learning/checkpoint/${sessionId}/submit/`),
   getDailyGoal: () => axiosClient.get("/learning/daily-goal/"),
   claimDailyGoal: () => axiosClient.post("/learning/daily-goal/claim/"),

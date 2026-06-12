@@ -2104,6 +2104,7 @@ class LearningCheckpointStartView(APIView):
         serializer = LearningCheckpointStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         unit = serializer.validated_data["unit"]
+        activity = serializer.validated_data.get("activity")
         hearts = _refill_hearts(_get_or_create_hearts(request.user))
         if hearts.current_hearts <= 0:
             return Response(
@@ -2116,11 +2117,13 @@ class LearningCheckpointStartView(APIView):
 
         if not _is_unit_unlocked(request.user, unit):
             return Response({"detail": "Unit nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
+        if activity and not _is_activity_unlocked_for_user(request.user, activity):
+            return Response({"detail": "Checkpoint activity nay chua mo khoa."}, status=status.HTTP_403_FORBIDDEN)
 
         total_lessons = UnitLesson.objects.filter(unit=unit, lesson__is_published=True).count()
         unit_progress = UserUnitProgress.objects.filter(user=request.user, unit=unit).first()
         completed_lessons = unit_progress.completed_lessons if unit_progress else 0
-        if completed_lessons < total_lessons:
+        if not activity and completed_lessons < total_lessons:
             return Response(
                 {"detail": "Cần hoàn thành toàn bộ bài học trong unit trước khi làm checkpoint."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -2137,8 +2140,15 @@ class LearningCheckpointStartView(APIView):
             )
 
         words = _extract_unit_words(unit)
+        lesson_qs = (
+            Lesson.objects
+            .filter(unit_activities__unit=unit, unit_activities__is_published=True, is_published=True)
+            .distinct()
+        )
+        if not lesson_qs.exists():
+            lesson_qs = Lesson.objects.filter(unit_links__unit=unit, is_published=True).distinct()
         unit_levels = list(
-            Lesson.objects.filter(unit_links__unit=unit, is_published=True)
+            lesson_qs
             .exclude(level="")
             .values_list("level", flat=True)
             .distinct()
@@ -2156,11 +2166,7 @@ class LearningCheckpointStartView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        first_lesson = (
-            Lesson.objects.filter(unit_links__unit=unit, is_published=True)
-            .order_by("unit_links__order_index")
-            .first()
-        )
+        first_lesson = lesson_qs.order_by("unit_activities__order_index", "unit_links__order_index", "id").first()
         if not first_lesson:
             return Response({"detail": "Unit chua co lesson hop le."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2168,6 +2174,7 @@ class LearningCheckpointStartView(APIView):
             user=request.user,
             unit=unit,
             lesson=first_lesson,
+            unit_activity=activity,
             session_type=LearningSession.SessionType.CHECKPOINT,
             difficulty=LearningSession.Difficulty.HARD,
             exercises=exercises,
@@ -2182,9 +2189,11 @@ class LearningCheckpointStartView(APIView):
                 "exercise_count": len(exercises),
                 "unit_id": session.unit_id,
                 "lesson_id": session.lesson_id,
+                "activity_id": session.unit_activity_id,
             },
         )
         payload = LearningSessionSerializer(session).data
+        payload["activity"] = {"id": activity.id, "type": activity.activity_type} if activity else None
         payload["exercise_count"] = len(exercises)
         payload["hearts"] = hearts.current_hearts
         payload["hearts_info"] = _build_hearts_payload(hearts)
@@ -2204,7 +2213,7 @@ class LearningCheckpointSubmitView(APIView):
     def post(self, request, session_id):
         session = (
             LearningSession.objects
-            .select_related("unit", "unit__course")
+            .select_related("unit", "unit__course", "unit_activity")
             .filter(id=session_id, user=request.user)
             .first()
         )
@@ -2229,8 +2238,8 @@ class LearningCheckpointSubmitView(APIView):
         with transaction.atomic():
             session = (
                 LearningSession.objects
-                .select_for_update()
-                .select_related("unit", "unit__course")
+                .select_for_update(of=("self",))
+                .select_related("unit", "unit__course", "unit_activity")
                 .filter(pk=session.pk, user=request.user)
                 .first()
             )
@@ -2246,6 +2255,15 @@ class LearningCheckpointSubmitView(APIView):
             )
             _register_checkpoint_result(unit_progress, passed=passed, now=now)
             course_progress = _update_course_progress(request.user, session.unit.course, now=now)
+            activity_progress = None
+            if passed:
+                activity_progress = _mark_activity_completed(
+                    request.user,
+                    session.unit_activity,
+                    score_pct=score_pct,
+                    xp_earned=session.xp_earned,
+                    completed_at=now,
+                )
 
         if passed:
             session_minutes = _estimate_session_minutes(session, now=now, max_minutes=45)
@@ -2299,6 +2317,7 @@ class LearningCheckpointSubmitView(APIView):
                 },
                 "unlocked_next_unit": unlocked_next_unit,
                 "next_unit_id": next_unit.id if next_unit else None,
+                "activity_progress": UserActivityProgressSerializer(activity_progress).data if activity_progress else None,
                 "xp_earned": session.xp_earned if passed else 0,
                 "total_xp": request.user.xp,
                 "level": request.user.level,

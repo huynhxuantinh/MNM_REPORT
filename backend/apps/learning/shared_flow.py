@@ -5,7 +5,7 @@ from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db import transaction
-from django.db.models import Min, Sum
+from django.db.models import Min, Q, Sum
 from django.utils import timezone
 from rest_framework import status
 
@@ -708,7 +708,7 @@ def _build_placement_questions(count: int = PLACEMENT_DEFAULT_QUESTION_COUNT) ->
 def _extract_unit_words(unit: Unit):
     return (
         Word.objects
-        .filter(lessons__unit_links__unit=unit)
+        .filter(Q(lessons__unit_links__unit=unit) | Q(lessons__unit_activities__unit=unit))
         .distinct()
     )
 

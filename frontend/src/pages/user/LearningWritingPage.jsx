@@ -65,6 +65,7 @@ const LearningWritingPage = () => {
       qc.invalidateQueries({ queryKey: ["home-learning-path"] });
       qc.invalidateQueries({ queryKey: ["daily-goal"] });
       qc.invalidateQueries({ queryKey: ["profile-stats"] });
+      window.setTimeout(() => navigate("/learning"), 1500);
     },
     onError: (error) => {
       setErrorMessage(error?.response?.data?.detail || "Không thể nộp bài viết.");

@@ -76,7 +76,6 @@ const ActivityCard = ({ activity, unit, onStart, startingActivityId }) => {
   const isLocked = !activity.unlocked || status === "locked";
   const isCompleted = status === "completed";
   const isStarting = startingActivityId === activity.id;
-  const contentTitle = activity.content?.title;
 
   const buttonLabel = isLocked
     ? "Khóa"
@@ -121,7 +120,7 @@ const ActivityCard = ({ activity, unit, onStart, startingActivityId }) => {
               {activity.is_required && <Chip label="Bắt buộc" size="small" sx={{ height: 22, fontWeight: 700 }} />}
             </Stack>
             <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mt: 0.25 }} noWrap>
-              {contentTitle || activity.description || "Hoạt động học tập"} · {activity.estimated_minutes || 5} phút · {statusText[status] || status}
+              {activity.description || "Hoạt động học tập"} · {activity.estimated_minutes || 5} phút · {statusText[status] || status}
             </Typography>
           </Box>
         </Stack>
@@ -284,7 +283,17 @@ const LearningPage = () => {
         navigate(`/listening/session/${payload.session.id}`);
         return;
       }
-      if (payload.kind === "quiz" || payload.kind === "checkpoint") {
+      if (payload.kind === "checkpoint") {
+        navigate(`/learning/checkpoint/${variables.activity.id}`, {
+          state: {
+            activity: variables.activity,
+            unit: variables.unit,
+            startedPayload: payload,
+          },
+        });
+        return;
+      }
+      if (payload.kind === "quiz") {
         navigate(`/quiz?activity_id=${variables.activity.id}${payload.quiz_id ? `&quiz_id=${payload.quiz_id}` : ""}`, {
           state: {
             activityQuiz: {

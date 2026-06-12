@@ -14,7 +14,6 @@ from apps.learning.models import (
     ListeningQuestion,
     Unit,
     UnitActivity,
-    UnitLesson,
 )
 from apps.quiz.models import Quiz
 from apps.vocabulary.models import Word
@@ -218,10 +217,6 @@ class Command(BaseCommand):
         )
         quiz = self._upsert_quiz(admin, f"{prefix} Quiz", vocab_lesson)
         checkpoint_quiz = self._upsert_quiz(admin, f"{prefix} Checkpoint", grammar_lesson) if checkpoint else None
-
-        UnitLesson.objects.filter(unit=unit).delete()
-        UnitLesson.objects.create(unit=unit, lesson=vocab_lesson, order_index=1)
-        UnitLesson.objects.create(unit=unit, lesson=grammar_lesson, order_index=2)
 
         UnitActivity.objects.filter(unit=unit).delete()
         activity_specs = [

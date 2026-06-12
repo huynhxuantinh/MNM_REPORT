@@ -470,6 +470,22 @@ class LearningSessionAnswerSerializer(serializers.Serializer):
 
 class LearningCheckpointStartSerializer(serializers.Serializer):
     unit_id = serializers.PrimaryKeyRelatedField(source="unit", queryset=Unit.objects.filter(is_published=True))
+    activity_id = serializers.PrimaryKeyRelatedField(
+        source="activity",
+        queryset=UnitActivity.objects.filter(
+            activity_type=UnitActivity.ActivityType.CHECKPOINT,
+            is_published=True,
+        ),
+        required=False,
+        allow_null=True,
+    )
+
+    def validate(self, attrs):
+        unit = attrs.get("unit")
+        activity = attrs.get("activity")
+        if activity and activity.unit_id != unit.id:
+            raise serializers.ValidationError({"activity_id": "Checkpoint activity khong thuoc unit nay."})
+        return attrs
 
 
 class ExerciseAttemptSerializer(serializers.ModelSerializer):
