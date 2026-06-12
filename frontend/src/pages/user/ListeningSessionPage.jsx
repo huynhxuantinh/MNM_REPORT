@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -34,6 +34,7 @@ const extractAnswerValue = (question, answerRow) => {
 const ListeningSessionPage = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showTranscript, setShowTranscript] = useState(false);
   const [ttsRate, setTtsRate] = useState(0.9);
@@ -141,6 +142,19 @@ const ListeningSessionPage = () => {
   const progress = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
   const result = finishPayload || (session?.status === "completed" ? session : null);
+  const isLearningActivity = Boolean(
+    finishPayload?.activity_progress || session?.unit_activity || result?.unit_activity || result?.activity_progress,
+  );
+  const backTarget = isLearningActivity ? "/learning" : "/listening";
+  const backLabel = isLearningActivity ? "Về lộ trình" : "Về danh sách nghe";
+
+  const handleBackToSource = useCallback(() => {
+    if (isLearningActivity) {
+      queryClient.invalidateQueries({ queryKey: ["learning-path-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["home-learning-path"] });
+    }
+    navigate(backTarget);
+  }, [backTarget, isLearningActivity, navigate, queryClient]);
 
   if (isLoading) {
     return (
@@ -254,8 +268,13 @@ const ListeningSessionPage = () => {
             Đã trả lời {answeredCount}/{questions.length} câu
           </Typography>
         </Box>
-        <SbButton variant="outlined" onClick={() => navigate("/listening")} sx={{ flexShrink: 0 }}>
-          Về danh sách nghe
+        <SbButton
+          variant="outlined"
+          onClick={handleBackToSource}
+          sx={{ flexShrink: 0 }}
+          data-cy="listening-back-btn"
+        >
+          {backLabel}
         </SbButton>
       </Stack>
 
@@ -344,6 +363,14 @@ const ListeningSessionPage = () => {
             <Typography>
               Tổng XP hiện tại: {result.summary.total_xp ?? 0} · Level {result.summary.level ?? 1}
             </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ pt: 1 }}>
+              <SbButton variant="primary" onClick={handleBackToSource} data-cy="listening-result-back-btn">
+                {backLabel}
+              </SbButton>
+              <SbButton variant="outlined" onClick={() => setShowTranscript(true)}>
+                Xem transcript
+              </SbButton>
+            </Stack>
           </Stack>
         </SbCard>
       )}
@@ -352,4 +379,3 @@ const ListeningSessionPage = () => {
 };
 
 export default ListeningSessionPage;
-
