@@ -865,9 +865,16 @@ const LearningSessionPage = ({ mode = "learning" }) => {
 
             {feedback && (
               <Alert severity={feedback.is_correct ? "success" : "error"} icon={feedback.is_correct ? <CheckCircleRoundedIcon /> : <CancelRoundedIcon />}>
-                {feedback.is_correct
-                  ? `Đúng! +${feedback.awarded_xp} XP`
-                  : `Sai, từ này sẽ được đưa vào ôn tập sớm. -${feedback.heart_cost ?? 1} tim`}
+                <Stack spacing={0.5}>
+                  <Typography>
+                    {feedback.is_correct
+                      ? `Đúng! +${feedback.awarded_xp} XP`
+                      : `Sai, từ này sẽ được đưa vào ôn tập sớm. -${feedback.heart_cost ?? 1} tim`}
+                  </Typography>
+                  {feedback.explanation && (
+                    <Typography sx={{ fontSize: "0.82rem" }}>{feedback.explanation}</Typography>
+                  )}
+                </Stack>
               </Alert>
             )}
 

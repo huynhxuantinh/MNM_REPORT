@@ -503,6 +503,7 @@ def _create_lesson_session_for_unit(request, unit: Unit, lesson: Lesson, start_s
         )
 
     lesson_words = Word.objects.filter(lessons=lesson).distinct()
+    grammar_exercises = (activity.metadata or {}).get("grammar_exercises") if activity else None
     difficulty, difficulty_context = _detect_difficulty_with_context(request.user)
     max_questions = 6 if difficulty == "easy" else 8
     exercises = _build_exercises_from_bank(lesson, max_questions=max_questions)
@@ -515,6 +516,7 @@ def _create_lesson_session_for_unit(request, unit: Unit, lesson: Lesson, start_s
             difficulty=difficulty,
             global_words=global_words,
             lesson=lesson,
+            grammar_exercises=grammar_exercises,
         )
     if not exercises:
         return Response(
@@ -722,6 +724,7 @@ def _retune_remaining_session_exercises(session: LearningSession, target_difficu
         difficulty="adaptive" if target_difficulty == LearningSession.Difficulty.HARD else target_difficulty,
         global_words=global_words,
         lesson=session.lesson,
+        grammar_exercises=(session.unit_activity.metadata or {}).get("grammar_exercises") if session.unit_activity_id else None,
     )
 
     candidate_tail = []
@@ -1586,6 +1589,7 @@ class LearningSessionAnswerView(APIView):
                             "is_correct": attempt.is_correct,
                             "awarded_xp": attempt.awarded_xp,
                             "exercise_type": attempt.exercise_type,
+                            "explanation": exercise.get("explanation") or exercise.get("grammar_rule") or "",
                             "hearts": hearts.current_hearts,
                         },
                         "hearts": _build_hearts_payload(hearts),
@@ -1669,6 +1673,7 @@ class LearningSessionAnswerView(APIView):
                     "is_correct": is_correct,
                     "awarded_xp": awarded_xp,
                     "exercise_type": exercise["exercise_type"],
+                    "explanation": exercise.get("explanation") or exercise.get("grammar_rule") or "",
                     "difficulty": session.difficulty,
                     "difficulty_adjustment": difficulty_adjustment,
                     "server_eval_ms": eval_ms,

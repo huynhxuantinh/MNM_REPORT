@@ -240,6 +240,9 @@ class Command(BaseCommand):
                 "description": f"Practice a useful sentence pattern for {unit_title}.",
                 "lesson": grammar_lesson,
                 "estimated_minutes": 7,
+                "metadata": {
+                    "grammar_exercises": self._grammar_exercises_for_unit(course_level, unit_title),
+                },
             },
             {
                 "activity_type": UnitActivity.ActivityType.WRITING,
@@ -283,6 +286,58 @@ class Command(BaseCommand):
                 **spec,
             )
         return len(activity_specs)
+
+    def _grammar_exercises_for_unit(self, level, unit_title):
+        topic = unit_title.lower()
+        if level == "A1":
+            return [
+                {
+                    "type": "fill_blank",
+                    "prompt": "Choose the correct be verb: I ____ a student.",
+                    "answer": "am",
+                    "rule": "Use am with I.",
+                },
+                {
+                    "type": "fill_blank",
+                    "prompt": "Choose the correct be verb: She ____ my friend.",
+                    "answer": "is",
+                    "rule": "Use is with he, she, it, or one person.",
+                },
+                {
+                    "type": "sentence_order",
+                    "sentence": f"I like {topic}.",
+                    "rule": "Use subject + verb + object for simple present sentences.",
+                },
+                {
+                    "type": "sentence_order",
+                    "sentence": "They are good friends.",
+                    "rule": "Use are with you, we, they, or plural subjects.",
+                },
+            ]
+        return [
+            {
+                "type": "fill_blank",
+                "prompt": "Choose the correct past form: I ____ a ticket yesterday.",
+                "answer": "bought",
+                "rule": "Use past simple for finished actions in the past.",
+            },
+            {
+                "type": "fill_blank",
+                "prompt": "Choose the correct future form: We ____ visit the office tomorrow.",
+                "answer": "will",
+                "rule": "Use will + base verb for simple future plans.",
+            },
+            {
+                "type": "sentence_order",
+                "sentence": f"We are going to talk about {topic}.",
+                "rule": "Use be going to + verb for planned future actions.",
+            },
+            {
+                "type": "sentence_order",
+                "sentence": "She has an appointment today.",
+                "rule": "Use has with he, she, it in the present simple.",
+            },
+        ]
 
     def _get_or_create_word(self, text, level, admin):
         defaults = WORD_FALLBACKS.get(

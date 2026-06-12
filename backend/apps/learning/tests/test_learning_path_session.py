@@ -13,6 +13,7 @@ from apps.learning.models import (
     PlacementResult,
     ReviewLog,
     Unit,
+    UnitActivity,
     UnitLesson,
     UserCourseProgress,
     UserUnitProgress,
@@ -35,6 +36,7 @@ FINISH_URL = lambda sid: f"/api/v1/learning/session/{sid}/finish/"
 CHECKPOINT_START_URL = "/api/v1/learning/checkpoint/start/"
 CHECKPOINT_SUBMIT_URL = lambda sid: f"/api/v1/learning/checkpoint/{sid}/submit/"
 RESUME_URL = lambda sid: f"/api/v1/learning/session/{sid}/resume/"
+ACTIVITY_START_URL = lambda activity_id: f"/api/v1/learning/activities/{activity_id}/start/"
 
 
 @pytest.fixture
@@ -269,6 +271,59 @@ class TestLearningSession:
         )
         assert answer.status_code == 200
         assert answer.data["feedback"]["is_correct"] is True
+
+    def test_grammar_activity_uses_metadata_patterns_without_lesson_words(self, sc, teacher):
+        grammar_lesson = Lesson.objects.create(
+            title="To Be Pattern",
+            level="A1",
+            order_index=1,
+            is_published=True,
+            created_by=teacher,
+            skill_tag=Lesson.SkillTag.GRAMMAR,
+        )
+        course = Course.objects.create(name="Pattern Path", slug="pattern-path", is_active=True)
+        unit = Unit.objects.create(
+            course=course,
+            title="Pattern Unit",
+            order_index=1,
+            required_lessons_to_unlock=0,
+            is_published=True,
+        )
+        activity = UnitActivity.objects.create(
+            unit=unit,
+            activity_type=UnitActivity.ActivityType.GRAMMAR,
+            title="Be Verb Pattern",
+            lesson=grammar_lesson,
+            order_index=1,
+            is_published=True,
+            metadata={
+                "grammar_exercises": [
+                    {
+                        "type": "fill_blank",
+                        "prompt": "Choose the correct be verb: I ____ a student.",
+                        "answer": "am",
+                        "rule": "Use am with I.",
+                    },
+                    {
+                        "type": "sentence_order",
+                        "sentence": "She is my friend.",
+                        "rule": "Use subject + be + complement.",
+                    },
+                ]
+            },
+        )
+
+        response = sc.post(ACTIVITY_START_URL(activity.id), format="json")
+
+        assert response.status_code == 201
+        session = LearningSession.objects.get(id=response.data["id"])
+        assert session.unit_activity_id == activity.id
+        assert [item["exercise_type"] for item in session.exercises] == [
+            "grammar_fill_blank",
+            "grammar_sentence_order",
+        ]
+        assert session.exercises[0]["correct_text"] == "am"
+        assert session.exercises[0]["grammar_rule"] == "Use am with I."
 
     def test_start_session_locked_unit_forbidden(self, sc, unpublished_lesson, course_with_units):
         response = sc.post(START_URL, {"lesson_id": unpublished_lesson.id}, format="json")

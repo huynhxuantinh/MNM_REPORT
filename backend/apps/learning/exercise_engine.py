@@ -167,6 +167,64 @@ def _make_grammar_sentence_order(word, step_index: int) -> dict[str, Any] | None
     }
 
 
+def _make_grammar_pattern_fill_blank(item: dict[str, Any], step_index: int) -> dict[str, Any] | None:
+    prompt = _clean_text(item.get("prompt") or item.get("sentence") or "")
+    answer = _clean_text(item.get("answer") or item.get("correct_text") or "")
+    if not prompt or not answer:
+        return None
+    return {
+        "step_index": step_index,
+        "exercise_type": "grammar_fill_blank",
+        "prompt": prompt,
+        "correct_text": answer,
+        "grammar_rule": _clean_text(item.get("rule") or item.get("grammar_rule") or ""),
+        "explanation": _clean_text(item.get("explanation") or item.get("rule") or ""),
+    }
+
+
+def _make_grammar_pattern_sentence_order(item: dict[str, Any], step_index: int) -> dict[str, Any] | None:
+    sentence = _clean_text(item.get("sentence") or item.get("answer") or item.get("correct_sentence") or "")
+    if not sentence:
+        return None
+    tokens = _split_tokens(sentence)
+    if len(tokens) < 4:
+        return None
+    shuffled = tokens[:]
+    random.shuffle(shuffled)
+    if shuffled == tokens:
+        shuffled = tokens[::-1]
+    return {
+        "step_index": step_index,
+        "exercise_type": "grammar_sentence_order",
+        "prompt": _clean_text(item.get("prompt") or "Sap xep thanh cau dung ngu phap"),
+        "tokens": shuffled,
+        "correct_tokens": tokens,
+        "grammar_rule": _clean_text(item.get("rule") or item.get("grammar_rule") or ""),
+        "explanation": _clean_text(item.get("explanation") or item.get("rule") or ""),
+    }
+
+
+def _generate_grammar_pattern_exercises(grammar_exercises, max_questions: int) -> list[dict[str, Any]]:
+    exercises: list[dict[str, Any]] = []
+    if not isinstance(grammar_exercises, list):
+        return exercises
+    for item in grammar_exercises:
+        if not isinstance(item, dict):
+            continue
+        exercise_type = item.get("type") or item.get("exercise_type")
+        if exercise_type in {"fill_blank", "grammar_fill_blank"}:
+            exercise = _make_grammar_pattern_fill_blank(item, len(exercises) + 1)
+        elif exercise_type in {"sentence_order", "word_order", "grammar_sentence_order"}:
+            exercise = _make_grammar_pattern_sentence_order(item, len(exercises) + 1)
+        else:
+            exercise = None
+        if exercise:
+            exercises.append(exercise)
+        if len(exercises) >= max_questions:
+            break
+    return exercises
+
+
 def _generate_grammar_exercises(words, max_questions: int, difficulty: str) -> list[dict[str, Any]]:
     exercises: list[dict[str, Any]] = []
     step = 1
@@ -193,7 +251,13 @@ def generate_exercises_from_words(
     difficulty: str = "normal",
     global_words=None,
     lesson=None,
+    grammar_exercises=None,
 ) -> list[dict[str, Any]]:
+    if getattr(lesson, "skill_tag", "") == "grammar":
+        pattern_exercises = _generate_grammar_pattern_exercises(grammar_exercises, max_questions=max_questions)
+        if pattern_exercises:
+            return pattern_exercises
+
     words = list(words)
     random.shuffle(words)
     words = words[:max_questions]
@@ -248,6 +312,10 @@ def to_client_exercise(exercise: dict[str, Any]) -> dict[str, Any]:
         result["audio_text"] = exercise["audio_text"]
     if "tokens" in exercise:
         result["tokens"] = exercise["tokens"]
+    if "grammar_rule" in exercise:
+        result["grammar_rule"] = exercise["grammar_rule"]
+    if "explanation" in exercise:
+        result["explanation"] = exercise["explanation"]
     return result
 
 
