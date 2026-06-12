@@ -129,6 +129,64 @@ def _make_word_order(word, step_index: int) -> dict[str, Any] | None:
     }
 
 
+def _make_grammar_fill_blank(word, step_index: int) -> dict[str, Any] | None:
+    sentence = _clean_text(word.example_en)
+    if not sentence:
+        return None
+    pattern = re.compile(rf"\b{re.escape(word.text)}\b", re.IGNORECASE)
+    if not pattern.search(sentence):
+        return None
+    blank_sentence = pattern.sub("____", sentence, count=1)
+    return {
+        "step_index": step_index,
+        "exercise_type": "grammar_fill_blank",
+        "prompt": f"Hoan thanh cau dung ngu phap: {blank_sentence}",
+        "word_id": word.id,
+        "correct_text": word.text,
+    }
+
+
+def _make_grammar_sentence_order(word, step_index: int) -> dict[str, Any] | None:
+    sentence = _clean_text(word.example_en)
+    if not sentence:
+        return None
+    tokens = _split_tokens(sentence)
+    if len(tokens) < 4:
+        return None
+    shuffled = tokens[:]
+    random.shuffle(shuffled)
+    if shuffled == tokens:
+        shuffled = tokens[::-1]
+    return {
+        "step_index": step_index,
+        "exercise_type": "grammar_sentence_order",
+        "prompt": "Sap xep thanh cau dung ngu phap",
+        "tokens": shuffled,
+        "word_id": word.id,
+        "correct_tokens": tokens,
+    }
+
+
+def _generate_grammar_exercises(words, max_questions: int, difficulty: str) -> list[dict[str, Any]]:
+    exercises: list[dict[str, Any]] = []
+    step = 1
+    for word in words:
+        fill = _make_grammar_fill_blank(word, step)
+        if fill:
+            exercises.append(fill)
+            step += 1
+
+        if difficulty in {"normal", "hard", "adaptive"}:
+            order = _make_grammar_sentence_order(word, step)
+            if order:
+                exercises.append(order)
+                step += 1
+
+        if len(exercises) >= max_questions:
+            break
+    return exercises[:max_questions]
+
+
 def generate_exercises_from_words(
     words,
     max_questions: int = 10,
@@ -141,6 +199,8 @@ def generate_exercises_from_words(
     words = words[:max_questions]
     if not words:
         return []
+    if getattr(lesson, "skill_tag", "") == "grammar":
+        return _generate_grammar_exercises(words, max_questions=max_questions, difficulty=difficulty)
 
     exercises: list[dict[str, Any]] = []
     step = 1
@@ -207,7 +267,16 @@ def evaluate_exercise_answer(exercise: dict[str, Any], submitted_answer: Any) ->
         return _clean_text(str(_answer_value(submitted_answer, "option"))).lower() == _clean_text(exercise.get("correct_option", "")).lower()
     if exercise_type == "fill_blank":
         return _clean_text(str(_answer_value(submitted_answer, "text"))).lower() == _clean_text(exercise.get("correct_text", "")).lower()
+    if exercise_type == "grammar_fill_blank":
+        return _clean_text(str(_answer_value(submitted_answer, "text"))).lower() == _clean_text(exercise.get("correct_text", "")).lower()
     if exercise_type == "word_order":
+        submitted_tokens = submitted_answer.get("tokens", []) if isinstance(submitted_answer, dict) else submitted_answer
+        if not isinstance(submitted_tokens, list):
+            return False
+        return [_clean_text(str(token)).lower() for token in submitted_tokens] == [
+            _clean_text(str(token)).lower() for token in exercise.get("correct_tokens", [])
+        ]
+    if exercise_type == "grammar_sentence_order":
         submitted_tokens = submitted_answer.get("tokens", []) if isinstance(submitted_answer, dict) else submitted_answer
         if not isinstance(submitted_tokens, list):
             return False

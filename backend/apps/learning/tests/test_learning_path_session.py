@@ -211,6 +211,65 @@ class TestLearningSession:
         assert response.data["status"] == "started"
         assert LearningSession.objects.filter(id=response.data["id"]).exists()
 
+    def test_start_grammar_session_uses_grammar_exercise_types(self, sc, teacher):
+        grammar_lesson = Lesson.objects.create(
+            title="Grammar Pattern",
+            level="A1",
+            order_index=1,
+            is_published=True,
+            created_by=teacher,
+            skill_tag=Lesson.SkillTag.GRAMMAR,
+        )
+        examples = [
+            ("am", "I am a student."),
+            ("is", "She is happy."),
+            ("are", "They are friends."),
+            ("like", "I like apples."),
+        ]
+        for index, (text, example) in enumerate(examples, start=1):
+            word = Word.objects.create(
+                text=text,
+                definition_vi=text,
+                example_en=example,
+                level="A1",
+                created_by=teacher,
+            )
+            LessonWord.objects.create(lesson=grammar_lesson, word=word, order_index=index)
+
+        course = Course.objects.create(name="Grammar Path", slug="grammar-path", is_active=True)
+        unit = Unit.objects.create(
+            course=course,
+            title="Grammar Unit",
+            order_index=1,
+            required_lessons_to_unlock=0,
+            is_published=True,
+        )
+        UnitLesson.objects.create(unit=unit, lesson=grammar_lesson, order_index=1)
+
+        response = sc.post(START_URL, {"lesson_id": grammar_lesson.id}, format="json")
+
+        assert response.status_code == 201
+        detail = sc.get(DETAIL_URL(response.data["id"]))
+        assert detail.status_code == 200
+        exercise_types = {item["exercise_type"] for item in detail.data["exercises"]}
+        assert exercise_types
+        assert exercise_types <= {"grammar_fill_blank", "grammar_sentence_order"}
+
+        session = LearningSession.objects.get(id=response.data["id"])
+        first = session.exercises[0]
+        submitted = (
+            {"text": first["correct_text"]}
+            if first["exercise_type"] == "grammar_fill_blank"
+            else {"tokens": first["correct_tokens"]}
+        )
+        answer = sc.post(
+            ANSWER_URL(session.id),
+            {"step_index": first["step_index"], "submitted_answer": submitted, "response_ms": 500},
+            format="json",
+        )
+        assert answer.status_code == 200
+        assert answer.data["feedback"]["is_correct"] is True
+
     def test_start_session_locked_unit_forbidden(self, sc, unpublished_lesson, course_with_units):
         response = sc.post(START_URL, {"lesson_id": unpublished_lesson.id}, format="json")
         assert response.status_code == 400

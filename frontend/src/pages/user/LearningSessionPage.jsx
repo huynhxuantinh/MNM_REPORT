@@ -442,14 +442,14 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     if (currentExercise.exercise_type === "listen_choose_word") {
       return { option: answerOverride ?? textAnswer };
     }
-    if (currentExercise.exercise_type === "fill_blank") return { text: textAnswer };
-    if (currentExercise.exercise_type === "word_order") return { tokens: orderedTokens };
+    if ((currentExercise.exercise_type === "fill_blank" || currentExercise.exercise_type === "grammar_fill_blank")) return { text: textAnswer };
+    if ((currentExercise.exercise_type === "word_order" || currentExercise.exercise_type === "grammar_sentence_order")) return { tokens: orderedTokens };
     return {};
   };
 
   const canSubmit = useMemo(() => {
     if (!currentExercise) return false;
-    if (currentExercise.exercise_type === "word_order") return orderedTokens.length > 0;
+    if ((currentExercise.exercise_type === "word_order" || currentExercise.exercise_type === "grammar_sentence_order")) return orderedTokens.length > 0;
     return textAnswer.trim().length > 0;
   }, [currentExercise, textAnswer, orderedTokens]);
 
@@ -457,8 +457,8 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     const submitted = buildSubmittedAnswer(answerOverride);
     const hasAnswer = (() => {
       if (!currentExercise) return false;
-      if (currentExercise.exercise_type === "word_order") return (submitted.tokens || []).length > 0;
-      if (currentExercise.exercise_type === "fill_blank") return String(submitted.text || "").trim().length > 0;
+      if ((currentExercise.exercise_type === "word_order" || currentExercise.exercise_type === "grammar_sentence_order")) return (submitted.tokens || []).length > 0;
+      if ((currentExercise.exercise_type === "fill_blank" || currentExercise.exercise_type === "grammar_fill_blank")) return String(submitted.text || "").trim().length > 0;
       return String(submitted.option || "").trim().length > 0;
     })();
 
@@ -491,7 +491,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
 
       const digit = Number(event.key);
       if (Number.isInteger(digit) && digit >= 1 && digit <= 4) {
-        if (isTypingTarget(event.target) && currentExercise.exercise_type === "fill_blank") return;
+        if (isTypingTarget(event.target) && (currentExercise.exercise_type === "fill_blank" || currentExercise.exercise_type === "grammar_fill_blank")) return;
 
         if (currentExercise.exercise_type === "mc_meaning" || currentExercise.exercise_type === "listen_choose_word") {
           const option = (currentExercise.choices || [])[digit - 1];
@@ -502,7 +502,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
           return;
         }
 
-        if (currentExercise.exercise_type === "word_order") {
+        if ((currentExercise.exercise_type === "word_order" || currentExercise.exercise_type === "grammar_sentence_order")) {
           const availableTokens = (currentExercise.tokens || [])
             .map((token, index) => ({ token, index }))
             .filter((item) => !usedTokenIndexes.has(item.index));
@@ -812,7 +812,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
                   </Stack>
                 )}
 
-                {currentExercise.exercise_type === "fill_blank" && (
+                {(currentExercise.exercise_type === "fill_blank" || currentExercise.exercise_type === "grammar_fill_blank") && (
                   <TextField
                     label="Nhập đáp án"
                     value={textAnswer}
@@ -821,7 +821,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
                   />
                 )}
 
-                {currentExercise.exercise_type === "word_order" && (
+                {(currentExercise.exercise_type === "word_order" || currentExercise.exercise_type === "grammar_sentence_order") && (
                   <Stack spacing={1.5}>
                     <Box sx={{ minHeight: 48, p: 1.2, borderRadius: 2, bgcolor: "background.default" }}>
                       <Typography sx={{ fontSize: "0.95rem" }}>
