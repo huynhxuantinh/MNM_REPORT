@@ -162,6 +162,7 @@ const App = () => {
           <Route path="learning" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/writing/:activityId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningWritingPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/checkpoint/:activityId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningCheckpointPage /></Suspense></ErrorBoundary>} />
+          <Route path="learning/quiz/:activityId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />
           <Route path="listening" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ListeningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/onboarding" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><OnboardingPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/placement" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPlacementPage /></Suspense></ErrorBoundary>} />

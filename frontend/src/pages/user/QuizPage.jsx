@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -702,11 +702,12 @@ const ResultPhase = ({ result, onRetry, onBack, onBackToLearning, isActivityMode
 const QuizPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { activityId: routeParamActivityId } = useParams();
   const qc = useQueryClient();
   const quizSource = location.state?.quizSource ?? null;
   const activityQuiz = location.state?.activityQuiz ?? null;
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const routeActivityId = searchParams.get("activity_id") || activityQuiz?.activity?.id || null;
+  const routeActivityId = routeParamActivityId || searchParams.get("activity_id") || activityQuiz?.activity?.id || null;
   const routeQuizId = searchParams.get("quiz_id") || activityQuiz?.quiz_id || activityQuiz?.startedPayload?.quiz_id || null;
   const routeActivityTitle = activityQuiz?.activity?.title || null;
   const initialConfig = routeQuizId
@@ -722,6 +723,30 @@ const QuizPage = () => {
   const [phase, setPhase] = useState(initialConfig ? "quiz-mc" : "select");
   const [config, setConfig] = useState(initialConfig);
   const [result, setResult] = useState(null);
+
+  const activityStartMutation = useMutation({
+    mutationFn: (activityId) => learningApi.startActivity(activityId).then((response) => response.data),
+    onSuccess: (payload) => {
+      if (payload.kind !== "quiz" || !payload.quiz_id) {
+        navigate("/learning", { replace: true });
+        return;
+      }
+      setConfig({
+        sourceId: null,
+        sourceType: "quiz",
+        quizType: "mc",
+        quizId: payload.quiz_id,
+        activityId: routeActivityId,
+        activityTitle: payload.activity?.title || null,
+      });
+      setPhase("quiz-mc");
+    },
+  });
+
+  useEffect(() => {
+    if (!routeParamActivityId || routeQuizId || config?.quizId || activityStartMutation.isPending) return;
+    activityStartMutation.mutate(routeParamActivityId);
+  }, [activityStartMutation, config?.quizId, routeParamActivityId, routeQuizId]);
 
   const prefillSource = useMemo(() => {
     if (!quizSource?.sourceId || !quizSource?.sourceType) return null;
@@ -746,6 +771,7 @@ const QuizPage = () => {
 
   return (
     <Box sx={{ maxWidth: 800, mx: "auto", px: { xs: 0, sm: 1 } }}>
+      {activityStartMutation.isPending && <LinearProgress sx={{ mb: 2, borderRadius: 2 }} />}
       {phase === "select" && <SelectPhase onStartQuiz={handleStartQuiz} prefillSource={prefillSource} />}
       {phase === "quiz-mc" && (
         <MultipleChoicePhase

@@ -294,7 +294,7 @@ const LearningPage = () => {
         return;
       }
       if (payload.kind === "quiz") {
-        navigate(`/quiz?activity_id=${variables.activity.id}${payload.quiz_id ? `&quiz_id=${payload.quiz_id}` : ""}`, {
+        navigate(`/learning/quiz/${variables.activity.id}`, {
           state: {
             activityQuiz: {
               activity: variables.activity,
