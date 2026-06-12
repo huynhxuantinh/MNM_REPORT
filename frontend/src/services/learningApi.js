@@ -84,6 +84,10 @@ const learningApi = {
     axiosClient.post(`/learning/admin/units/${unitId}/lessons/`, { lesson_id: lessonId, order_index: orderIndex }),
   removeLessonFromUnit: (unitId, lessonId) =>
     axiosClient.delete(`/learning/admin/units/${unitId}/lessons/${lessonId}/`),
+  getAdminActivities: (params) => axiosClient.get("/learning/admin/activities/", { params }),
+  createAdminActivity: (data) => axiosClient.post("/learning/admin/activities/", data),
+  updateAdminActivity: (id, data) => axiosClient.patch(`/learning/admin/activities/${id}/`, data),
+  deleteAdminActivity: (id) => axiosClient.delete(`/learning/admin/activities/${id}/`),
 };
 
 export default learningApi;

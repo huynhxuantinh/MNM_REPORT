@@ -1,4 +1,4 @@
-"""Admin-only CRUD cho Course / Unit / UnitLesson."""
+"""Admin-only CRUD cho Course / Unit / UnitLesson / UnitActivity."""
 from django.db.models import Count
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsAdmin
-from .models import Course, Lesson, Unit, UnitLesson
+from .models import Course, Lesson, Unit, UnitActivity, UnitLesson
 
 
 # ── Serializers ───────────────────────────────────────────────────────────────
@@ -43,6 +43,57 @@ class UnitLessonAdminSerializer(serializers.ModelSerializer):
         model  = UnitLesson
         fields = ("id", "lesson", "lesson_title", "lesson_level", "lesson_word_count", "order_index")
         read_only_fields = ("id", "lesson_title", "lesson_level", "lesson_word_count")
+
+
+class UnitActivityAdminSerializer(serializers.ModelSerializer):
+    unit_title = serializers.CharField(source="unit.title", read_only=True)
+    lesson_title = serializers.CharField(source="lesson.title", read_only=True, default="")
+    listening_passage_title = serializers.CharField(source="listening_passage.title", read_only=True, default="")
+    quiz_title = serializers.CharField(source="quiz.title", read_only=True, default="")
+
+    class Meta:
+        model = UnitActivity
+        fields = (
+            "id",
+            "unit",
+            "unit_title",
+            "activity_type",
+            "title",
+            "description",
+            "order_index",
+            "lesson",
+            "lesson_title",
+            "listening_passage",
+            "listening_passage_title",
+            "quiz",
+            "quiz_title",
+            "is_required",
+            "is_published",
+            "estimated_minutes",
+            "min_score_to_pass",
+            "metadata",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "unit_title",
+            "lesson_title",
+            "listening_passage_title",
+            "quiz_title",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate(self, attrs):
+        instance = self.instance or UnitActivity()
+        for field, value in attrs.items():
+            setattr(instance, field, value)
+        try:
+            instance.clean()
+        except Exception as exc:
+            raise serializers.ValidationError(getattr(exc, "message_dict", None) or getattr(exc, "messages", None) or str(exc))
+        return attrs
 
 
 # ── Views ─────────────────────────────────────────────────────────────────────
@@ -118,3 +169,35 @@ class UnitAdminViewSet(viewsets.ModelViewSet):
         if not deleted:
             return Response({"detail": "Bài học không có trong unit."}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UnitActivityAdminViewSet(viewsets.ModelViewSet):
+    """
+    GET    /learning/admin/activities/?unit_id=X
+    POST   /learning/admin/activities/
+    PATCH  /learning/admin/activities/{id}/
+    DELETE /learning/admin/activities/{id}/
+    """
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+    serializer_class = UnitActivityAdminSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = UnitActivity.objects.select_related(
+            "unit",
+            "unit__course",
+            "lesson",
+            "listening_passage",
+            "quiz",
+        )
+        unit_id = self.request.query_params.get("unit_id")
+        course_id = self.request.query_params.get("course_id")
+        activity_type = self.request.query_params.get("activity_type")
+        if unit_id:
+            qs = qs.filter(unit_id=unit_id)
+        if course_id:
+            qs = qs.filter(unit__course_id=course_id)
+        if activity_type:
+            qs = qs.filter(activity_type=activity_type)
+        return qs.order_by("unit__order_index", "order_index", "id")
