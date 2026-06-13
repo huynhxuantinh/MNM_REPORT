@@ -64,7 +64,7 @@ const isTypingTarget = (target) => {
   return tagName === "input" || tagName === "textarea" || !!target.isContentEditable;
 };
 
-const SessionSummary = ({ session, result, onBack, backLabel = "Về lộ trình học" }) => {
+const SessionSummary = ({ session, result, onBack, onRetry, retryLoading = false, backLabel = "Về lộ trình học" }) => {
   const passed = !!result?.passed;
   const isCheckpoint = session?.session_type === "checkpoint";
   const summary = result?.summary || {};
@@ -137,7 +137,12 @@ const SessionSummary = ({ session, result, onBack, backLabel = "Về lộ trình
         </SbCard>
       )}
 
-      <SbButton variant="primary" onClick={onBack}>{backLabel}</SbButton>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="center">
+        <SbButton variant="outlined" onClick={onRetry} disabled={!onRetry || retryLoading}>
+          {retryLoading ? "Đang mở lại..." : "Làm lại"}
+        </SbButton>
+        <SbButton variant="primary" onClick={onBack}>{backLabel}</SbButton>
+      </Stack>
     </Stack>
   );
 };
@@ -372,6 +377,14 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     },
   });
 
+  const retryMutation = useMutation({
+    mutationFn: (lessonId) => learningApi.startLearningSession(lessonId, "retry").then((response) => response.data),
+    onSuccess: (data) => {
+      invalidateLearningCaches();
+      navigate(`/learning/session/${data.id}`);
+    },
+  });
+
   useEffect(() => {
     if (!exercises.length || session?.status !== "started" || finishPayload) return;
     const answered = new Set(attempts.map((item) => item.step_index));
@@ -549,6 +562,12 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     navigate(backPath);
   };
 
+  const handleRetry = (targetSession = completedSessionSnapshot || session) => {
+    const lessonId = targetSession?.lesson;
+    if (!lessonId || isListeningSessionRoute || targetSession?.session_type === "checkpoint") return;
+    retryMutation.mutate(lessonId);
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -563,6 +582,12 @@ const LearningSessionPage = ({ mode = "learning" }) => {
         session={completedSessionSnapshot || session}
         result={finishPayload}
         onBack={handleBack}
+        onRetry={
+          !isListeningSessionRoute && (completedSessionSnapshot || session)?.session_type !== "checkpoint"
+            ? () => handleRetry(completedSessionSnapshot || session)
+            : null
+        }
+        retryLoading={retryMutation.isPending}
         backLabel={backLabel}
       />
     );
@@ -583,6 +608,12 @@ const LearningSessionPage = ({ mode = "learning" }) => {
         session={session}
         result={finishPayload || { summary: { accuracy_pct: session.total_answered > 0 ? Math.round((session.correct_answered / session.total_answered) * 100) : 0 } }}
         onBack={handleBack}
+        onRetry={
+          !isListeningSessionRoute && session?.session_type !== "checkpoint"
+            ? () => handleRetry(session)
+            : null
+        }
+        retryLoading={retryMutation.isPending}
         backLabel={backLabel}
       />
     );
@@ -608,7 +639,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
           <Typography sx={{ fontWeight: 800, fontSize: "1.2rem", color: colors.greenStarbucks }}>
             {session.lesson_title}
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
             <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>{session.unit_title}</Typography>
             <Chip size="small" label={getSessionTypeLabel(session.session_type)} />
             <Chip size="small" label={`Độ khó: ${getDifficultyLabel(session.difficulty)}`} />

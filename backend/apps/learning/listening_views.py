@@ -59,6 +59,16 @@ def _mark_listening_activity_completed(session: ListeningSession) -> UserActivit
 def _serialize_listening_session(session: ListeningSession) -> dict:
     passage = session.passage
     passage_data = ListeningPassageDetailSerializer(passage).data
+    if session.status == ListeningSession.Status.COMPLETED:
+        correct_answers = {
+            question.id: {
+                "correct_answer": question.correct_answer,
+                "explanation": question.explanation,
+            }
+            for question in passage.questions.all()
+        }
+        for question_data in passage_data.get("questions", []):
+            question_data.update(correct_answers.get(question_data.get("id"), {}))
     answers = ListeningAnswerSerializer(session.answers.select_related("question").order_by("question__order_index"), many=True).data
     payload = ListeningSessionSerializer(session).data
     payload["passage"] = passage_data

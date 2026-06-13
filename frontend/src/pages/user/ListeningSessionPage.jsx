@@ -31,6 +31,16 @@ const extractAnswerValue = (question, answerRow) => {
   return answerRow.submitted_answer.option || "";
 };
 
+const getCorrectAnswerValue = (question) => {
+  const correctAnswer = question?.correct_answer || {};
+  if (question?.question_type === "fill_blank") {
+    return correctAnswer.text || "";
+  }
+  return correctAnswer.option || "";
+};
+
+const normalizeAnswer = (value) => String(value || "").trim().toLowerCase();
+
 const ListeningSessionPage = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
@@ -142,6 +152,13 @@ const ListeningSessionPage = () => {
   const progress = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
   const result = finishPayload || (session?.status === "completed" ? session : null);
+  const showResults = Boolean(result?.summary);
+  const resultScore = Number(result?.summary?.score_pct || 0);
+  const resultPassed = resultScore >= 70;
+  const submittedAnswerMap = useMemo(
+    () => new Map((payload?.answers || []).map((answer) => [answer.question_id, answer])),
+    [payload?.answers],
+  );
   const isLearningActivity = Boolean(
     finishPayload?.activity_progress || session?.unit_activity || result?.unit_activity || result?.activity_progress,
   );
