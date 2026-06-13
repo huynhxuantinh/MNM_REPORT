@@ -35,6 +35,7 @@ from .models import (
     UserReminderPreference,
     UserStreak,
     UserUnitProgress,
+    UserActivityProgress,
 )
 
 # XP constants - based on chapter 2.6 table
@@ -112,7 +113,23 @@ def _create_streak_notification(user, streak: int) -> None:
         )
 
 
-def _build_unlock_map(units, progress_map):
+def _count_completed_unit_activities(unit, activity_progress_map):
+    if not activity_progress_map:
+        return 0
+    activities = getattr(unit, "activities", None)
+    if activities is None:
+        return 0
+    return sum(
+        1
+        for activity in activities.all()
+        if activity.is_published
+        and activity.is_required
+        and (progress := activity_progress_map.get(activity.id))
+        and progress.status == UserActivityProgress.Status.COMPLETED
+    )
+
+
+def _build_unlock_map(units, progress_map, activity_progress_map=None):
     unlocked_map = {}
     previous_unit = None
     for index, unit in enumerate(units):
@@ -131,6 +148,8 @@ def _build_unlock_map(units, progress_map):
         required_to_unlock = previous_unit.required_lessons_to_unlock
         if published_lesson_count > 0:
             required_to_unlock = min(required_to_unlock, published_lesson_count)
+        else:
+            prev_completed = max(prev_completed, _count_completed_unit_activities(previous_unit, activity_progress_map))
         unlocked_map[unit.id] = (
             prev_checkpoint_passed or prev_completed >= required_to_unlock
         )

@@ -15,6 +15,7 @@ from apps.learning.models import (
     Unit,
     UnitActivity,
     UnitLesson,
+    UserActivityProgress,
     UserCourseProgress,
     UserUnitProgress,
 )
@@ -25,6 +26,7 @@ from apps.vocabulary.models import Word
 pytestmark = pytest.mark.django_db
 
 PATH_URL = "/api/v1/learning/path/"
+PATH_V2_URL = "/api/v1/learning/path/v2/"
 LISTENING_PATH_URL = "/api/v1/learning/listening/"
 START_URL = "/api/v1/learning/session/start/"
 LISTENING_START_URL = "/api/v1/learning/listening/session/start/"
@@ -173,6 +175,58 @@ class TestLearningPath:
         assert len(response.data["units"]) == 2
         assert response.data["units"][1]["required_lessons_to_unlock"] == 0
         assert response.data["units"][1]["unlocked"] is True
+
+    def test_v2_unit_unlocks_from_completed_activities_without_unit_lessons(self, sc, student, teacher):
+        course = Course.objects.create(name="A1 V2 Path", slug="a1-v2-path", is_active=True)
+        unit1 = Unit.objects.create(
+            course=course,
+            title="Unit 1",
+            order_index=1,
+            required_lessons_to_unlock=2,
+            is_published=True,
+        )
+        unit2 = Unit.objects.create(
+            course=course,
+            title="Unit 2",
+            order_index=2,
+            required_lessons_to_unlock=2,
+            is_published=True,
+        )
+        lesson = Lesson.objects.create(title="V2 Lesson", level="A1", order_index=1, is_published=True, created_by=teacher)
+        activities = [
+            UnitActivity.objects.create(
+                unit=unit1,
+                activity_type=UnitActivity.ActivityType.VOCAB,
+                title=f"Activity {index}",
+                lesson=lesson,
+                order_index=index,
+                is_required=True,
+                is_published=True,
+            )
+            for index in range(1, 4)
+        ]
+        UnitActivity.objects.create(
+            unit=unit2,
+            activity_type=UnitActivity.ActivityType.VOCAB,
+            title="Unit 2 Activity",
+            lesson=lesson,
+            order_index=1,
+            is_required=True,
+            is_published=True,
+        )
+        for activity in activities[:2]:
+            UserActivityProgress.objects.create(
+                user=student,
+                activity=activity,
+                status=UserActivityProgress.Status.COMPLETED,
+                completed_at=timezone.now(),
+            )
+
+        response = sc.get(PATH_V2_URL)
+        assert response.status_code == 200
+        units = response.data["levels"][0]["units"]
+        assert units[0]["unlocked"] is True
+        assert units[1]["unlocked"] is True
 
     def test_listening_path_returns_only_listening_units(self, sc, course_with_dedicated_listening_unit):
         response = sc.get(LISTENING_PATH_URL)

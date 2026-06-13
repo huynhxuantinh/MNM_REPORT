@@ -229,7 +229,7 @@ def _build_learning_path_v2_payload(request):
 
     for course in courses:
         units = list(course.units.all())
-        unlocked_map = _build_unlock_map(units, unit_progress_map)
+        unlocked_map = _build_unlock_map(units, unit_progress_map, activity_progress)
         recommended_start_unit = _resolve_recommended_start_unit(units, recommended_level)
         has_any_progress = bool(unit_progress_map) or bool(activity_progress)
         if not has_any_progress and recommended_start_unit:
