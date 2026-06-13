@@ -19,36 +19,6 @@ import { colors } from "@/styles/theme";
 
 const PLACEMENT_DRAFT_KEY = "learning_placement_draft_v1";
 
-const getPlacementStartLesson = (pathData) => {
-  const units = (pathData?.units || [])
-    .filter((unit) => !!unit?.unlocked)
-    .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
-
-  const recommendedStartUnitId = pathData?.placement?.recommended_start_unit_id ?? null;
-  if (recommendedStartUnitId) {
-    const recommendedUnit = units.find((unit) => unit?.id === recommendedStartUnitId);
-    if (recommendedUnit) {
-      const recommendedLessons = (recommendedUnit?.lessons || [])
-        .filter((item) => !!item?.lesson?.id)
-        .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
-      if (recommendedLessons.length > 0) {
-        return recommendedLessons[0].lesson;
-      }
-    }
-  }
-
-  for (const unit of units) {
-    const lessonLinks = (unit?.lessons || [])
-      .filter((item) => !!item?.lesson?.id)
-      .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0));
-    if (lessonLinks.length > 0) {
-      return lessonLinks[0].lesson;
-    }
-  }
-
-  return null;
-};
-
 const LearningPlacementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -83,6 +53,8 @@ const LearningPlacementPage = () => {
       setPlacementResult(data);
       queryClient.invalidateQueries({ queryKey: ["placement-status"] });
       queryClient.invalidateQueries({ queryKey: ["learning-path"] });
+      queryClient.invalidateQueries({ queryKey: ["learning-path-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["home-learning-path-v2"] });
     },
     onError: (err) => {
       const detail = String(err?.response?.data?.detail || "").toLowerCase();
@@ -97,19 +69,11 @@ const LearningPlacementPage = () => {
     },
   });
 
-  const startFirstLessonMutation = useMutation({
-    mutationFn: async () => {
-      const pathData = await learningApi.getLearningPath().then((response) => response.data);
-      const firstLesson = getPlacementStartLesson(pathData);
-      if (!firstLesson?.id) {
-        throw new Error("Không tìm thấy bài học đã mở khóa để bắt đầu.");
-      }
-      return learningApi.startLearningSession(firstLesson.id, "placement_result_cta").then((response) => response.data);
-    },
-    onSuccess: (session) => {
-      navigate(`/learning/session/${session.id}`);
-    },
-  });
+  const handleGoToLearningPath = () => {
+    queryClient.invalidateQueries({ queryKey: ["learning-path-v2"] });
+    queryClient.invalidateQueries({ queryKey: ["home-learning-path-v2"] });
+    navigate("/learning", { replace: true });
+  };
 
   const questions = useMemo(() => questionsData?.questions || [], [questionsData]);
   const answeredCount = useMemo(
@@ -237,23 +201,15 @@ const LearningPlacementPage = () => {
             </Typography>
           </Stack>
         </SbCard>
-        {!!startFirstLessonMutation.error && (
-          <Alert severity="error">
-            {startFirstLessonMutation.error?.response?.data?.detail
-              || startFirstLessonMutation.error?.message
-              || "Không thể bắt đầu bài học đầu tiên."}
-          </Alert>
-        )}
         <Stack direction="row" spacing={1.5}>
-          <SbButton variant="outlined" onClick={() => navigate("/learning")}>
+          <SbButton variant="outlined" onClick={handleGoToLearningPath}>
             Để sau
           </SbButton>
           <SbButton
             variant="primary"
-            loading={startFirstLessonMutation.isPending}
-            onClick={() => startFirstLessonMutation.mutate()}
+            onClick={handleGoToLearningPath}
           >
-            Bắt đầu bài học đầu tiên
+            Vào lộ trình
           </SbButton>
         </Stack>
       </Stack>
@@ -327,7 +283,7 @@ const LearningPlacementPage = () => {
       )}
 
       <Stack direction="row" spacing={1.5}>
-        <SbButton variant="outlined" onClick={() => navigate("/learning")}>
+          <SbButton variant="outlined" onClick={handleGoToLearningPath}>
           Lưu & quay lại
         </SbButton>
         <SbButton
@@ -344,3 +300,4 @@ const LearningPlacementPage = () => {
 };
 
 export default LearningPlacementPage;
+

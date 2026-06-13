@@ -32,46 +32,46 @@ CSV_HEADERS = [
 ]
 
 WORDSETS = [
-    {"name": "A1 - Can ban", "description": "Tu vung can ban cho nguoi moi hoc.", "level": "A1"},
-    {"name": "A2 - So cap", "description": "Tu vung giao tiep hang ngay.", "level": "A2"},
-    {"name": "B1 - Trung cap", "description": "Mo rong von tu va dien dat.", "level": "B1"},
-    {"name": "B2 - Trung cap cao", "description": "Tu vung hoc thuat va phan tich.", "level": "B2"},
-    {"name": "TOEIC - Cong so", "description": "Tu vung thuong gap trong moi truong cong so.", "level": "TOEIC"},
-    {"name": "C1 - Nang cao", "description": "Tu vung nang cao cho hoc vien da vung.", "level": "C1"},
+    {"name": "A1 - Căn bản", "description": "Từ vựng căn bản cho người mới học.", "level": "A1"},
+    {"name": "A2 - Sơ cấp", "description": "Từ vựng giao tiếp hằng ngày.", "level": "A2"},
+    {"name": "B1 - Trung cấp", "description": "Mở rộng vốn từ và diễn đạt.", "level": "B1"},
+    {"name": "B2 - Trung cấp cao", "description": "Từ vựng học thuật và phân tích.", "level": "B2"},
+    {"name": "TOEIC - Công sở", "description": "Từ vựng thường gặp trong môi trường công sở.", "level": "TOEIC"},
+    {"name": "C1 - Nâng cao", "description": "Từ vựng nâng cao cho học viên đã vững.", "level": "C1"},
 ]
 
 LESSONS = [
     {
-        "title": "Bai 1 - Chao hoi co ban",
-        "description": "Tu vung chao hoi va gioi thieu.",
+        "title": "Bài 1 - Chào hỏi cơ bản",
+        "description": "Từ vựng chào hỏi và giới thiệu.",
         "level": "A1",
         "order_index": 1,
         "words": ["name", "friend", "family", "school", "good", "happy"],
     },
     {
-        "title": "Bai 2 - Cuoc song hang ngay",
-        "description": "Tu vung sinh hoat hang ngay.",
+        "title": "Bài 2 - Cuộc sống hằng ngày",
+        "description": "Từ vựng sinh hoạt hằng ngày.",
         "level": "A1",
         "order_index": 2,
         "words": ["eat", "sleep", "house", "water", "book", "open", "close"],
     },
     {
-        "title": "Bai 3 - Di lai va phuong tien",
-        "description": "Tu vung ve di chuyen co ban.",
+        "title": "Bài 3 - Đi lại và phương tiện",
+        "description": "Từ vựng về di chuyển cơ bản.",
         "level": "A2",
         "order_index": 3,
         "words": ["travel", "bus", "car", "ticket", "airport", "city", "country"],
     },
     {
-        "title": "Bai 4 - Giao tiep va cong viec",
-        "description": "Tu vung hay dung trong hoc tap va cong viec.",
+        "title": "Bài 4 - Giao tiếp và công việc",
+        "description": "Từ vựng hay dùng trong học tập và công việc.",
         "level": "B1",
         "order_index": 4,
         "words": ["communicate", "decision", "information", "develop", "improve", "experience"],
     },
     {
-        "title": "Bai 5 - Kinh doanh TOEIC",
-        "description": "Cum tu cong so can biet.",
+        "title": "Bài 5 - Kinh doanh TOEIC",
+        "description": "Cụm từ công sở cần biết.",
         "level": "TOEIC",
         "order_index": 5,
         "words": ["office", "project", "proposal", "budget", "deadline", "profit"],
@@ -252,7 +252,7 @@ class Command(BaseCommand):
             {
                 "email": "admin@norostu.com",
                 "username": "admin",
-                "full_name": "Quan tri vien",
+                "full_name": "Quản trị viên",
                 "password": "Admin@2024!",
                 "role": "admin",
                 "is_staff": True,
@@ -261,7 +261,7 @@ class Command(BaseCommand):
             {
                 "email": "student@norostu.com",
                 "username": "student",
-                "full_name": "Hoc sinh Nam",
+                "full_name": "Học sinh Nam",
                 "password": "Student@2024!",
                 "role": "user",
                 "is_staff": False,

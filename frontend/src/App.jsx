@@ -24,7 +24,6 @@ const LearningPlacementPage = lazy(() => import("@/pages/user/LearningPlacementP
 const OnboardingPage = lazy(() => import("@/pages/user/OnboardingPage"));
 const LearningSessionPage = lazy(() => import("@/pages/user/LearningSessionPage"));
 const ListeningSessionPage = lazy(() => import("@/pages/user/ListeningSessionPage"));
-const StudyPage = lazy(() => import("@/pages/user/StudyPage"));
 const ReviewPage = lazy(() => import("@/pages/user/ReviewPage"));
 const QuizPage = lazy(() => import("@/pages/user/QuizPage"));
 const ProfilePage = lazy(() => import("@/pages/user/ProfilePage"));
@@ -168,7 +167,6 @@ const App = () => {
           <Route path="learning/placement" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPlacementPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningSessionPage /></Suspense></ErrorBoundary>} />
           <Route path="listening/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ListeningSessionPage /></Suspense></ErrorBoundary>} />
-          <Route path="learning/:id/study" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><StudyPage /></Suspense></ErrorBoundary>} />
           <Route path="review" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />
           <Route path="quiz" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />
           <Route path="leaderboard" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LeaderboardPage /></Suspense></ErrorBoundary>} />

@@ -8,7 +8,6 @@ import {
   CircularProgress,
   LinearProgress,
   Stack,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -67,6 +66,16 @@ const findNextActivity = (units = []) => {
     if (first) return { activity: first, unit };
   }
   return null;
+};
+
+const getLevelTitle = (level) => {
+  const code = level?.level || "";
+  const name = level?.name || "";
+  if (!name) return code || "Level";
+  if (code && name.toLowerCase().startsWith(code.toLowerCase())) {
+    return name.slice(code.length).replace(/^[\s·.-]+/, "").trim() || name;
+  }
+  return name;
 };
 
 const ActivityCard = ({ activity, unit, onStart, startingActivityId }) => {
@@ -259,6 +268,7 @@ const LearningPage = () => {
   const totalActivities = getActivityCount(selectedUnits);
   const completedActivities = getCompletedActivityCount(selectedUnits);
   const levelProgress = totalActivities ? Math.round((completedActivities / totalActivities) * 100) : 0;
+  const selectedLevelTitle = getLevelTitle(selectedLevel);
 
   useEffect(() => {
     if (!levels.length || selectedLevelId) return;
@@ -466,55 +476,151 @@ const LearningPage = () => {
           </SbCard>
         )}
 
-        <SbCard sx={{ bgcolor: colors.greenStarbucks, color: "white", border: "none" }}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }}>
-            <Box>
-              <Typography sx={{ fontWeight: 900, fontSize: "1.25rem" }}>
-                {selectedLevel?.name || "Chưa có level"}
+        <SbCard
+          sx={{
+            position: "relative",
+            overflow: "hidden",
+            border: `1px solid ${colors.greenAccent}22`,
+            bgcolor: "rgba(255,255,255,0.9)",
+            boxShadow: "0 18px 50px rgba(0, 70, 46, 0.08)",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: "0 0 auto 0",
+              height: 6,
+              background: `linear-gradient(90deg, ${colors.greenStarbucks}, ${colors.greenAccent}, ${colors.gold})`,
+            },
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", lg: "row" }}
+            spacing={2.5}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", lg: "center" }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1.25 }}>
+                <Chip
+                  label={selectedLevel?.level || "Level"}
+                  size="small"
+                  sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenStarbucks, fontWeight: 900 }}
+                />
+                <Chip
+                  label={`${selectedUnits.length} unit`}
+                  size="small"
+                  sx={{ bgcolor: `${colors.gold}22`, color: colors.greenStarbucks, fontWeight: 800 }}
+                />
+                <Chip
+                  label={`${totalActivities} activity`}
+                  size="small"
+                  sx={{ bgcolor: `${colors.greenStarbucks}10`, color: colors.greenStarbucks, fontWeight: 800 }}
+                />
+              </Stack>
+              <Typography sx={{ fontWeight: 950, fontSize: { xs: "1.35rem", md: "1.75rem" }, color: colors.greenStarbucks, letterSpacing: "-0.03em" }}>
+                {selectedLevelTitle}
               </Typography>
-              <Typography sx={{ opacity: 0.82, mt: 0.5 }}>
+              <Typography sx={{ color: "text.secondary", mt: 0.75, maxWidth: 720, lineHeight: 1.65 }}>
                 {selectedLevel?.description || "Chọn một level để xem unit và activity."}
               </Typography>
             </Box>
-            <Box sx={{ minWidth: { xs: "100%", md: 240 } }}>
-              <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
-                <Typography sx={{ fontSize: "0.85rem", opacity: 0.8 }}>Tiến độ level</Typography>
-                <Typography sx={{ fontSize: "0.85rem", fontWeight: 800 }}>{completedActivities}/{totalActivities}</Typography>
+
+            <Box
+              sx={{
+                width: { xs: "100%", lg: 285 },
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: `${colors.greenStarbucks}08`,
+                border: `1px solid ${colors.greenAccent}20`,
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
+                <Typography sx={{ fontSize: "0.82rem", color: "text.secondary", fontWeight: 800 }}>Tiến độ level</Typography>
+                <Typography sx={{ fontWeight: 950, color: colors.greenStarbucks, fontSize: "1.25rem" }}>{levelProgress}%</Typography>
               </Stack>
               <LinearProgress
                 variant="determinate"
                 value={levelProgress}
-                sx={{ height: 8, borderRadius: 4, bgcolor: "rgba(255,255,255,0.22)", "& .MuiLinearProgress-bar": { bgcolor: "white" } }}
+                sx={{ height: 9, borderRadius: 5, bgcolor: `${colors.greenStarbucks}18`, "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent } }}
               />
+              <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mt: 0.8 }}>
+                {completedActivities}/{totalActivities} activity đã hoàn thành
+              </Typography>
             </Box>
           </Stack>
         </SbCard>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: `repeat(${Math.min(levels.length || 1, 2)}, minmax(0, 1fr))` },
+            gap: 1.25,
+          }}
+        >
           {levels.map((level) => {
             const isSelected = selectedLevel?.id === level.id;
             const total = getActivityCount(level.units || []);
             const done = getCompletedActivityCount(level.units || []);
+            const progress = total ? Math.round((done / total) * 100) : 0;
             return (
-              <Tooltip title={`${done}/${total} activity`} key={level.id} arrow>
-                <Chip
-                  clickable
-                  label={`${level.level || "Level"} · ${level.name}`}
-                  onClick={() => setSelectedLevelId(level.id)}
+              <Box
+                key={level.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedLevelId(level.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedLevelId(level.id);
+                  }
+                }}
+                sx={{
+                  cursor: "pointer",
+                  borderRadius: 4,
+                  p: 1.5,
+                  bgcolor: isSelected ? colors.greenAccent : "rgba(255,255,255,0.82)",
+                  color: isSelected ? "white" : colors.greenStarbucks,
+                  border: `1px solid ${isSelected ? colors.greenAccent : `${colors.greenAccent}22`}`,
+                  boxShadow: isSelected ? "0 14px 30px rgba(0, 128, 85, 0.22)" : "0 10px 28px rgba(0, 70, 46, 0.06)",
+                  transition: "transform 160ms ease, box-shadow 160ms ease, background 160ms ease",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: isSelected ? "0 18px 34px rgba(0, 128, 85, 0.26)" : "0 14px 32px rgba(0, 70, 46, 0.1)",
+                    bgcolor: isSelected ? colors.greenAccent : `${colors.greenAccent}0d`,
+                  },
+                  "&:focus-visible": {
+                    outline: `3px solid ${colors.gold}`,
+                    outlineOffset: 2,
+                  },
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 950, fontSize: "1.05rem", lineHeight: 1 }}>
+                      {level.level || "Level"}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.82rem", opacity: isSelected ? 0.9 : 0.72, mt: 0.5, fontWeight: 700 }} noWrap>
+                      {getLevelTitle(level)}
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ fontWeight: 900, fontSize: "0.82rem", opacity: isSelected ? 0.95 : 0.7 }}>
+                    {done}/{total}
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
                   sx={{
-                    height: 36,
-                    px: 0.5,
-                    fontWeight: 800,
-                    bgcolor: isSelected ? colors.greenAccent : "background.paper",
-                    color: isSelected ? "white" : colors.greenStarbucks,
-                    border: `1px solid ${isSelected ? colors.greenAccent : `${colors.greenAccent}33`}`,
-                    "&:hover": { bgcolor: isSelected ? colors.greenAccent : `${colors.greenAccent}12` },
+                    mt: 1.25,
+                    height: 6,
+                    borderRadius: 5,
+                    bgcolor: isSelected ? "rgba(255,255,255,0.28)" : `${colors.greenStarbucks}14`,
+                    "& .MuiLinearProgress-bar": { bgcolor: isSelected ? "white" : colors.greenAccent },
                   }}
                 />
-              </Tooltip>
+              </Box>
             );
           })}
-        </Stack>
+        </Box>
 
         {selectedUnits.length === 0 ? (
           <Alert severity="info" sx={{ borderRadius: 3 }}>Level này chưa có unit.</Alert>

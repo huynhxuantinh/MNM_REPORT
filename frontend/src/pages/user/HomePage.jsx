@@ -9,9 +9,7 @@ import {
   Skeleton,
   LinearProgress,
   CircularProgress,
-  Chip,
-  useMediaQuery,
-  useTheme,
+  Chip
 } from "@mui/material";
 import { BoltRounded as BoltRoundedIcon } from "@mui/icons-material";
 import { LocalFireDepartmentRounded as LocalFireDepartmentRoundedIcon } from "@mui/icons-material";
@@ -247,77 +245,9 @@ const XpCard = ({ user, loading }) => {
   );
 };
 
-const LessonCard = ({ lesson, onStartSession, isStarting }) => {
-  const isCompleted = !!lesson.user_progress?.completed_at;
-  const isStarted = !!lesson.user_progress?.started_at;
-  const canStart = lesson.can_start !== false;
-
-  return (
-    <SbCard
-      sx={{
-        transition: "box-shadow 0.2s",
-        opacity: canStart ? 1 : 0.8,
-        "&:hover": { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
-      }}
-    >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: "flex", gap: 0.75, mb: 0.5, flexWrap: "wrap" }}>
-              {lesson.level && (
-                <Chip
-                  label={lesson.level}
-                  size="small"
-                  sx={{ bgcolor: colors.greenLight, color: colors.greenHouse, fontWeight: 700, fontSize: "0.68rem", height: 20 }}
-                />
-              )}
-              {isCompleted && (
-                <Chip
-                  icon={<CheckCircleRoundedIcon sx={{ fontSize: "12px !important" }} />}
-                  label="Hoàn thành"
-                  size="small"
-                  sx={{ bgcolor: `${colors.greenAccent}18`, color: colors.greenAccent, fontWeight: 700, fontSize: "0.68rem", height: 20 }}
-                />
-              )}
-              {!canStart && (
-                <Chip
-                  label="Đang khóa"
-                  size="small"
-                  sx={{ bgcolor: "rgba(0,0,0,0.08)", color: "text.secondary", fontWeight: 700, fontSize: "0.68rem", height: 20 }}
-                />
-              )}
-            </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: "text.primary", lineHeight: 1.3 }}>
-              {lesson.title}
-            </Typography>
-          </Box>
-          <MenuBookRoundedIcon sx={{ color: colors.greenLight, fontSize: 22, flexShrink: 0, mt: 0.25 }} />
-        </Box>
-
-        <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>{lesson.word_count} từ</Typography>
-
-        <SbButton
-          variant={isCompleted ? "outlined" : "primary"}
-          size="small"
-          fullWidth
-          disabled={!canStart}
-          loading={isStarting}
-          onClick={() => onStartSession?.(lesson.id)}
-          endIcon={<ArrowForwardRoundedIcon />}
-          sx={{ mt: 0.5 }}
-        >
-          {!canStart ? "Mở khóa ở Lộ trình học" : isCompleted ? "Học lại" : isStarted ? "Tiếp tục" : "Học ngay"}
-        </SbButton>
-      </Box>
-    </SbCard>
-  );
-};
-
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   
   const { data: placementStatus, isLoading: placementLoading } = useQuery({
     queryKey: ["placement-status"],
@@ -345,14 +275,9 @@ const HomePage = () => {
     staleTime: 300_000,
   });
 
-  const { data: lessonsData, isLoading: lessLoading } = useQuery({
-    queryKey: ["lessons"],
-    queryFn: () => learningApi.getLessons({ page_size: 6 }).then((r) => r.data),
-    staleTime: 120_000,
-  });
-  const { data: learningPathData } = useQuery({
-    queryKey: ["home-learning-path"],
-    queryFn: () => learningApi.getLearningPath().then((r) => r.data),
+  const { data: learningPathData, isLoading: pathLoading } = useQuery({
+    queryKey: ["home-learning-path-v2"],
+    queryFn: () => learningApi.getLearningPathV2().then((r) => r.data),
     staleTime: 60_000,
   });
   const { data: recoverData, refetch: refetchRecover } = useQuery({
@@ -374,34 +299,38 @@ const HomePage = () => {
   const reviewDue = summary?.reviewed_today ?? 0;
   const streak = summary?.streak ?? user?.streak?.current_streak ?? 0;
 
-  const lessonUnlockMap = useMemo(() => {
-    const map = new Map();
-    const units = learningPathData?.units || [];
-    units.forEach((unit) => {
-      (unit.lessons || []).forEach((item) => {
-        const lessonId = item?.lesson?.id ?? item?.lesson_id ?? null;
-        const isPublished = item?.lesson?.is_published !== false;
-        if (!lessonId || !isPublished) return;
-        map.set(lessonId, !!unit.unlocked);
-      });
-    });
-    return map;
+  const pathSummary = useMemo(() => {
+    const units = (learningPathData?.levels || []).flatMap((level) =>
+      (level.units || []).map((unit) => ({
+        ...unit,
+        levelLabel: level.level || level.name,
+        courseName: level.name,
+      })),
+    );
+    const unlockedUnits = units.filter((unit) => unit.unlocked);
+    const currentUnit =
+      unlockedUnits.find((unit) => (unit.activities || []).some((activity) => activity.status !== "completed"))
+      || unlockedUnits.at(-1)
+      || units[0]
+      || null;
+    const activities = currentUnit?.activities || [];
+    const completedCount = activities.filter((activity) => activity.status === "completed").length;
+    const nextActivity =
+      activities.find((activity) => activity.unlocked && activity.status !== "completed")
+      || activities.find((activity) => activity.status !== "completed")
+      || null;
+
+    return {
+      currentUnit,
+      nextActivity,
+      completedCount,
+      totalCount: activities.length,
+      percent: activities.length ? Math.round((completedCount / activities.length) * 100) : 0,
+    };
   }, [learningPathData]);
 
-  const lessons = useMemo(
-    () => (lessonsData?.results ?? []).map((lesson) => ({
-      ...lesson,
-      can_start: lessonUnlockMap.has(lesson.id) ? lessonUnlockMap.get(lesson.id) : true,
-    })),
-    [lessonsData, lessonUnlockMap]
-  );
   const totalWords = history?.reduce((s, d) => s + d.count, 0) ?? 0;
   const totalReviewDays = history?.filter((d) => d.count > 0).length ?? 0;
-
-  const handleStartLessonSession = (lessonId) => {
-    if (!lessonId) return;
-    navigate(`/learning/${lessonId}/study`);
-  };
   const recoverSession = recoverData?.session;
 
   return (
@@ -566,45 +495,54 @@ const HomePage = () => {
       <Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: colors.greenStarbucks }}>
-            Bài học của tôi
+            Lộ trình hiện tại
           </Typography>
           <SbButton variant="outlined" size="small" endIcon={<ArrowForwardRoundedIcon />} onClick={() => navigate("/learning")}>
-            Xem tất cả
+            Mở lộ trình
           </SbButton>
         </Box>
 
-        {lessLoading ? (
-          <Grid container spacing={2}>
-            {[1, 2, 3].map((i) => (
-              <Grid item xs={12} sm={6} md={4} key={i}>
-                <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
-              </Grid>
-            ))}
-          </Grid>
-        ) : lessons.length === 0 ? (
+        {pathLoading ? (
+          <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />
+        ) : !pathSummary.currentUnit ? (
           <SbCard variant="cream" sx={{ textAlign: "center", py: 4 }}>
             <MenuBookRoundedIcon sx={{ fontSize: 40, color: colors.greenLight, mb: 1 }} />
             <Typography sx={{ color: "text.secondary" }}>
-              Chưa có bài học nào. Hãy khám phá thư viện bài học.
+              Chưa có lộ trình học khả dụng.
             </Typography>
             <SbButton variant="primary" sx={{ mt: 2 }} onClick={() => navigate("/learning")}>
-              Khám phá bài học
+              Kiểm tra lộ trình
             </SbButton>
           </SbCard>
         ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                        <Grid container spacing={2}>
-              {lessons.map((lesson) => (
-                <Grid item xs={12} sm={6} md={4} key={lesson.id}>
-                  <LessonCard
-                    lesson={lesson}
-                    onStartSession={handleStartLessonSession}
-                    isStarting={false}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+          <SbCard>
+            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+              <Box sx={{ flex: 1, minWidth: 240 }}>
+                <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", fontWeight: 700 }}>
+                  {pathSummary.currentUnit.levelLabel} · {pathSummary.currentUnit.courseName}
+                </Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: colors.greenStarbucks, mt: 0.5 }}>
+                  {pathSummary.currentUnit.title}
+                </Typography>
+                <Typography sx={{ fontSize: "0.86rem", color: "text.secondary", mt: 0.75 }}>
+                  Activity tiếp theo: {pathSummary.nextActivity?.title || "Đã hoàn thành unit này"}
+                </Typography>
+              </Box>
+              <SbButton variant="primary" endIcon={<ArrowForwardRoundedIcon />} onClick={() => navigate("/learning")}>
+                Tiếp tục lộ trình
+              </SbButton>
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={pathSummary.percent}
+                sx={{ height: 8, borderRadius: 4, bgcolor: "rgba(0,117,74,0.12)", "& .MuiLinearProgress-bar": { bgcolor: colors.greenAccent } }}
+              />
+              <Typography sx={{ fontSize: "0.8rem", color: "text.secondary", mt: 0.75 }}>
+                {pathSummary.completedCount}/{pathSummary.totalCount} activity hoàn thành · {pathSummary.percent}%
+              </Typography>
+            </Box>
+          </SbCard>
         )}
       </Box>
     </Box>

@@ -14,9 +14,11 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/services/learningApi", () => ({
   default: {
     getLearningPath: vi.fn(),
+    getLearningPathV2: vi.fn(),
     getPlacementStatus: vi.fn(),
     getRecoverableSession: vi.fn(),
     getDailyGoal: vi.fn(),
+    startActivity: vi.fn(),
     startLearningSession: vi.fn(),
     startCheckpoint: vi.fn(),
     resumeLearningSession: vi.fn(),
@@ -40,17 +42,15 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-describe("LearningPage excludes listening lessons", () => {
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const learningApi = (await import("@/services/learningApi")).default;
-    learningApi.getPlacementStatus.mockResolvedValue({ data: { should_show_onboarding: false, has_completed_placement: true } });
-    learningApi.getRecoverableSession.mockResolvedValue({ data: { has_recoverable_session: false } });
-    learningApi.getDailyGoal.mockResolvedValue({ data: { target_minutes: 10, today: { goal_minutes: 10, studied_minutes: 2 } } });
-    learningApi.getLearningPath.mockResolvedValue({
-      data: {
-        name: "English Foundation A1-A2",
-        placement: { recommended_level: "A2", recommended_start_unit_id: 1 },
+const pathV2Response = {
+  data: {
+    recommended_level: "A2",
+    levels: [
+      {
+        id: 20,
+        level: "A2",
+        name: "A2 Everyday English",
+        description: "Build daily English skills.",
         units: [
           {
             id: 1,
@@ -58,39 +58,63 @@ describe("LearningPage excludes listening lessons", () => {
             title: "Basics",
             description: "Core path",
             unlocked: true,
-            lesson_count: 1,
-            lessons: [{ order_index: 1, lesson: { id: 11, title: "Lesson 1", level: "A1", is_published: true, skill_tag: "vocab", words_total: 4, words_learned: 0 } }],
-          },
-          {
-            id: 2,
-            order_index: 3,
-            title: "Listening Lab",
-            description: "Listening",
-            unlocked: true,
-            lesson_count: 1,
-            lessons: [{ order_index: 1, lesson: { id: 101, title: "Listening Demo", level: "A1", is_published: true, skill_tag: "listening", words_total: 4, words_learned: 0, listening_estimated_seconds: 35 } }],
+            placement_recommended: true,
+            activities: [
+              {
+                id: 101,
+                activity_type: "vocab",
+                title: "Vocabulary Basics",
+                description: "Core words",
+                unlocked: true,
+                status: "available",
+                estimated_minutes: 8,
+                content: { title: "Lesson 1" },
+              },
+            ],
           },
         ],
       },
+    ],
+  },
+};
+
+describe("LearningPage", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const learningApi = (await import("@/services/learningApi")).default;
+    learningApi.getPlacementStatus.mockResolvedValue({ data: { should_show_onboarding: false, placement_completed: true } });
+    learningApi.getRecoverableSession.mockResolvedValue({ data: { has_recoverable_session: false } });
+    learningApi.getDailyGoal.mockResolvedValue({
+      data: {
+        goal: {
+          progress_words: 2,
+          target_words: 10,
+          reward_xp: 20,
+          reward_claimed: false,
+        },
+        can_claim_reward: false,
+      },
     });
+    learningApi.getLearningPathV2.mockResolvedValue(pathV2Response);
   });
 
-  it("renders normal learning path without listening section", async () => {
+  it("renders the current learning path level and unit", async () => {
     renderWithProviders(<LearningPage />, { initialEntries: ["/learning"] });
 
     await waitFor(() => {
       expect(screen.getByText(/Unit 1: Basics/i)).toBeInTheDocument();
     });
 
-    expect(screen.queryByText(/Luyện nghe/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Everyday English/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Vocabulary Basics/i)).toBeInTheDocument();
     expect(screen.queryByText(/Listening Demo/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Nghe và làm bài/i })).not.toBeInTheDocument();
   });
 
-  it("shows placement recommendation banner when user has no progress", async () => {
+  it("shows placement recommendation banner", async () => {
     renderWithProviders(<LearningPage />, { initialEntries: ["/learning"] });
+
     await waitFor(() => {
-      expect(screen.getByText(/Placement đề xuất bạn bắt đầu từ Basics \(A2\)\./i)).toBeInTheDocument();
+      expect(screen.getByText(/level A2/i)).toBeInTheDocument();
     });
   });
 });

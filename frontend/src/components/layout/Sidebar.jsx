@@ -11,10 +11,8 @@ import {
 import {
   HomeRounded as HomeIcon,
   AutoStoriesRounded as VocabIcon,
-  StyleRounded as WordSetsIcon,
   SchoolRounded as LearningIcon,
   HeadphonesRounded as ListeningIcon,
-  QuizRounded as QuizIcon,
   EmojiEventsRounded as LeaderboardIcon,
   NotificationsRounded as NotifIcon,
   PersonRounded as ProfileIcon,
@@ -28,10 +26,8 @@ export const SIDEBAR_WIDTH = 260;
 const BASE_NAV = [
   { label: "Trang chủ", to: "/", end: true, Icon: HomeIcon },
   { label: "Từ vựng", to: "/vocabulary", Icon: VocabIcon },
-  { label: "Bộ từ", to: "/wordsets", Icon: WordSetsIcon },
   { label: "Học tập", to: "/learning", Icon: LearningIcon },
-  { label: "Luyện nghe", to: "/listening", Icon: ListeningIcon },
-  { label: "Quiz", to: "/quiz", Icon: QuizIcon },
+  { label: "Nghe tự do", to: "/listening", Icon: ListeningIcon },
   { label: "Xếp hạng", to: "/leaderboard", Icon: LeaderboardIcon },
   { label: "Thông báo", to: "/notifications", Icon: NotifIcon },
   { label: "Hồ sơ", to: "/profile", Icon: ProfileIcon },
@@ -278,3 +274,4 @@ const Sidebar = ({ open, onClose, mobile = false }) => {
 };
 
 export default Sidebar;
+

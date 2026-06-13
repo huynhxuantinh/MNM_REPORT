@@ -22,8 +22,7 @@ vi.mock("@/services/learningApi", () => ({
     getPlacementStatus: vi.fn(),
     getReviewSummary: vi.fn(),
     getReviewHistory: vi.fn(),
-    getLessons: vi.fn(),
-    getLearningPath: vi.fn(),
+    getLearningPathV2: vi.fn(),
     getRecoverableSession: vi.fn(),
     resumeLearningSession: vi.fn(),
     getDailyGoal: vi.fn(),
@@ -51,19 +50,23 @@ describe("HomePage", () => {
     learningApi.getPlacementStatus.mockResolvedValue({ data: { should_show_onboarding: false } });
     learningApi.getReviewSummary.mockResolvedValue({ data: { due_today: 3, reviewed_today: 1, streak: 2 } });
     learningApi.getReviewHistory.mockResolvedValue({ data: [{ date: "2026-06-01", count: 1 }] });
-    learningApi.getLessons.mockResolvedValue({
+    learningApi.getLearningPathV2.mockResolvedValue({
       data: {
-        results: [
-          { id: 11, title: "Lesson 1", level: "A1", word_count: 15, user_progress: {} },
-        ],
-      },
-    });
-    learningApi.getLearningPath.mockResolvedValue({
-      data: {
-        units: [
+        levels: [
           {
-            unlocked: true,
-            lessons: [{ lesson: { id: 11, is_published: true } }],
+            name: "A1 English Foundation",
+            level: "A1",
+            units: [
+              {
+                id: 1,
+                title: "Unit 1 - Greetings",
+                unlocked: true,
+                activities: [
+                  { id: 10, title: "Vocabulary", status: "completed", unlocked: true },
+                  { id: 11, title: "Listening", status: "available", unlocked: true },
+                ],
+              },
+            ],
           },
         ],
       },
@@ -89,7 +92,8 @@ describe("HomePage", () => {
     renderWithProviders(<HomePage />, { preloadedState, initialEntries: ["/"] });
 
     await waitFor(() => {
-      expect(screen.getByText(/Lesson 1/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unit 1 - Greetings/i)).toBeInTheDocument();
+      expect(screen.getByText(/Activity tiếp theo: Listening/i)).toBeInTheDocument();
       expect(screen.getByText(/ReviewActivityChart/i)).toBeInTheDocument();
       expect(screen.getByText(/4\/10/i)).toBeInTheDocument();
       expect(screen.getByText(/25%/i)).toBeInTheDocument();
@@ -107,3 +111,4 @@ describe("HomePage", () => {
     });
   });
 });
+

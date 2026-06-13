@@ -19,8 +19,6 @@ vi.mock("@/services/learningApi", () => ({
     getPlacementStatus: vi.fn(),
     getPlacementQuestions: vi.fn(),
     submitPlacement: vi.fn(),
-    getLearningPath: vi.fn(),
-    startLearningSession: vi.fn(),
   },
 }));
 
@@ -57,8 +55,6 @@ describe("LearningPlacementPage", () => {
     learningApi.getPlacementStatus.mockResolvedValue({ data: { has_completed_placement: true, recommended_level: "A1" } });
     learningApi.getPlacementQuestions.mockResolvedValue({ data: mockQuestions });
     learningApi.submitPlacement.mockResolvedValue({ data: { result: { recommended_level: "A1", score_pct: 83 } } });
-    learningApi.getLearningPath.mockResolvedValue({ data: { units: [] } });
-    learningApi.startLearningSession.mockResolvedValue({ data: { id: 999 } });
   });
 
   it("renders placement questions", async () => {
