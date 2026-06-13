@@ -32,7 +32,7 @@ const LearningCheckpointPage = () => {
       });
     },
     onError: (error) => {
-      setErrorMessage(error?.response?.data?.detail || "Khong the mo checkpoint.");
+      setErrorMessage(error?.response?.data?.detail || "Không thể mở checkpoint.");
     },
   });
 
@@ -40,13 +40,13 @@ const LearningCheckpointPage = () => {
     mutationFn: () => learningApi.startActivity(activityId).then((response) => response.data),
     onSuccess: (payload) => {
       if (payload.kind !== "checkpoint" || !payload.unit_id) {
-        setErrorMessage("Activity nay khong phai checkpoint hop le.");
+        setErrorMessage("Activity này không phải checkpoint hợp lệ.");
         return;
       }
       startCheckpointMutation.mutate({ unitId: payload.unit_id, currentActivityId: Number(activityId) });
     },
     onError: (error) => {
-      setErrorMessage(error?.response?.data?.detail || "Khong the khoi dong checkpoint.");
+      setErrorMessage(error?.response?.data?.detail || "Không thể khởi động checkpoint.");
     },
   });
 
@@ -88,18 +88,18 @@ const LearningCheckpointPage = () => {
           </Box>
           <Box>
             <Typography sx={{ fontWeight: 900, fontSize: "1.45rem", color: colors.greenStarbucks }}>
-              Dang mo {title}
+              Đang mở {title}
             </Typography>
             <Typography sx={{ color: "text.secondary", mt: 0.75 }}>
-              He thong dang tao checkpoint rieng cho unit nay. Vui long doi trong giay lat.
+              Hệ thống đang tạo checkpoint riêng cho unit này. Vui lòng đợi trong giây lát.
             </Typography>
           </Box>
 
           {errorMessage && <Alert severity="error" sx={{ width: "100%", borderRadius: 2 }}>{errorMessage}</Alert>}
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-            {errorMessage && <SbButton variant="primary" onClick={retry}>Thu lai</SbButton>}
-            <SbButton variant="outlined" onClick={() => navigate("/learning")}>Ve lo trinh</SbButton>
+            {errorMessage && <SbButton variant="primary" onClick={retry}>Thử lại</SbButton>}
+            <SbButton variant="outlined" onClick={() => navigate("/learning")}>Về lộ trình</SbButton>
           </Stack>
         </Stack>
       </SbCard>

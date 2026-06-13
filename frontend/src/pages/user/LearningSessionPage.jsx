@@ -223,6 +223,7 @@ const LearningSessionPage = ({ mode = "learning" }) => {
     queryClient.invalidateQueries({ queryKey: ["learning-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["home-recover-session"] });
     queryClient.invalidateQueries({ queryKey: ["learning-path"] });
+    queryClient.invalidateQueries({ queryKey: ["learning-path-v2"] });
     queryClient.invalidateQueries({ queryKey: ["listening-path"] });
     queryClient.invalidateQueries({ queryKey: ["daily-goal"] });
     queryClient.invalidateQueries({ queryKey: ["home-daily-goal"] });

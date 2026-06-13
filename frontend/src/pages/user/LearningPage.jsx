@@ -343,8 +343,8 @@ const LearningPage = () => {
 
   const resumeMutation = useMutation({
     mutationFn: (sessionId) => learningApi.resumeLearningSession(sessionId).then((response) => response.data),
-    onSuccess: (session) => {
-      navigate(`/learning/session/${session.id}`);
+    onSuccess: (payload) => {
+      navigate(`/learning/session/${payload.session?.id}`);
     },
   });
 
