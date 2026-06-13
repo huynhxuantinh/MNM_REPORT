@@ -6,6 +6,7 @@ Tests cho Quiz API:
 """
 import pytest
 
+from apps.learning.models import Course, DailyGoalLog, Unit, UnitActivity, UserActivityProgress, UserStreak
 from apps.quiz.models import Quiz, QuizResult
 
 pytestmark = pytest.mark.django_db
@@ -168,6 +169,59 @@ class TestQuizSubmit:
         r = sc.post(SUBMIT_URL, payload, format="json")
         assert r.status_code == 201
         assert float(r.data["score"]) == 75.0
+
+    def test_submit_activity_quiz_rewards_xp_streak_and_daily_goal_once(self, sc, quiz_id, student):
+        quiz = Quiz.objects.get(id=quiz_id)
+        course = Course.objects.create(name="Quiz Path", slug="quiz-path", is_active=True)
+        unit = Unit.objects.create(course=course, title="Quiz Unit", order_index=1, required_lessons_to_unlock=0)
+        activity = UnitActivity.objects.create(
+            unit=unit,
+            activity_type=UnitActivity.ActivityType.QUIZ,
+            title="Unit Quiz",
+            quiz=quiz,
+            order_index=1,
+            is_required=True,
+            is_published=True,
+        )
+
+        first = sc.post(
+            SUBMIT_URL,
+            {
+                "quiz_id": quiz_id,
+                "activity_id": activity.id,
+                "score": 0,
+                "total_questions": 4,
+                "correct_answers": 3,
+            },
+            format="json",
+        )
+        assert first.status_code == 201
+        assert first.data["xp_earned"] == 7
+        assert first.data["activity_progress"]["status"] == UserActivityProgress.Status.COMPLETED
+
+        student.refresh_from_db()
+        assert student.xp == 7
+        assert UserStreak.objects.get(user=student).current_streak == 1
+        goal_log = DailyGoalLog.objects.get(user=student)
+        assert goal_log.studied_minutes == 5
+
+        second = sc.post(
+            SUBMIT_URL,
+            {
+                "quiz_id": quiz_id,
+                "activity_id": activity.id,
+                "score": 0,
+                "total_questions": 4,
+                "correct_answers": 4,
+            },
+            format="json",
+        )
+        assert second.status_code == 201
+        assert "xp_earned" not in second.data
+        student.refresh_from_db()
+        assert student.xp == 7
+        goal_log.refresh_from_db()
+        assert goal_log.studied_minutes == 5
 
     def test_submit_rejects_invalid_correct_answers(self, sc, quiz_id):
         payload = {

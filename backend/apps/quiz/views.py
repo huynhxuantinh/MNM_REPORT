@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from .models import Quiz, QuizResult
 from .serializers import QuizResultSerializer, AdminQuizResultSerializer
+from apps.learning.shared_flow import _apply_learning_rewards
 
 
 class QuizGenerateView(APIView):
@@ -183,10 +184,12 @@ class QuizSubmitView(APIView):
             )
 
         score = round((correct_answers / total_questions) * 100, 2)
+        xp_earned = int(score // 10)
 
         activity_progress_payload = None
         activity_id = request.data.get("activity_id")
         activity = None
+        should_reward_activity = False
         if activity_id:
             from apps.learning.models import UnitActivity
 
@@ -218,14 +221,18 @@ class QuizSubmitView(APIView):
                     activity=activity,
                     defaults={"started_at": now},
                 )
+                was_completed = progress.status == UserActivityProgress.Status.COMPLETED
+                should_reward_activity = not was_completed
                 progress.status = UserActivityProgress.Status.COMPLETED
                 progress.score_pct = score
+                progress.xp_earned = max(progress.xp_earned or 0, xp_earned)
                 progress.completed_at = progress.completed_at or now
                 progress.started_at = progress.started_at or now
                 progress.save(
                     update_fields=[
                         "status",
                         "score_pct",
+                        "xp_earned",
                         "started_at",
                         "completed_at",
                         "updated_at",
@@ -237,9 +244,17 @@ class QuizSubmitView(APIView):
                     "xp_earned": progress.xp_earned,
                     "completed_at": progress.completed_at,
                 }
+        if activity and should_reward_activity:
+            streak = _apply_learning_rewards(request.user, xp_earned=xp_earned, study_minutes=5)
         payload = QuizResultSerializer(result).data
         if activity_progress_payload:
             payload["activity_progress"] = activity_progress_payload
+        if activity and should_reward_activity:
+            request.user.refresh_from_db(fields=["xp", "level"])
+            payload["xp_earned"] = xp_earned
+            payload["total_xp"] = request.user.xp
+            payload["level"] = request.user.level
+            payload["streak"] = streak.current_streak
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
