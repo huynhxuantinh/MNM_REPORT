@@ -58,7 +58,7 @@ const MainLayout = () => {
     if (user?.role !== "user") return;
     if (location.pathname.startsWith("/learning/session/")) return;
 
-    // Avoid blocking unrelated pages (home/profile/quiz) with onboarding dialog.
+    // Avoid blocking unrelated pages with onboarding dialog.
     if (location.pathname !== "/learning") {
       setOnboardingOpen(false);
       return;

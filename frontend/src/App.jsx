@@ -15,7 +15,6 @@ import NotFoundPage from "@/pages/public/NotFoundPage";
 const AboutPage = lazy(() => import("@/pages/public/AboutPage"));
 const HomePage = lazy(() => import("@/pages/user/HomePage"));
 const VocabularyPage = lazy(() => import("@/pages/user/VocabularyPage"));
-const WordSetsPage = lazy(() => import("@/pages/user/WordSetsPage"));
 const LearningPage = lazy(() => import("@/pages/user/LearningPage"));
 const LearningWritingPage = lazy(() => import("@/pages/user/LearningWritingPage"));
 const LearningCheckpointPage = lazy(() => import("@/pages/user/LearningCheckpointPage"));
@@ -157,7 +156,6 @@ const App = () => {
           <Route index element={<HomeRoute><ErrorBoundary><Suspense fallback={<PageFallback />}><HomePage /></Suspense></ErrorBoundary></HomeRoute>} />
           <Route path="vocabulary" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><VocabularyPage /></Suspense></ErrorBoundary>} />
           <Route path="vocabulary/:id" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordDetailPage /></Suspense></ErrorBoundary>} />
-          <Route path="wordsets" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WordSetsPage /></Suspense></ErrorBoundary>} />
           <Route path="learning" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/writing/:activityId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningWritingPage /></Suspense></ErrorBoundary>} />
           <Route path="learning/checkpoint/:activityId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningCheckpointPage /></Suspense></ErrorBoundary>} />
@@ -168,7 +166,6 @@ const App = () => {
           <Route path="learning/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LearningSessionPage /></Suspense></ErrorBoundary>} />
           <Route path="listening/session/:sessionId" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ListeningSessionPage /></Suspense></ErrorBoundary>} />
           <Route path="review" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReviewPage /></Suspense></ErrorBoundary>} />
-          <Route path="quiz" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><QuizPage /></Suspense></ErrorBoundary>} />
           <Route path="leaderboard" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><LeaderboardPage /></Suspense></ErrorBoundary>} />
           <Route path="profile" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ProfilePage /></Suspense></ErrorBoundary>} />
           <Route path="notifications" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense></ErrorBoundary>} />

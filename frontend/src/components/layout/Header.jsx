@@ -48,7 +48,6 @@ const PAGE_TITLES = {
   "/vocabulary": "Từ vựng",
   "/learning": "Học tập",
   "/listening": "Luyện nghe",
-  "/quiz": "Quiz",
   "/profile": "Hồ sơ",
 };
 

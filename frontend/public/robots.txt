@@ -11,10 +11,8 @@ Disallow: /verify-email
 # Admin and private app areas
 Disallow: /admin
 Disallow: /vocabulary
-Disallow: /wordsets
 Disallow: /learning
 Disallow: /review
-Disallow: /quiz
 Disallow: /profile
 Disallow: /notifications
 Disallow: /leaderboard

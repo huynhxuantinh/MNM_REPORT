@@ -27,12 +27,6 @@ const ROUTE_SEO = [
     robots: "noindex,nofollow",
   },
   {
-    test: /^\/wordsets$/,
-    title: "Bo tu vung tieng Anh theo chu de | NoroStu",
-    description: "Hoc tu vung tieng Anh theo bo tu, chu de va muc tieu hoc tap ca nhan.",
-    robots: "noindex,nofollow",
-  },
-  {
     test: /^\/learning$/,
     title: "Lo trinh hoc tieng Anh ca nhan hoa | NoroStu",
     description: "Hoc theo lesson, placement, muc tieu ngay, tim, XP va tien trinh ca nhan.",
@@ -42,12 +36,6 @@ const ROUTE_SEO = [
     test: /^\/review$/,
     title: "On tap SRS SM-2 cho tu vung | NoroStu",
     description: "On tap tu vung dung thoi diem bang thuat toan SRS SM-2 de ghi nho lau hon.",
-    robots: "noindex,nofollow",
-  },
-  {
-    test: /^\/quiz$/,
-    title: "Quiz tieng Anh luyen phan xa | NoroStu",
-    description: "Luyen quiz tieng Anh theo bo tu va lesson de tang do chinh xac khi hoc.",
     robots: "noindex,nofollow",
   },
   {
