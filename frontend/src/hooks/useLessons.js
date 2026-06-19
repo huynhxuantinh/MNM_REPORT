@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import learningApi from "@/services/learningApi";
 
 export const useLessons = (params = {}, options = {}) => {
@@ -28,31 +28,4 @@ export const useLesson = (id, options = {}) => {
     ...options,
   });
 };
-
-export const useStartLesson = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (lessonId) => learningApi.startLesson(lessonId),
-    onSuccess: (_, lessonId) => {
-      queryClient.invalidateQueries({ queryKey: ["lesson", lessonId] });
-      queryClient.invalidateQueries({ queryKey: ["lesson-progress"] });
-    },
-  });
-};
-
-export const useCompleteLesson = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (lessonId) => learningApi.completeLesson(lessonId),
-    onSuccess: (_, lessonId) => {
-      queryClient.invalidateQueries({ queryKey: ["lesson", lessonId] });
-      queryClient.invalidateQueries({ queryKey: ["lessons"] });
-      queryClient.invalidateQueries({ queryKey: ["lesson-progress"] });
-      queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
-    },
-  });
-};
-
 

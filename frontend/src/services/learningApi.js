@@ -8,9 +8,6 @@ const learningApi = {
   deleteLesson: (id) => axiosClient.delete(`/learning/lessons/${id}/`),
   addWordToLesson: (lessonId, wordId) => axiosClient.post(`/learning/lessons/${lessonId}/words/`, { word_id: wordId }),
   removeWordFromLesson: (lessonId, wordId) => axiosClient.delete(`/learning/lessons/${lessonId}/words/${wordId}/`),
-  startLesson: (id) => axiosClient.post(`/learning/lessons/${id}/start/`),
-  completeLesson: (id) => axiosClient.post(`/learning/lessons/${id}/complete/`),
-
   getReviewList: () => axiosClient.get("/learning/review/"),
   getReviewSummary: () => axiosClient.get("/learning/review/summary/"),
   getReviewHistory: (days = 30) => axiosClient.get("/learning/review/history/", { params: { days } }),

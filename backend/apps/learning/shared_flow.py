@@ -36,6 +36,7 @@ from .models import (
     UserStreak,
     UserUnitProgress,
     UserActivityProgress,
+    UnitActivity,
 )
 
 # XP constants - based on chapter 2.6 table
@@ -190,13 +191,27 @@ def _is_unit_unlocked(user, target_unit: Unit) -> bool:
     units = list(
         Unit.objects.filter(course=target_unit.course, is_published=True).order_by("order_index")
     )
+    unit_ids = [unit.id for unit in units]
     progress_map = {
         progress.unit_id: progress
         for progress in UserUnitProgress.objects.filter(
-            user=user, unit_id__in=[unit.id for unit in units]
+            user=user, unit_id__in=unit_ids
         )
     }
-    return _build_unlock_map(units, progress_map).get(target_unit.id, False)
+    activity_ids = list(
+        UnitActivity.objects.filter(
+            unit_id__in=unit_ids,
+            is_published=True,
+        ).values_list("id", flat=True)
+    )
+    activity_progress_map = {
+        progress.activity_id: progress
+        for progress in UserActivityProgress.objects.filter(
+            user=user,
+            activity_id__in=activity_ids,
+        )
+    }
+    return _build_unlock_map(units, progress_map, activity_progress_map).get(target_unit.id, False)
 
 
 def _detect_difficulty_with_context(user) -> tuple[str, dict]:

@@ -205,11 +205,10 @@ class TestLearningPath:
             )
             for index in range(1, 4)
         ]
-        UnitActivity.objects.create(
+        unit2_activity = UnitActivity.objects.create(
             unit=unit2,
-            activity_type=UnitActivity.ActivityType.VOCAB,
+            activity_type=UnitActivity.ActivityType.QUIZ,
             title="Unit 2 Activity",
-            lesson=lesson,
             order_index=1,
             is_required=True,
             is_published=True,
@@ -227,6 +226,9 @@ class TestLearningPath:
         units = response.data["levels"][0]["units"]
         assert units[0]["unlocked"] is True
         assert units[1]["unlocked"] is True
+
+        start_response = sc.post(ACTIVITY_START_URL(unit2_activity.id), format="json")
+        assert start_response.status_code == 200
 
     def test_listening_path_returns_only_listening_units(self, sc, course_with_dedicated_listening_unit):
         response = sc.get(LISTENING_PATH_URL)

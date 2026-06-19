@@ -299,46 +299,75 @@ const ListeningSessionPage = () => {
         <Stack spacing={2}>
           <Typography sx={{ fontWeight: 800, fontSize: "1.05rem" }}>Câu hỏi nghe hiểu</Typography>
 
-          {questions.map((question, index) => (
-            <Stack
-              key={question.id}
-              spacing={1.25}
-              sx={{
-                pb: 2,
-                borderBottom: index < questions.length - 1 ? "1px solid rgba(0,0,0,0.08)" : "none",
-              }}
-            >
-              <Typography sx={{ fontWeight: 700 }}>
-                Câu {question.order_index}. {question.prompt}
-              </Typography>
+          {questions.map((question, index) => {
+            const correctValue = getCorrectAnswerValue(question);
+            const selectedValue = selectedAnswers[question.id] || "";
+            const submittedAnswer = submittedAnswerMap.get(question.id);
+            const isTextCorrect = showResults && normalizeAnswer(selectedValue) === normalizeAnswer(correctValue);
 
-              {(question.question_type === "multiple_choice" || question.question_type === "true_false") && (
-                <Stack spacing={1}>
-                  {(question.choices_json || []).map((choice) => (
-                    <SbButton
-                      key={`${question.id}-${choice}`}
-                      variant={selectedAnswers[question.id] === choice ? "primary" : "outlined"}
-                      onClick={() => setSelectedAnswers((prev) => ({ ...prev, [question.id]: choice }))}
-                      sx={{ justifyContent: "flex-start" }}
-                    >
-                      {choice}
-                    </SbButton>
-                  ))}
-                </Stack>
-              )}
+            return (
+              <Stack
+                key={question.id}
+                spacing={1.25}
+                sx={{
+                  pb: 2,
+                  borderBottom: index < questions.length - 1 ? "1px solid rgba(0,0,0,0.08)" : "none",
+                }}
+              >
+                <Typography sx={{ fontWeight: 700 }}>
+                  Câu {question.order_index}. {question.prompt}
+                </Typography>
 
-              {question.question_type === "fill_blank" && (
-                <TextField
-                  label="Nhập đáp án"
-                  value={selectedAnswers[question.id] || ""}
-                  onChange={(event) =>
-                    setSelectedAnswers((prev) => ({ ...prev, [question.id]: event.target.value }))
-                  }
-                  fullWidth
-                />
-              )}
-            </Stack>
-          ))}
+                {(question.question_type === "multiple_choice" || question.question_type === "true_false") && (
+                  <Stack spacing={1}>
+                    {(question.choices_json || []).map((choice) => {
+                      const isSelected = selectedValue === choice;
+                      const isCorrectChoice = showResults && normalizeAnswer(choice) === normalizeAnswer(correctValue);
+                      const isWrongChoice = showResults && isSelected && !isCorrectChoice;
+
+                      return (
+                        <SbButton
+                          key={String(question.id) + "-" + choice}
+                          variant={isCorrectChoice || (!showResults && isSelected) ? "primary" : "outlined"}
+                          disabled={showResults}
+                          onClick={() => setSelectedAnswers((prev) => ({ ...prev, [question.id]: choice }))}
+                          sx={{
+                            justifyContent: "space-between",
+                            borderColor: isWrongChoice ? colors.red : undefined,
+                            bgcolor: isWrongChoice ? "rgba(229, 57, 53, 0.08)" : undefined,
+                            color: isWrongChoice ? colors.red : undefined,
+                          }}
+                        >
+                          <span>{choice}</span>
+                          {isCorrectChoice && <Chip size="small" label="Đáp án đúng" color="success" />}
+                          {isWrongChoice && <Chip size="small" label="Bạn chọn" color="error" />}
+                        </SbButton>
+                      );
+                    })}
+                  </Stack>
+                )}
+
+                {question.question_type === "fill_blank" && (
+                  <Stack spacing={1}>
+                    <TextField
+                      label="Nhập đáp án"
+                      value={selectedAnswers[question.id] || ""}
+                      disabled={showResults}
+                      onChange={(event) =>
+                        setSelectedAnswers((prev) => ({ ...prev, [question.id]: event.target.value }))
+                      }
+                      fullWidth
+                    />
+                    {showResults && (
+                      <Alert severity={submittedAnswer?.is_correct || isTextCorrect ? "success" : "error"}>
+                        Đáp án đúng: {correctValue || "Chưa có đáp án mẫu"}
+                      </Alert>
+                    )}
+                  </Stack>
+                )}
+              </Stack>
+            );
+          })}
 
           <Stack
             direction={{ xs: "column", sm: "row" }}
@@ -351,7 +380,7 @@ const ListeningSessionPage = () => {
             </Typography>
             <SbButton
               variant="primary"
-              disabled={!allAnswered}
+              disabled={!allAnswered || showResults}
               loading={submitMutation.isPending}
               onClick={() => submitMutation.mutate()}
               data-cy="listening-submit-btn"
@@ -369,17 +398,51 @@ const ListeningSessionPage = () => {
       )}
 
       {!!result?.summary && (
-        <SbCard>
-          <Stack spacing={0.9}>
-            <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>Kết quả bài nghe</Typography>
-            <Typography>Tổng câu: {result.summary.total_questions}</Typography>
-            <Typography>Đã trả lời: {result.summary.answered_questions}</Typography>
-            <Typography>Đúng: {result.summary.correct_answers}</Typography>
-            <Typography>Điểm: {result.summary.score_pct}%</Typography>
-            <Typography>XP nhận được: {result.summary.xp_earned ?? 0}</Typography>
-            <Typography>
-              Tổng XP hiện tại: {result.summary.total_xp ?? 0} · Level {result.summary.level ?? 1}
-            </Typography>
+        <SbCard
+          sx={{
+            border: "1px solid " + (resultPassed ? colors.greenAccent : colors.red) + "33",
+            bgcolor: resultPassed ? "rgba(0, 137, 83, 0.06)" : "rgba(229, 57, 53, 0.06)",
+          }}
+        >
+          <Stack spacing={1.4}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 800, color: colors.greenStarbucks }}>Kết quả bài nghe</Typography>
+                <Typography sx={{ fontSize: "0.85rem", color: "text.secondary" }}>
+                  {resultPassed ? "Bạn đã đạt yêu cầu bài nghe này." : "Bạn nên nghe lại và xem phần đáp án đúng."}
+                </Typography>
+              </Box>
+              <Chip color={resultPassed ? "success" : "error"} label={resultPassed ? "Đạt" : "Cần luyện lại"} />
+            </Stack>
+            <Box>
+              <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                <Typography sx={{ fontWeight: 700 }}>Điểm nghe</Typography>
+                <Typography sx={{ fontWeight: 800 }}>{resultScore}%</Typography>
+              </Stack>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(100, Math.max(0, resultScore))}
+                sx={{
+                  height: 10,
+                  borderRadius: 8,
+                  bgcolor: "rgba(0,0,0,0.1)",
+                  "& .MuiLinearProgress-bar": { bgcolor: resultPassed ? colors.greenAccent : colors.red },
+                }}
+              />
+            </Box>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              <Chip label={"Tổng câu: " + result.summary.total_questions} />
+              <Chip label={"Đã trả lời: " + result.summary.answered_questions} />
+              <Chip color="success" label={"Đúng: " + result.summary.correct_answers} />
+              <Chip label={"XP: " + (result.summary.xp_earned ?? 0)} />
+              <Chip label={"Tổng XP: " + (result.summary.total_xp ?? 0)} />
+              <Chip label={"Level " + (result.summary.level ?? 1)} />
+            </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ pt: 1 }}>
               <SbButton variant="primary" onClick={handleBackToSource} data-cy="listening-result-back-btn">
                 {backLabel}

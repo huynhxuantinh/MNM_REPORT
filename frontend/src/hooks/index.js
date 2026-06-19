@@ -14,8 +14,6 @@ export {
 export {
   useLessons,
   useLesson,
-  useStartLesson,
-  useCompleteLesson,
 } from "./useLessons";
 
 // Review/SRS hooks
@@ -27,4 +25,3 @@ export {
   useDueCount,
   useReviewSession,
 } from "./useReview";
-
