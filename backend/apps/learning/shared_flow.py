@@ -169,6 +169,17 @@ def _resolve_recommended_start_unit(units, recommended_level: str):
             lesson = getattr(link, "lesson", None)
             if lesson and lesson.is_published and lesson.level:
                 lesson_levels.append(_level_rank(lesson.level))
+        
+        # V2 support: check activities if unit_lessons are empty
+        if not lesson_levels:
+            activities = getattr(unit, "activities", None)
+            if activities is not None:
+                for activity in activities.all():
+                    if activity.is_published and activity.lesson_id and activity.lesson.level:
+                        lesson_levels.append(_level_rank(activity.lesson.level))
+                    elif activity.is_published and activity.listening_passage_id and activity.listening_passage.level:
+                        lesson_levels.append(_level_rank(activity.listening_passage.level))
+        
         if not lesson_levels:
             continue
         unit_rank = min(lesson_levels)
