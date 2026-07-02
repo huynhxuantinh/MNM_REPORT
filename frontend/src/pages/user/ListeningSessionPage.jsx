@@ -557,7 +557,7 @@ const ListeningSessionPage = () => {
                     </Stack>
 
                     <Stack direction="row" spacing={1.5} justifyContent={{ xs: "center", md: "flex-start" }}>
-                      <SbButton variant="primary" onClick={handleBackToSource} sx={{ borderRadius: "50px" }}>
+                      <SbButton variant="primary" onClick={handleBackToSource} sx={{ borderRadius: "50px" }} data-cy="listening-result-back-btn">
                         Tiếp tục học
                       </SbButton>
                       <SbButton variant="outlined" onClick={() => retryMutation.mutate()} loading={retryMutation.isPending} sx={{ borderRadius: "50px" }}>
