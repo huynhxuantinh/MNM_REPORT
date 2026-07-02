@@ -206,3 +206,4 @@ Shortcut nhanh (legacy van dung):
 ```bash
 docker compose up -d
 ```
+docker compose -f deployment/docker/docker-compose.yml up -d
