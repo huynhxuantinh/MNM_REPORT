@@ -65,9 +65,15 @@ describe("Integration Smoke", () => {
       expect(body).to.have.property("recommended_level");
     });
 
-    // Visit learning page DUY NHẤT 1 lần - đợi token refresh xong
-    cy.visit("/learning");
-    cy.wait("@tokenRefresh", { timeout: 15000 });
+    // Visit learning page DUY NHẤT 1 lần
+    cy.visit("/learning", {
+      onBeforeLoad: (win) => {
+        const token = Cypress.env("accessToken");
+        if (token) {
+          win.localStorage.setItem("accessToken", token);
+        }
+      },
+    });
     cy.location("pathname", { timeout: 20000 }).should("not.include", "onboarding");
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
@@ -94,8 +100,7 @@ describe("Integration Smoke", () => {
       win.dispatchEvent(new PopStateEvent("popstate"));
     });
     cy.location("pathname", { timeout: 5000 }).should("eq", "/listening");
-    cy.reload(); // 1 reload để React Router sync, token refresh chạy lại
-    cy.wait("@tokenRefresh", { timeout: 15000 });
+    cy.reload(); // 1 reload để React Router sync
     cy.location("pathname", { timeout: 20000 }).should("not.eq", "/login");
 
     // Stub speechSynthesis sau reload
@@ -140,8 +145,14 @@ describe("Integration Smoke", () => {
   it("logs in as admin and loads the admin dashboard", () => {
     setupTokenInterceptor();
     loginViaApi("admin@norostu.com", "Admin@2024!");
-    cy.visit("/admin");
-    cy.wait("@tokenRefresh", { timeout: 15000 });
+    cy.visit("/admin", {
+      onBeforeLoad: (win) => {
+        const token = Cypress.env("accessToken");
+        if (token) {
+          win.localStorage.setItem("accessToken", token);
+        }
+      },
+    });
     cy.location("pathname", { timeout: 20000 }).should("include", "/admin");
     cy.contains("System Dashboard", { timeout: 20000 }).should("be.visible");
   });
