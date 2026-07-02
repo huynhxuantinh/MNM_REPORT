@@ -297,7 +297,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_data
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_full_catalog --clear
-          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_learning_path
+          docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_learning_v2 --clear
           docker compose -f docker-compose.yml run --rm --no-deps backend python manage.py seed_listening_demo --clear
 
       - name: Start integration app services
