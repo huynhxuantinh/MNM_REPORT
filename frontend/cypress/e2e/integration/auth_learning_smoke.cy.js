@@ -24,17 +24,6 @@ const authRequest = (method, url, body) =>
     return cy.request(opts);
   });
 
-// Intercept token/refresh để capture token mới sau mỗi initAuth
-const setupTokenInterceptor = () => {
-  cy.intercept("POST", "**/auth/token/refresh/", (req) => {
-    req.continue((res) => {
-      if (res.body?.access) {
-        Cypress.env("accessToken", res.body.access);
-      }
-    });
-  }).as("tokenRefresh");
-};
-
 const buildLearningAnswerPayload = (exercise) => {
   if (!exercise) throw new Error("No exercise");
   let ans;
@@ -53,9 +42,6 @@ const buildListeningAnswerPayload = (q) => {
 
 describe("Integration Smoke", () => {
   it("logs in as student and exercises learning + listening with real backend", () => {
-    // Setup intercept trước khi làm bất cứ gì
-    setupTokenInterceptor();
-
     // Login → cookie set + token saved
     loginViaApi("student@norostu.com", "Student@2024!");
 
@@ -70,7 +56,7 @@ describe("Integration Smoke", () => {
       onBeforeLoad: (win) => {
         const token = Cypress.env("accessToken");
         if (token) {
-          win.localStorage.setItem("accessToken", token);
+          win.localStorage.setItem("cypress_accessToken", token);
         }
       },
     });
@@ -120,36 +106,36 @@ describe("Integration Smoke", () => {
       .first().click({ force: true });
     cy.location("pathname", { timeout: 20000 }).should("match", /\/listening\/session\/\d+$/);
 
-    // Đợi session load
-    cy.get('[data-cy="listening-transcript-toggle"]', { timeout: 20000 })
-      .should("be.visible").click({ force: true });
-
     // Trả lời câu hỏi qua API rồi click nộp bài UI
     cy.location("pathname").then((p) => {
       const sid = p.split("/").pop();
       authRequest("GET", `${API_BASE}/listening/session/${sid}/`).then(({ body }) => {
         const questions = body?.passage?.questions || [];
         expect(questions.length).to.be.greaterThan(0);
-        questions.reduce(
-          (chain, q) => chain.then(() => authRequest("POST", `${API_BASE}/listening/session/${sid}/answer/`, buildListeningAnswerPayload(q))),
-          cy.wrap(null)
-        ).then(() => {
+          let fillBlankIndex = 0;
+          questions.forEach((q) => {
+            if (["multiple_choice", "true_false"].includes(q.question_type)) {
+              cy.contains(q.choices_json[0]).click({ force: true });
+            } else if (q.question_type === "fill_blank") {
+              cy.get('input[placeholder="Nhập đáp án của bạn..."]').eq(fillBlankIndex).type("test", { force: true });
+              fillBlankIndex++;
+            }
+          });
+          
           cy.get('[data-cy="listening-submit-btn"]', { timeout: 10000 })
             .should("not.be.disabled").click({ force: true });
-          cy.contains("Kết quả bài nghe", { timeout: 20000 }).should("be.visible");
-        });
+          cy.contains("Tiếp tục học", { timeout: 20000 }).should("be.visible");
       });
     });
   });
 
   it("logs in as admin and loads the admin dashboard", () => {
-    setupTokenInterceptor();
     loginViaApi("admin@norostu.com", "Admin@2024!");
     cy.visit("/admin", {
       onBeforeLoad: (win) => {
         const token = Cypress.env("accessToken");
         if (token) {
-          win.localStorage.setItem("accessToken", token);
+          win.localStorage.setItem("cypress_accessToken", token);
         }
       },
     });

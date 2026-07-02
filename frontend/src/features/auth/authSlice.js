@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import axiosClient from "@/services/axiosClient";
-import { setToken, clearToken } from "@/services/tokenStore";
+import { getToken, setToken, clearToken } from "@/services/tokenStore";
 
 // Đọc user từ localStorage để hiển thị ngay khi tải trang trước khi initAuth hoàn thành
 const loadUser = () => {
@@ -20,13 +20,16 @@ export const initAuth = createAsyncThunk(
   "auth/initAuth",
   async (_, { rejectWithValue }) => {
     try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
-      const { data: refreshData } = await axios.post(
-        `${baseURL}/auth/token/refresh/`,
-        {},
-        { withCredentials: true }
-      );
-      setToken(refreshData.access);
+      let token = getToken();
+      if (!token) {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+        const { data: refreshData } = await axios.post(
+          `${baseURL}/auth/token/refresh/`,
+          {},
+          { withCredentials: true }
+        );
+        setToken(refreshData.access);
+      }
 
       const { data: user } = await axiosClient.get("/auth/me/");
       localStorage.setItem("user", JSON.stringify(user));
