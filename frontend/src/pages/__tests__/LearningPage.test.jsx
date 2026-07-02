@@ -114,7 +114,8 @@ describe("LearningPage", () => {
     renderWithProviders(<LearningPage />, { initialEntries: ["/learning"] });
 
     await waitFor(() => {
-      expect(screen.getByText(/level A2/i)).toBeInTheDocument();
+      expect(screen.getAllByText("A2").length).toBeGreaterThan(0);
+      expect(screen.getByText("Gợi ý")).toBeInTheDocument();
     });
   });
 });

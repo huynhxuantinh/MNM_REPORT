@@ -120,15 +120,29 @@ describe("ListeningSessionPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^Nghe$/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Xem transcript/i })).toBeInTheDocument();
+      expect(screen.getByText(/Listening Demo/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText(/What does Anna take to school\?/i)).toBeInTheDocument();
     expect(container.querySelector('[data-cy="listening-submit-btn"]')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Xem transcript/i }));
-    expect(screen.getByText(/Anna di xe buyt den truong moi buoi sang\./i)).toBeInTheDocument();
+    // To see the transcript, first we have to submit the test because it is hidden during the active test.
+    fireEvent.click(container.querySelector('[data-cy="listening-submit-btn"]'));
+    
+    // Wait for the results to show up and then toggle transcript
+    await waitFor(() => {
+      expect(screen.getByText(/Tuyệt vời!/i)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Anna di xe buyt den truong moi buoi sang\./i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Ẩn/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Transcript đang bị ẩn/i)).toBeInTheDocument();
+    });
 
     fireEvent.click(container.querySelector('[data-cy="listening-back-btn"]'));
     expect(mockNavigate).toHaveBeenCalledWith("/listening");
