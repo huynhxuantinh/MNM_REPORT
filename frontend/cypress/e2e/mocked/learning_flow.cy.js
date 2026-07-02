@@ -365,11 +365,33 @@ describe("Student Learning Flow", () => {
     cy.wait("@listeningSession");
     cy.url().should("include", "/listening/session/901");
 
-    cy.contains("button", /^Nghe$/i).should("be.visible").click({ force: true });
+    // Click play audio (using the Replay or Play icon inside the player)
+    cy.get('svg[data-testid="PlayArrowRoundedIcon"]').first().click({ force: true });
     cy.get("@cancelStub").should("have.been.called");
     cy.get("@speakStub").should("have.been.called");
 
-    cy.contains("button", /Xem transcript/i).click({ force: true });
+    // Answer the multiple choice question to unlock submit
+    cy.contains("bus").click({ force: true });
+
+    // Mock answer and finish endpoints
+    cy.intercept("POST", "**/api/v1/listening/session/901/answer/**", {
+      statusCode: 200,
+      body: { status: "success" },
+    }).as("submitAnswer");
+    
+    cy.intercept("POST", "**/api/v1/listening/session/901/finish/**", {
+      statusCode: 200,
+      body: {
+        summary: { score_pct: 100, level: "A1" }
+      },
+    }).as("finishSession");
+
+    // Submit
+    cy.get('[data-cy="listening-submit-btn"]').click({ force: true });
+    cy.wait("@submitAnswer");
+    cy.wait("@finishSession");
+
+    // After submitting, the transcript is automatically shown
     cy.contains(/Anna takes a bus to school every morning\./i).should("be.visible");
     cy.contains(/Anna đi xe buýt đến trường mỗi buổi sáng\./i).should("be.visible");
   });
